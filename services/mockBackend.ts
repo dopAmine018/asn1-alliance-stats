@@ -4,11 +4,11 @@ import { Player, PlayerFilter, ApiResponse, AuthResponse, VsWeek, VsRecord } fro
 
 // --- Configuration ---
 
-// User Provided Credentials (Hardcoded as reliable fallback for preview)
+// User Provided Credentials
 const PROVIDED_URL = "https://fgrzuylyxfogejwmeakn.supabase.co";
 const PROVIDED_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZncnp1eWx5eGZvZ2Vqd21lYWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxMjYxMjQsImV4cCI6MjA4MDcwMjEyNH0.-8XkyWwjZIkC3OPrRfNs8vmnRtauee0H2xFz_A0doy8";
 
-// Safe helper to access environment variables without crashing
+// Safe helper to access environment variables
 const getEnv = (key: string): string => {
   try {
     // @ts-ignore
@@ -28,15 +28,26 @@ const getEnv = (key: string): string => {
 };
 
 // Prioritize Env Vars, fallback to Provided Keys
-const supabaseUrl = getEnv('VITE_SUPABASE_URL') || getEnv('REACT_APP_SUPABASE_URL') || PROVIDED_URL;
-const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('REACT_APP_SUPABASE_ANON_KEY') || PROVIDED_KEY;
+const rawUrl = getEnv('VITE_SUPABASE_URL') || getEnv('REACT_APP_SUPABASE_URL') || PROVIDED_URL;
+const rawKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('REACT_APP_SUPABASE_ANON_KEY') || PROVIDED_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn("Supabase credentials missing. App may not function correctly.");
+// Ensure we have valid strings to prevent client crash
+const supabaseUrl = rawUrl?.trim() || 'https://placeholder.supabase.co';
+const supabaseKey = rawKey?.trim() || 'placeholder';
+
+if (supabaseUrl === 'https://placeholder.supabase.co') {
+  console.warn("Supabase credentials missing. App will fail to fetch data.");
 }
 
 // Initialize Supabase Client (100% Online Mode)
-const supabase = createClient(supabaseUrl, supabaseKey);
+// CONFIG FIX: Disable auth persistence to prevent 'Failed to fetch' in sandboxed iframes
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false
+  }
+});
 
 // --- Helpers ---
 
@@ -97,6 +108,19 @@ const mapPlayerToDb = (p: Partial<Player>) => {
   return out;
 };
 
+// Retry helper for flaky connections
+const fetchWithRetry = async (fn: () => Promise<any>, retries = 3): Promise<any> => {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries > 0) {
+      await new Promise(res => setTimeout(res, 500)); // wait 500ms
+      return fetchWithRetry(fn, retries - 1);
+    }
+    throw error;
+  }
+};
+
 // --- API Implementation ---
 
 export const MockApi = {
@@ -105,44 +129,44 @@ export const MockApi = {
   },
 
   getPlayers: async (filter: PlayerFilter): Promise<{ items: Player[]; total: number }> => {
-    let query = supabase.from('players').select('*', { count: 'exact' });
+    return fetchWithRetry(async () => {
+        let query = supabase.from('players').select('*', { count: 'exact' });
 
-    if (filter.activeOnly) query = query.eq('active', true);
-    if (filter.language !== 'all') query = query.eq('language', filter.language);
-    if (filter.search) query = query.ilike('name_normalized', `%${filter.search}%`);
+        if (filter.activeOnly) query = query.eq('active', true);
+        if (filter.language !== 'all') query = query.eq('language', filter.language);
+        if (filter.search) query = query.ilike('name_normalized', `%${filter.search}%`);
 
-    if (filter.sort === 'power_desc') query = query.order('first_squad_power', { ascending: false });
-    else if (filter.sort === 'power_asc') query = query.order('first_squad_power', { ascending: true });
-    else if (filter.sort === 'total_hero_power_desc') query = query.order('total_hero_power', { ascending: false });
-    else if (filter.sort === 'total_hero_power_asc') query = query.order('total_hero_power', { ascending: true });
-    else if (filter.sort === 'time_asc') query = query.order('updated_at', { ascending: true });
-    else query = query.order('updated_at', { ascending: false });
+        if (filter.sort === 'power_desc') query = query.order('first_squad_power', { ascending: false });
+        else if (filter.sort === 'power_asc') query = query.order('first_squad_power', { ascending: true });
+        else if (filter.sort === 'total_hero_power_desc') query = query.order('total_hero_power', { ascending: false });
+        else if (filter.sort === 'total_hero_power_asc') query = query.order('total_hero_power', { ascending: true });
+        else if (filter.sort === 'time_asc') query = query.order('updated_at', { ascending: true });
+        else query = query.order('updated_at', { ascending: false });
 
-    const { data, count, error } = await query;
-    if (error) { 
-      console.error("Supabase Error (getPlayers):", JSON.stringify(error, null, 2)); 
-      throw new Error(error.message || "Unknown Database Error");
-    }
-    
-    return { items: (data || []).map(mapPlayerFromDb), total: count || 0 };
+        const { data, count, error } = await query;
+        if (error) throw error;
+        
+        return { items: (data || []).map(mapPlayerFromDb), total: count || 0 };
+    });
   },
 
   upsertPlayer: async (playerData: Partial<Player>): Promise<ApiResponse<Player>> => {
     const nameNormalized = playerData.name?.trim().toLowerCase().replace(/\s+/g, ' ') || '';
-    
     const payload = mapPlayerToDb({ ...playerData, nameNormalized });
     
-    const { data, error } = await supabase
-      .from('players')
-      .upsert(payload, { onConflict: 'language,name_normalized' })
-      .select()
-      .single();
+    try {
+        const { data, error } = await supabase
+          .from('players')
+          .upsert(payload, { onConflict: 'language,name_normalized' })
+          .select()
+          .single();
 
-    if (error) {
-      console.error("Supabase Error (upsertPlayer):", JSON.stringify(error, null, 2));
-      return { success: false, error: error.message };
+        if (error) throw error;
+        return { success: true, data: mapPlayerFromDb(data) };
+    } catch (e: any) {
+        console.error("Upsert Failed:", e);
+        return { success: false, error: e.message || "Failed to save" };
     }
-    return { success: true, data: mapPlayerFromDb(data) };
   },
 
   login: async (username: string, password: string): Promise<ApiResponse<AuthResponse>> => {
@@ -163,7 +187,6 @@ export const MockApi = {
   adminUpdatePlayer: async (id: string, updates: Partial<Player>): Promise<ApiResponse<Player>> => {
     const payload = mapPlayerToDb(updates);
     const { data, error } = await supabase.from('players').update(payload).eq('id', id).select().single();
-    
     if (error) return { success: false, error: error.message };
     return { success: true, data: mapPlayerFromDb(data) };
   },
@@ -177,12 +200,14 @@ export const MockApi = {
 
 export const VsApi = {
   getWeeks: async (): Promise<VsWeek[]> => {
-    const { data, error } = await supabase.from('vs_weeks').select('*').order('created_at', { ascending: false });
-    if (error) {
-      console.error("Supabase Error (getWeeks):", JSON.stringify(error, null, 2));
-      return [];
+    try {
+        const { data, error } = await supabase.from('vs_weeks').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        return (data || []).map((w: any) => ({ id: w.id, name: w.name, createdAt: w.created_at }));
+    } catch (e) {
+        console.error("Get Weeks Failed", e);
+        return [];
     }
-    return (data || []).map((w: any) => ({ id: w.id, name: w.name, createdAt: w.created_at }));
   },
 
   createWeek: async (name: string): Promise<VsWeek> => {
@@ -192,15 +217,17 @@ export const VsApi = {
   },
 
   getRecords: async (weekId: string): Promise<VsRecord[]> => {
-    const { data, error } = await supabase.from('vs_records').select('*').eq('week_id', weekId);
-    if (error) {
-      console.error("Supabase Error (getRecords):", JSON.stringify(error, null, 2));
-      return [];
+    try {
+        const { data, error } = await supabase.from('vs_records').select('*').eq('week_id', weekId);
+        if (error) throw error;
+        return (data || []).map((r: any) => ({
+          id: r.id, weekId: r.week_id, playerName: r.player_name,
+          mon: r.mon, tue: r.tue, wed: r.wed, thu: r.thu, fri: r.fri, sat: r.sat, total: r.total
+        }));
+    } catch (e) {
+        console.error("Get Records Failed", e);
+        return [];
     }
-    return (data || []).map((r: any) => ({
-      id: r.id, weekId: r.week_id, playerName: r.player_name,
-      mon: r.mon, tue: r.tue, wed: r.wed, thu: r.thu, fri: r.fri, sat: r.sat, total: r.total
-    }));
   },
 
   addPlayerToWeek: async (weekId: string, playerName: string): Promise<VsRecord> => {
