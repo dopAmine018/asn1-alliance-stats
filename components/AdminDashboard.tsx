@@ -4,6 +4,7 @@ import { MockApi } from '../services/mockBackend';
 import { Player, PlayerFilter } from '../types';
 import { useLanguage } from '../utils/i18n';
 import VsTracker from './VsTracker';
+import { CustomDropdown } from './CustomDropdown';
 
 const AdminDashboard: React.FC = () => {
   const { t } = useLanguage();
@@ -16,20 +17,123 @@ const AdminDashboard: React.FC = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<PlayerFilter>({ language: 'all', search: '', sort: 'time_desc', activeOnly: false });
-  const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // Edit State
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [editForm, setEditForm] = useState<Record<string, any>>({});
 
   useEffect(() => { if (token && activeTab === 'db') fetchPlayers(); }, [token, filter, activeTab]);
 
-  const handleLogin = async (e: React.FormEvent) => { e.preventDefault(); setLoading(true); const res = await MockApi.login('admin', password); setLoading(false); if (res.success && res.data) { setToken(res.data.token); } else { setError(res.error || 'Login failed'); } };
+  const handleLogin = async (e: React.FormEvent) => { 
+      e.preventDefault(); 
+      setLoading(true); 
+      const res = await MockApi.login('admin', password); 
+      setLoading(false); 
+      if (res.success && res.data) { 
+          // FIX: Persist token to localStorage so user stays logged in
+          localStorage.setItem('asn1_auth_token', res.data.token);
+          setToken(res.data.token); 
+      } else { 
+          setError(res.error || 'Login failed'); 
+      } 
+  };
+
   const handleLogout = () => { MockApi.logout(); setToken(null); };
   const fetchPlayers = async () => { setLoading(true); const res = await MockApi.getPlayers(filter); setPlayers(res.items); setLoading(false); };
   const handleDelete = async (id: string) => { if (!window.confirm('Confirm Deletion?')) return; await MockApi.adminDeletePlayer(id); fetchPlayers(); };
   const handleToggleActive = async (player: Player) => { await MockApi.adminUpdatePlayer(player.id, { active: !player.active }); fetchPlayers(); };
-  const startEdit = (player: Player) => { setEditingId(player.id); setEditForm({ ...player, firstSquadPower: player.firstSquadPower / 1000000 }); };
-  const saveEdit = async () => { if(!editingId) return; const payload = { ...editForm, firstSquadPower: (Number(editForm.firstSquadPower) || 0) * 1000000 }; await MockApi.adminUpdatePlayer(editingId, payload); setEditingId(null); fetchPlayers(); };
-  const handleEditChange = (field: keyof Player, value: any) => { setEditForm(prev => ({ ...prev, [field]: value })); };
+  
   const formatPower = (val: number | undefined) => { if (!val) return '-'; return (val / 1000000).toLocaleString(undefined, { maximumFractionDigits: 2 }) + 'M'; };
+
+  // --- Edit Logic ---
+  const startEdit = (player: Player) => {
+    setEditingPlayer(player);
+    setEditForm({
+      ...player,
+      firstSquadPower: player.firstSquadPower / 1000000,
+      secondSquadPower: (player.secondSquadPower || 0) / 1000000,
+      thirdSquadPower: (player.thirdSquadPower || 0) / 1000000,
+      fourthSquadPower: (player.fourthSquadPower || 0) / 1000000,
+      totalHeroPower: (player.totalHeroPower || 0) / 1000000,
+    });
+  };
+
+  const handleEditChange = (field: string, value: any) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const saveEdit = async () => {
+    if (!editingPlayer) return;
+    
+    try {
+      const normalizePower = (val: any) => (Number(val) || 0) * 1000000;
+      
+      const payload: Partial<Player> = {
+        name: editForm.name,
+        language: editForm.language,
+        active: editForm.active,
+        
+        firstSquadPower: normalizePower(editForm.firstSquadPower),
+        secondSquadPower: normalizePower(editForm.secondSquadPower),
+        thirdSquadPower: normalizePower(editForm.thirdSquadPower),
+        fourthSquadPower: normalizePower(editForm.fourthSquadPower),
+        totalHeroPower: normalizePower(editForm.totalHeroPower),
+        
+        heroPercent: Number(editForm.heroPercent),
+        duelPercent: Number(editForm.duelPercent),
+        unitsPercent: Number(editForm.unitsPercent),
+        
+        t10Morale: Number(editForm.t10Morale),
+        t10Protection: Number(editForm.t10Protection),
+        t10Hp: Number(editForm.t10Hp),
+        t10Atk: Number(editForm.t10Atk),
+        t10Def: Number(editForm.t10Def),
+        
+        techLevel: Number(editForm.techLevel),
+        barracksLevel: Number(editForm.barracksLevel),
+        tankCenterLevel: Number(editForm.tankCenterLevel),
+        airCenterLevel: Number(editForm.airCenterLevel),
+        missileCenterLevel: Number(editForm.missileCenterLevel),
+      };
+
+      await MockApi.adminUpdatePlayer(editingPlayer.id, payload);
+      setEditingPlayer(null);
+      fetchPlayers();
+    } catch (e) {
+      alert("Error saving: " + e);
+    }
+  };
+
+  // --- Components ---
+  const EditInput = ({ label, field, type="text", step }: any) => (
+    <div className="flex flex-col gap-1">
+      <label className="text-[10px] uppercase font-bold text-slate-500">{label}</label>
+      <input 
+        type={type} 
+        step={step}
+        className="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white text-sm focus:border-sky-500 outline-none"
+        value={editForm[field] || ''}
+        onChange={(e) => handleEditChange(field, e.target.value)}
+      />
+    </div>
+  );
+
+  const EditDropdown = ({ label, field, max }: any) => {
+     const options = Array.from({length: max}, (_, i) => ({ value: i + 1, label: String(i + 1) }));
+     return (
+       <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase font-bold text-slate-500">{label}</label>
+          <CustomDropdown 
+            value={editForm[field]} 
+            onChange={(v) => handleEditChange(field, v)} 
+            options={options} 
+            color="blue" 
+            disableSearch={true}
+            className="text-xs"
+          />
+       </div>
+     );
+  };
 
   if (!token) {
     return (
@@ -42,7 +146,15 @@ const AdminDashboard: React.FC = () => {
            {error && <div className="bg-red-950/20 text-red-500 text-xs p-3 rounded mb-4 border border-red-500/20">{error}</div>}
            <form onSubmit={handleLogin} className="space-y-6">
                <div className="relative">
-                   <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:border-sky-500 outline-none text-sm transition-all" placeholder={t('admin.password')} />
+                   <input 
+                    name="password"
+                    autoComplete="current-password"
+                    type={showPassword ? "text" : "password"} 
+                    value={password} 
+                    onChange={e => setPassword(e.target.value)} 
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:border-sky-500 outline-none text-sm transition-all" 
+                    placeholder={t('admin.password')} 
+                   />
                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute end-3 top-3.5 text-slate-500 hover:text-white text-xs uppercase tracking-wider font-bold">{showPassword ? "HIDE" : "SHOW"}</button>
                </div>
                <button className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-sm tracking-widest transition-all">{t('admin.login.btn')}</button>
@@ -76,22 +188,89 @@ const AdminDashboard: React.FC = () => {
                         <tr> <th className="px-6 py-4">{t('admin.status')}</th> <th className="px-6 py-4">{t('admin.identity')}</th> <th className="px-6 py-4">{t('label.power')} (M)</th> <th className="px-6 py-4">{t('label.language')}</th> <th className="px-6 py-4 text-right">{t('admin.control')}</th> </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                        {players.map(player => {
-                            const isEditing = editingId === player.id;
-                            return (
-                                <tr key={player.id} className="hover:bg-white/5 transition-colors">
-                                    <td className="px-6 py-4"><button onClick={() => handleToggleActive(player)} className={`w-8 h-4 rounded-full relative transition-colors ${player.active ? 'bg-emerald-900/30 border border-emerald-500/50' : 'bg-slate-800 border border-slate-600'}`}><div className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full transition-transform ${player.active ? 'translate-x-4 bg-emerald-500' : 'bg-slate-500'}`}></div></button></td>
-                                    <td className="px-6 py-4 font-medium text-white">{isEditing ? (<input className="bg-slate-900 border border-sky-500 rounded px-2 py-1 w-full text-white outline-none" value={editForm.name} onChange={(e) => handleEditChange('name', e.target.value)} />) : player.name}</td>
-                                    <td className="px-6 py-4 font-mono text-sky-400">{isEditing ? (<input type="number" step="0.1" className="bg-slate-900 border border-sky-500 rounded px-2 py-1 w-24 text-white outline-none" value={editForm.firstSquadPower} onChange={(e) => handleEditChange('firstSquadPower', e.target.value)} />) : formatPower(player.firstSquadPower)}</td>
-                                    <td className="px-6 py-4"><span className="text-[10px] font-bold border border-slate-700 px-2 py-1 rounded bg-slate-800 uppercase">{player.language.substring(0,3)}</span></td>
-                                    <td className="px-6 py-4 text-right space-x-2">{isEditing ? (<><button onClick={saveEdit} className="text-emerald-500 hover:text-emerald-400 text-xs font-bold uppercase">{t('admin.save')}</button><button onClick={() => setEditingId(null)} className="text-slate-500 hover:text-slate-400 text-xs font-bold uppercase">{t('admin.cancel')}</button></>) : (<><button onClick={() => startEdit(player)} className="text-sky-500 hover:text-sky-400 text-xs font-bold uppercase">{t('admin.edit')}</button><button onClick={() => handleDelete(player.id)} className="text-rose-500 hover:text-rose-400 text-xs font-bold uppercase">{t('admin.del')}</button></>)}</td>
-                                </tr>
-                            );
-                        })}
+                        {players.map(player => (
+                            <tr key={player.id} className="hover:bg-white/5 transition-colors">
+                                <td className="px-6 py-4"><button onClick={() => handleToggleActive(player)} className={`w-8 h-4 rounded-full relative transition-colors ${player.active ? 'bg-emerald-900/30 border border-emerald-500/50' : 'bg-slate-800 border border-slate-600'}`}><div className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full transition-transform ${player.active ? 'translate-x-4 bg-emerald-500' : 'bg-slate-500'}`}></div></button></td>
+                                <td className="px-6 py-4 font-medium text-white">{player.name}</td>
+                                <td className="px-6 py-4 font-mono text-sky-400">{formatPower(player.firstSquadPower)}</td>
+                                <td className="px-6 py-4"><span className="text-[10px] font-bold border border-slate-700 px-2 py-1 rounded bg-slate-800 uppercase">{player.language.substring(0,3)}</span></td>
+                                <td className="px-6 py-4 text-right space-x-2">
+                                  <button onClick={() => startEdit(player)} className="text-sky-500 hover:text-sky-400 text-xs font-bold uppercase">{t('admin.edit')}</button>
+                                  <button onClick={() => handleDelete(player.id)} className="text-rose-500 hover:text-rose-400 text-xs font-bold uppercase">{t('admin.del')}</button>
+                                </td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
                 </div>
           </div>
+      )}
+
+      {/* Full Edit Modal */}
+      {editingPlayer && (
+        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+           <div className="bg-[#0f172a] w-full max-w-4xl rounded-2xl border border-slate-700 shadow-2xl my-8 flex flex-col max-h-[90vh]">
+              {/* Header */}
+              <div className="p-6 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
+                  <h3 className="text-lg font-header font-bold text-white uppercase tracking-widest">Editing: <span className="text-sky-400">{editingPlayer.name}</span></h3>
+                  <button onClick={() => setEditingPlayer(null)} className="text-slate-400 hover:text-white p-2">✕</button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 overflow-y-auto custom-scrollbar space-y-8">
+                  {/* Section 1: Identity & Power */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                          <h4 className="text-xs font-bold text-sky-500 uppercase tracking-widest border-b border-slate-800 pb-2">Identity & Powers (M)</h4>
+                          <EditInput label="Name" field="name" />
+                          <div className="grid grid-cols-2 gap-4">
+                              <EditInput label="Squad 1 (M)" field="firstSquadPower" type="number" step="0.1" />
+                              <EditInput label="Squad 2 (M)" field="secondSquadPower" type="number" step="0.1" />
+                              <EditInput label="Squad 3 (M)" field="thirdSquadPower" type="number" step="0.1" />
+                              <EditInput label="Squad 4 (M)" field="fourthSquadPower" type="number" step="0.1" />
+                              <div className="col-span-2">
+                                <EditInput label="Total Hero Power (M)" field="totalHeroPower" type="number" step="0.1" />
+                              </div>
+                          </div>
+                      </div>
+
+                      <div className="space-y-4">
+                           <h4 className="text-xs font-bold text-sky-500 uppercase tracking-widest border-b border-slate-800 pb-2">Percentages & T10</h4>
+                           <div className="grid grid-cols-3 gap-4">
+                              <EditInput label="Hero %" field="heroPercent" type="number" />
+                              <EditInput label="Duel %" field="duelPercent" type="number" />
+                              <EditInput label="Units %" field="unitsPercent" type="number" />
+                           </div>
+                           <div className="grid grid-cols-3 gap-4 pt-2">
+                              <EditDropdown label="Morale" field="t10Morale" max={10} />
+                              <EditDropdown label="Prot" field="t10Protection" max={10} />
+                              <EditDropdown label="HP" field="t10Hp" max={10} />
+                              <EditDropdown label="Atk" field="t10Atk" max={10} />
+                              <EditDropdown label="Def" field="t10Def" max={10} />
+                           </div>
+                      </div>
+                  </div>
+
+                  {/* Section 2: Buildings */}
+                  <div>
+                      <h4 className="text-xs font-bold text-sky-500 uppercase tracking-widest border-b border-slate-800 pb-2 mb-4">Building Levels</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                          <EditDropdown label="Tech" field="techLevel" max={35} />
+                          <EditDropdown label="Barracks" field="barracksLevel" max={35} />
+                          <EditDropdown label="Tank" field="tankCenterLevel" max={35} />
+                          <EditDropdown label="Air" field="airCenterLevel" max={35} />
+                          <EditDropdown label="Missile" field="missileCenterLevel" max={35} />
+                      </div>
+                  </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-slate-700 bg-slate-900/50 flex justify-end gap-3">
+                  <button onClick={() => setEditingPlayer(null)} className="px-6 py-2 rounded-lg border border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-bold uppercase tracking-widest">Cancel</button>
+                  <button onClick={saveEdit} className="px-6 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-emerald-500/20">Save Changes</button>
+              </div>
+           </div>
+        </div>
       )}
     </div>
   );
