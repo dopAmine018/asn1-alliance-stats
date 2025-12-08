@@ -30,7 +30,6 @@ const AdminDashboard: React.FC = () => {
       const res = await MockApi.login('admin', password); 
       setLoading(false); 
       if (res.success && res.data) { 
-          // FIX: Persist token to localStorage so user stays logged in
           localStorage.setItem('asn1_auth_token', res.data.token);
           setToken(res.data.token); 
       } else { 
@@ -177,31 +176,62 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {activeTab === 'vs' ? ( <VsTracker /> ) : (
-          <div className="bg-[#0f172a] rounded-xl overflow-hidden border border-slate-700/50">
-                <div className="p-4 border-b border-slate-700/50 flex gap-4 bg-slate-900">
-                     <input type="text" placeholder={t('admin.filter')} className="bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-xs text-white focus:border-sky-500 outline-none w-64 font-mono" value={filter.search} onChange={(e) => setFilter(prev => ({...prev, search: e.target.value}))} />
+          <div className="bg-[#0f172a] rounded-xl border border-slate-700/50 flex flex-col">
+                <div className="p-4 border-b border-slate-700/50 flex flex-col sm:flex-row gap-4 bg-slate-900">
+                     <input type="text" placeholder={t('admin.filter')} className="bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-xs text-white focus:border-sky-500 outline-none w-full sm:w-64 font-mono" value={filter.search} onChange={(e) => setFilter(prev => ({...prev, search: e.target.value}))} />
                      <button onClick={() => setFilter(prev => ({...prev, activeOnly: !prev.activeOnly}))} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase border transition-all ${filter.activeOnly ? 'bg-sky-500 border-sky-500 text-white' : 'bg-transparent border-slate-700 text-slate-400'}`}>{filter.activeOnly ? t('admin.active_only') : t('admin.all_records')}</button>
                 </div>
-                <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-slate-300">
-                    <thead className="bg-slate-950 text-[10px] uppercase font-bold text-slate-500 tracking-widest border-b border-slate-800">
-                        <tr> <th className="px-6 py-4">{t('admin.status')}</th> <th className="px-6 py-4">{t('admin.identity')}</th> <th className="px-6 py-4">{t('label.power')} (M)</th> <th className="px-6 py-4">{t('label.language')}</th> <th className="px-6 py-4 text-right">{t('admin.control')}</th> </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800">
-                        {players.map(player => (
-                            <tr key={player.id} className="hover:bg-white/5 transition-colors">
-                                <td className="px-6 py-4"><button onClick={() => handleToggleActive(player)} className={`w-8 h-4 rounded-full relative transition-colors ${player.active ? 'bg-emerald-900/30 border border-emerald-500/50' : 'bg-slate-800 border border-slate-600'}`}><div className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full transition-transform ${player.active ? 'translate-x-4 bg-emerald-500' : 'bg-slate-500'}`}></div></button></td>
-                                <td className="px-6 py-4 font-medium text-white">{player.name}</td>
-                                <td className="px-6 py-4 font-mono text-sky-400">{formatPower(player.firstSquadPower)}</td>
-                                <td className="px-6 py-4"><span className="text-[10px] font-bold border border-slate-700 px-2 py-1 rounded bg-slate-800 uppercase">{player.language.substring(0,3)}</span></td>
-                                <td className="px-6 py-4 text-right space-x-2">
-                                  <button onClick={() => startEdit(player)} className="text-sky-500 hover:text-sky-400 text-xs font-bold uppercase">{t('admin.edit')}</button>
-                                  <button onClick={() => handleDelete(player.id)} className="text-rose-500 hover:text-rose-400 text-xs font-bold uppercase">{t('admin.del')}</button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                
+                {/* Desktop Table View (Hidden on Mobile) */}
+                <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left text-sm text-slate-300">
+                        <thead className="bg-slate-950 text-[10px] uppercase font-bold text-slate-500 tracking-widest border-b border-slate-800">
+                            <tr> <th className="px-6 py-4">{t('admin.status')}</th> <th className="px-6 py-4">{t('admin.identity')}</th> <th className="px-6 py-4">{t('label.power')} (M)</th> <th className="px-6 py-4">{t('label.language')}</th> <th className="px-6 py-4 text-right">{t('admin.control')}</th> </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800">
+                            {players.map(player => (
+                                <tr key={player.id} className="hover:bg-white/5 transition-colors">
+                                    <td className="px-6 py-4"><button onClick={() => handleToggleActive(player)} className={`w-8 h-4 rounded-full relative transition-colors ${player.active ? 'bg-emerald-900/30 border border-emerald-500/50' : 'bg-slate-800 border border-slate-600'}`}><div className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full transition-transform ${player.active ? 'translate-x-4 bg-emerald-500' : 'bg-slate-500'}`}></div></button></td>
+                                    <td className="px-6 py-4 font-medium text-white">{player.name}</td>
+                                    <td className="px-6 py-4 font-mono text-sky-400">{formatPower(player.firstSquadPower)}</td>
+                                    <td className="px-6 py-4"><span className="text-[10px] font-bold border border-slate-700 px-2 py-1 rounded bg-slate-800 uppercase">{player.language.substring(0,3)}</span></td>
+                                    <td className="px-6 py-4 text-right space-x-2">
+                                    <button onClick={() => startEdit(player)} className="text-sky-500 hover:text-sky-400 text-xs font-bold uppercase">{t('admin.edit')}</button>
+                                    <button onClick={() => handleDelete(player.id)} className="text-rose-500 hover:text-rose-400 text-xs font-bold uppercase">{t('admin.del')}</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Mobile Card View (Hidden on Desktop) */}
+                <div className="md:hidden p-4 space-y-4">
+                    {players.map(player => (
+                        <div key={player.id} className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex flex-col gap-3 relative overflow-hidden">
+                             <div className={`absolute top-0 left-0 w-1 h-full ${player.active ? 'bg-emerald-500' : 'bg-slate-600'}`}></div>
+                             <div className="flex justify-between items-start pl-3">
+                                 <div>
+                                     <h3 className="text-white font-bold">{player.name}</h3>
+                                     <span className="text-[10px] font-mono text-slate-500 uppercase">{player.language}</span>
+                                 </div>
+                                 <div className="font-mono text-sky-400 text-sm font-bold">
+                                     {formatPower(player.firstSquadPower)}
+                                 </div>
+                             </div>
+                             
+                             <div className="flex justify-between items-center pl-3 pt-2 border-t border-slate-800">
+                                 <div className="flex items-center gap-2">
+                                     <span className="text-[10px] uppercase text-slate-500 font-bold">{t('admin.status')}:</span>
+                                     <button onClick={() => handleToggleActive(player)} className={`w-8 h-4 rounded-full relative transition-colors ${player.active ? 'bg-emerald-900/30 border border-emerald-500/50' : 'bg-slate-800 border border-slate-600'}`}><div className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full transition-transform ${player.active ? 'translate-x-4 bg-emerald-500' : 'bg-slate-500'}`}></div></button>
+                                 </div>
+                                 <div className="flex gap-3">
+                                     <button onClick={() => startEdit(player)} className="text-sky-500 text-xs font-bold uppercase border border-sky-500/30 px-2 py-1 rounded hover:bg-sky-500/10">{t('admin.edit')}</button>
+                                     <button onClick={() => handleDelete(player.id)} className="text-rose-500 text-xs font-bold uppercase border border-rose-500/30 px-2 py-1 rounded hover:bg-rose-500/10">{t('admin.del')}</button>
+                                 </div>
+                             </div>
+                        </div>
+                    ))}
                 </div>
           </div>
       )}

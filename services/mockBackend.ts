@@ -31,7 +31,6 @@ const getEnv = (key: string): string => {
 const rawUrl = getEnv('VITE_SUPABASE_URL') || getEnv('REACT_APP_SUPABASE_URL') || PROVIDED_URL;
 const rawKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('REACT_APP_SUPABASE_ANON_KEY') || PROVIDED_KEY;
 
-// Ensure we have valid strings to prevent client crash
 const supabaseUrl = rawUrl?.trim() || 'https://placeholder.supabase.co';
 const supabaseKey = rawKey?.trim() || 'placeholder';
 
@@ -40,7 +39,7 @@ if (supabaseUrl === 'https://placeholder.supabase.co') {
 }
 
 // Initialize Supabase Client (100% Online Mode)
-// CONFIG FIX: Disable auth persistence to prevent 'Failed to fetch' in sandboxed iframes
+// CONFIG: Disable auth persistence to prevent 'Failed to fetch' in sandboxed iframes
 const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     persistSession: false,

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Player } from '../types';
 import { useLanguage } from '../utils/i18n';
 
@@ -25,6 +25,7 @@ const MoraleIcon = () => <svg className="w-3 h-3" fill="currentColor" viewBox="0
 
 const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
   const { t, language } = useLanguage();
+  const [showSquads, setShowSquads] = useState(false);
 
   const LangBadge = ({ lang }: { lang: string }) => {
     const labels: Record<string, string> = { english: 'ENG', arabic: 'ARA', turkish: 'TUR', indonesian: 'IND' };
@@ -90,12 +91,52 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
           {/* Stats Body */}
           <div className="p-5 flex-1 space-y-6">
              
-             {/* Primary Power */}
-             <div className="flex justify-between items-end border-b border-white/5 pb-4">
-                 <div>
-                     <p className="text-[9px] font-bold text-sky-500 uppercase tracking-[0.2em] mb-1">{t('label.power')}</p>
+             {/* Primary Power & Popover for Secondary Squads */}
+             <div className="flex justify-between items-end border-b border-white/5 pb-4 relative">
+                 <div className="relative">
+                     <div 
+                        className="flex items-center gap-2 cursor-pointer select-none"
+                        onClick={() => setShowSquads(!showSquads)}
+                        onMouseEnter={() => setShowSquads(true)}
+                        onMouseLeave={() => setShowSquads(false)}
+                     >
+                        <p className="text-[9px] font-bold text-sky-500 uppercase tracking-[0.2em] mb-1 flex items-center gap-1 group-hover/label:text-sky-400 transition-colors">
+                            {t('label.power')}
+                            {hasExtraSquads && (
+                                <span className="bg-sky-500/10 text-sky-400 text-[8px] px-1.5 py-0.5 rounded border border-sky-500/20">
+                                    +SQUADS
+                                </span>
+                            )}
+                        </p>
+                     </div>
                      <p className="text-2xl font-mono font-bold text-white">{formatNumber(player.firstSquadPower)}</p>
+
+                     {/* Popover Tooltip */}
+                     {hasExtraSquads && (
+                        <div 
+                            className={`absolute bottom-full left-0 mb-2 z-20 w-48 bg-slate-900 border border-sky-500/30 shadow-2xl rounded-lg p-3 transition-all duration-200 pointer-events-none ${showSquads ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
+                        >
+                            <div className="space-y-2">
+                                <h4 className="text-[9px] font-bold text-sky-500 uppercase tracking-widest border-b border-sky-500/10 pb-1 mb-1">Squad Details (M)</h4>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-slate-400">{t('label.squad2')}:</span>
+                                    <span className="font-mono text-white">{player.secondSquadPower ? formatMillions(player.secondSquadPower) : '-'}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-slate-400">{t('label.squad3')}:</span>
+                                    <span className="font-mono text-white">{player.thirdSquadPower ? formatMillions(player.thirdSquadPower) : '-'}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-slate-400">{t('label.squad4')}:</span>
+                                    <span className="font-mono text-white">{player.fourthSquadPower ? formatMillions(player.fourthSquadPower) : '-'}</span>
+                                </div>
+                            </div>
+                            {/* Arrow */}
+                            <div className="absolute top-full left-6 -mt-px border-4 border-transparent border-t-slate-900"></div>
+                        </div>
+                     )}
                  </div>
+
                  {player.totalHeroPower > 0 && (
                      <div className="text-end">
                          <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">{t('card.hero_pwr')}</p>
@@ -103,24 +144,6 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
                      </div>
                  )}
              </div>
-
-             {/* Secondary Squads Grid */}
-             {hasExtraSquads && (
-                 <div className="grid grid-cols-3 gap-3 border-b border-white/5 pb-4">
-                    <div className="bg-slate-900/50 p-2 rounded border border-white/5 text-center">
-                        <p className="text-[8px] text-slate-500 uppercase font-bold mb-1">{t('label.squad2')}</p>
-                        <p className="text-xs font-mono font-bold text-slate-300">{player.secondSquadPower ? formatMillions(player.secondSquadPower) : '-'}</p>
-                    </div>
-                    <div className="bg-slate-900/50 p-2 rounded border border-white/5 text-center">
-                        <p className="text-[8px] text-slate-500 uppercase font-bold mb-1">{t('label.squad3')}</p>
-                        <p className="text-xs font-mono font-bold text-slate-300">{player.thirdSquadPower ? formatMillions(player.thirdSquadPower) : '-'}</p>
-                    </div>
-                    <div className="bg-slate-900/50 p-2 rounded border border-white/5 text-center">
-                        <p className="text-[8px] text-slate-500 uppercase font-bold mb-1">{t('label.squad4')}</p>
-                        <p className="text-xs font-mono font-bold text-slate-300">{player.fourthSquadPower ? formatMillions(player.fourthSquadPower) : '-'}</p>
-                    </div>
-                 </div>
-             )}
 
              {/* Performance Gauges */}
              <div className="grid grid-cols-3 gap-3">
