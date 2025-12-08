@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MockApi } from '../services/mockBackend';
 import { Player, PlayerFilter } from '../types';
@@ -15,6 +14,7 @@ const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'db' | 'vs'>('db');
   
   const [players, setPlayers] = useState<Player[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<PlayerFilter>({ language: 'all', search: '', sort: 'time_desc', activeOnly: false });
   
@@ -38,7 +38,15 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handleLogout = () => { MockApi.logout(); setToken(null); };
-  const fetchPlayers = async () => { setLoading(true); const res = await MockApi.getPlayers(filter); setPlayers(res.items); setLoading(false); };
+  
+  const fetchPlayers = async () => { 
+    setLoading(true); 
+    const res = await MockApi.getPlayers(filter); 
+    setPlayers(res.items); 
+    setTotalCount(res.total || res.items.length);
+    setLoading(false); 
+  };
+  
   const handleDelete = async (id: string) => { if (!window.confirm('Confirm Deletion?')) return; await MockApi.adminDeletePlayer(id); fetchPlayers(); };
   const handleToggleActive = async (player: Player) => { await MockApi.adminUpdatePlayer(player.id, { active: !player.active }); fetchPlayers(); };
   
@@ -179,7 +187,15 @@ const AdminDashboard: React.FC = () => {
           <div className="bg-[#0f172a] rounded-xl border border-slate-700/50 flex flex-col">
                 <div className="p-4 border-b border-slate-700/50 flex flex-col sm:flex-row gap-4 bg-slate-900">
                      <input type="text" placeholder={t('admin.filter')} className="bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-xs text-white focus:border-sky-500 outline-none w-full sm:w-64 font-mono" value={filter.search} onChange={(e) => setFilter(prev => ({...prev, search: e.target.value}))} />
-                     <button onClick={() => setFilter(prev => ({...prev, activeOnly: !prev.activeOnly}))} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase border transition-all ${filter.activeOnly ? 'bg-sky-500 border-sky-500 text-white' : 'bg-transparent border-slate-700 text-slate-400'}`}>{filter.activeOnly ? t('admin.active_only') : t('admin.all_records')}</button>
+                     
+                     <div className="flex gap-2 w-full sm:w-auto">
+                        <div className="bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-xs text-slate-400 font-mono flex items-center justify-center whitespace-nowrap min-w-[100px]">
+                            {totalCount} Players
+                        </div>
+                        <button onClick={() => setFilter(prev => ({...prev, activeOnly: !prev.activeOnly}))} className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold uppercase border transition-all ${filter.activeOnly ? 'bg-sky-500 border-sky-500 text-white' : 'bg-transparent border-slate-700 text-slate-400'}`}>
+                            {filter.activeOnly ? t('admin.active_only') : t('admin.all_records')}
+                        </button>
+                     </div>
                 </div>
                 
                 {/* Desktop Table View (Hidden on Mobile) */}
