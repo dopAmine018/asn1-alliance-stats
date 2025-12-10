@@ -9,216 +9,155 @@ interface PlayerCardProps {
 
 const formatNumber = (num: number) => new Intl.NumberFormat('en-US').format(num);
 
-// --- Modern Icons (Stroke-based for clarity) ---
-const DuelIcon = () => (
-  <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14.5 17.5L3 6V3h3l11.5 11.5" />
-    <path d="M13 19l6-6" />
-    <path d="M16 16l4 4" />
-    <path d="M19 21l-2-2" />
-  </svg>
-);
-
-const HeroIcon = () => (
-  <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5z" />
-  </svg>
-);
-
-const UnitsIcon = () => (
-  <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
-
-// T10 Mini Icons (Stroke)
-const IconSword = () => (
-  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14.5 17.5L3 6V3h3l11.5 11.5" />
-    <path d="M13 19l6-6" />
-  </svg>
-);
-const IconShield = () => (
-  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-  </svg>
-);
-const IconHeart = () => (
-  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-  </svg>
-);
-const IconProtect = () => (
-  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </svg>
-);
-const MoraleIcon = () => (
-  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-  </svg>
-);
+// Icons
+const DuelIcon = () => ( <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5" /><path d="M13 19l6-6" /><path d="M16 16l4 4" /><path d="M19 21l-2-2" /></svg> );
+const HeroIcon = () => ( <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5z" /></svg> );
+const UnitsIcon = () => ( <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg> );
 
 const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
-  const { t, language } = useLanguage();
-  const [showSquads, setShowSquads] = useState(false);
-
-  const LangBadge = ({ lang }: { lang: string }) => {
-    const labels: Record<string, string> = { english: 'ENG', arabic: 'ARA', turkish: 'TUR', indonesian: 'IND' };
-    return (
-      <span className="text-[10px] font-bold text-slate-400 border border-white/10 bg-white/5 rounded px-2 py-0.5 font-mono">
-        {labels[lang] || 'ENG'}
-      </span>
-    );
-  };
+  const { t } = useLanguage();
+  const [isHovered, setIsHovered] = useState(false);
 
   const formatMillions = (val: number) => {
       const millions = val / 1000000;
       return parseFloat(millions.toFixed(2)) + 'M';
   };
 
-  const getRankColor = () => {
-      if (rank === 1) return 'bg-amber-500 text-black border-amber-500';
-      if (rank === 2) return 'bg-slate-300 text-black border-slate-300';
-      if (rank === 3) return 'bg-orange-700 text-white border-orange-700';
-      return 'bg-slate-900 text-slate-500 border-slate-800';
-  };
+  const rankColor = rank === 1 ? 'text-amber-400 border-amber-500/50 bg-amber-500/10' 
+                  : rank === 2 ? 'text-slate-200 border-slate-400/50 bg-slate-400/10'
+                  : rank === 3 ? 'text-orange-400 border-orange-500/50 bg-orange-500/10'
+                  : 'text-slate-500 border-slate-800 bg-slate-900';
 
-  const hasExtraSquads = player.secondSquadPower || player.thirdSquadPower || player.fourthSquadPower;
-
-  const T10Item = ({ icon: Icon, value, color, label }: any) => (
-      <div className="flex flex-col items-center gap-1 group/t10">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-slate-950 border border-white/10 ${color} transition-colors shadow-lg`}>
-              <Icon />
-          </div>
-          <span className={`text-[10px] font-mono font-bold ${value === 10 ? 'text-sky-400' : 'text-slate-400'}`}>
-              {value === 10 ? 'MAX' : value}
-          </span>
-      </div>
+  const T10Stat = ({ label, val }: { label: string, val: number }) => (
+    <div className="flex flex-col items-center">
+        <span className={`text-xs font-mono font-bold ${val === 10 ? 'text-sky-400' : 'text-slate-500'}`}>{val === 10 ? 'MAX' : val}</span>
+        <span className="text-[8px] uppercase font-bold text-slate-600 tracking-wider">{label}</span>
+    </div>
   );
 
   return (
-    <div className="group relative w-full hover:-translate-y-1 transition-transform duration-300">
-      
-      <div className="relative h-full bg-[#0f172a] rounded-xl border border-slate-800 overflow-hidden flex flex-col shadow-xl">
-          
-          {/* Rank Badge */}
-          {rank && (
-              <div className="absolute top-4 pe-4 end-0 z-10">
-                  <div className={`w-8 h-8 rounded flex items-center justify-center font-bold font-mono text-sm border ${getRankColor()}`}>
-                      #{rank}
-                  </div>
-              </div>
-          )}
+    <div 
+        className="group relative w-full h-full"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+    >
+        {/* Glow Effect */}
+        <div className="absolute -inset-0.5 bg-gradient-to-b from-sky-500/20 to-indigo-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-700"></div>
+        
+        <div className="relative h-full bg-[#0a0f1e] rounded-2xl border border-white/10 overflow-hidden flex flex-col transition-all duration-300 group-hover:border-sky-500/40 group-hover:translate-y-[-4px] shadow-2xl">
+            
+            {/* Header / Identity */}
+            <div className="p-5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <svg className="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"/></svg>
+                </div>
 
-          {/* Header */}
-          <div className="px-5 py-5 border-b border-white/5 bg-gradient-to-b from-white/5 to-transparent">
-             <div className="flex justify-between items-start pe-10">
-                 <div>
-                    <h3 className="text-lg font-header font-bold text-white tracking-widest truncate group-hover:text-sky-400 transition-colors">{player.name}</h3>
-                    <div className="flex items-center gap-3 mt-2">
-                        <LangBadge lang={player.language} />
-                        <span className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">{new Date(player.updatedAt).toLocaleDateString()}</span>
+                <div className="flex justify-between items-start relative z-10">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                             <h3 className="text-lg font-header font-bold text-white tracking-wider truncate max-w-[180px]">{player.name}</h3>
+                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border border-white/10 text-slate-400 bg-white/5 uppercase">{player.language.substring(0,3)}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            Last Scan: {new Date(player.updatedAt).toLocaleDateString()}
+                        </p>
+                    </div>
+                    {rank && (
+                        <div className={`w-10 h-10 flex items-center justify-center rounded-lg border backdrop-blur-md font-header font-bold text-lg shadow-lg ${rankColor}`}>
+                            #{rank}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Separator */}
+            <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+
+            {/* Main Stats */}
+            <div className="p-5 space-y-6 flex-1 bg-gradient-to-b from-transparent to-[#020617]">
+                
+                {/* Power Row */}
+                <div className="flex items-end justify-between">
+                    <div>
+                        <p className="text-[9px] text-sky-500 font-bold uppercase tracking-[0.2em] mb-1">Squad Power</p>
+                        <p className="text-3xl font-header font-bold text-white tabular-nums tracking-tight">
+                            {formatNumber(player.firstSquadPower / 1000000)}<span className="text-lg text-slate-500 ml-1">M</span>
+                        </p>
+                    </div>
+                    {player.totalHeroPower > 0 && (
+                        <div className="text-right">
+                             <p className="text-[9px] text-amber-500 font-bold uppercase tracking-[0.2em] mb-1">Hero Pwr</p>
+                             <p className="text-xl font-mono font-bold text-slate-200 tabular-nums">
+                                {formatNumber(player.totalHeroPower / 1000000)}<span className="text-sm text-slate-600 ml-0.5">M</span>
+                             </p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Gauges */}
+                <div className="grid grid-cols-3 gap-2">
+                    {[
+                        { val: player.heroPercent, label: 'HERO', color: 'bg-amber-500', icon: HeroIcon },
+                        { val: player.duelPercent, label: 'DUEL', color: 'bg-sky-500', icon: DuelIcon },
+                        { val: player.unitsPercent, label: 'UNIT', color: 'bg-emerald-500', icon: UnitsIcon },
+                    ].map((stat, i) => (
+                        <div key={i} className="bg-slate-900/50 rounded-lg p-2 border border-white/5 flex flex-col items-center gap-1 group/gauge hover:border-white/20 transition-colors">
+                            <div className="flex items-center gap-1.5 mb-1">
+                                <div className={`w-3 h-3 ${stat.color.replace('bg-', 'text-')}`}><stat.icon/></div>
+                                <span className="text-[9px] font-bold text-slate-500 tracking-wider">{stat.label}</span>
+                            </div>
+                            <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+                                <div className={`h-full ${stat.color} transition-all duration-1000`} style={{ width: `${Math.min(stat.val, 100)}%` }}></div>
+                            </div>
+                            <span className="text-xs font-mono font-bold text-white">{stat.val}%</span>
+                        </div>
+                    ))}
+                </div>
+
+                {/* T10 Grid */}
+                <div className="bg-slate-950/50 rounded-lg p-3 border border-white/5 flex justify-between">
+                    <T10Stat label="MOR" val={player.t10Morale} />
+                    <div className="w-px bg-white/5"></div>
+                    <T10Stat label="PRO" val={player.t10Protection} />
+                    <div className="w-px bg-white/5"></div>
+                    <T10Stat label="HP" val={player.t10Hp} />
+                    <div className="w-px bg-white/5"></div>
+                    <T10Stat label="ATK" val={player.t10Atk} />
+                    <div className="w-px bg-white/5"></div>
+                    <T10Stat label="DEF" val={player.t10Def} />
+                </div>
+            </div>
+
+            {/* Footer Tech */}
+            <div className="bg-[#050914] border-t border-white/5 p-3 flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-wider">
+                <div className="flex gap-3">
+                    <span>TECH: <b className="text-white">{player.techLevel}</b></span>
+                    <span>BARR: <b className="text-white">{player.barracksLevel}</b></span>
+                </div>
+                {(player.secondSquadPower || 0) > 0 && (
+                   <span className="text-sky-500 font-bold">+ {Math.round(((player.secondSquadPower || 0) + (player.thirdSquadPower || 0) + (player.fourthSquadPower || 0)) / 1000000)}M Res</span>
+                )}
+            </div>
+
+            {/* Expandable Overlay (Hover) */}
+            <div className={`absolute inset-0 bg-[#020617]/95 backdrop-blur-sm z-20 flex flex-col justify-center items-center p-6 space-y-4 transition-all duration-300 ${isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                 <div className="w-full space-y-2">
+                    <h4 className="text-xs font-bold text-sky-500 uppercase tracking-widest border-b border-sky-500/20 pb-1">Squad Details</h4>
+                    <div className="flex justify-between text-xs font-mono text-slate-300"><span>Squad 1</span><span>{formatMillions(player.firstSquadPower)}</span></div>
+                    <div className="flex justify-between text-xs font-mono text-slate-300"><span>Squad 2</span><span>{player.secondSquadPower ? formatMillions(player.secondSquadPower) : '-'}</span></div>
+                    <div className="flex justify-between text-xs font-mono text-slate-300"><span>Squad 3</span><span>{player.thirdSquadPower ? formatMillions(player.thirdSquadPower) : '-'}</span></div>
+                    <div className="flex justify-between text-xs font-mono text-slate-300"><span>Squad 4</span><span>{player.fourthSquadPower ? formatMillions(player.fourthSquadPower) : '-'}</span></div>
+                 </div>
+                 <div className="w-full pt-2">
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                        <div><div className="text-[9px] text-slate-500 uppercase">Tank</div><div className="text-white font-mono font-bold">{player.tankCenterLevel}</div></div>
+                        <div><div className="text-[9px] text-slate-500 uppercase">Air</div><div className="text-white font-mono font-bold">{player.airCenterLevel}</div></div>
+                        <div><div className="text-[9px] text-slate-500 uppercase">Misl</div><div className="text-white font-mono font-bold">{player.missileCenterLevel}</div></div>
                     </div>
                  </div>
-             </div>
-          </div>
-
-          {/* Stats Body */}
-          <div className="p-5 flex-1 space-y-6">
-             
-             {/* Primary Power & Popover for Secondary Squads */}
-             <div className="flex justify-between items-end border-b border-white/5 pb-4 relative">
-                 <div className="relative">
-                     <div 
-                        className="flex items-center gap-2 cursor-pointer select-none"
-                        onClick={() => setShowSquads(!showSquads)}
-                        onMouseEnter={() => setShowSquads(true)}
-                        onMouseLeave={() => setShowSquads(false)}
-                     >
-                        <p className="text-[9px] font-bold text-sky-500 uppercase tracking-[0.2em] mb-1 flex items-center gap-1 group-hover/label:text-sky-400 transition-colors">
-                            {t('label.power')}
-                            {hasExtraSquads && (
-                                <span className="bg-sky-500/10 text-sky-400 text-[8px] px-1.5 py-0.5 rounded border border-sky-500/20">
-                                    +SQUADS
-                                </span>
-                            )}
-                        </p>
-                     </div>
-                     <p className="text-2xl font-mono font-bold text-white">{formatNumber(player.firstSquadPower)}</p>
-
-                     {/* Popover Tooltip */}
-                     {hasExtraSquads && (
-                        <div 
-                            className={`absolute bottom-full left-0 mb-2 z-20 w-48 bg-slate-900 border border-sky-500/30 shadow-2xl rounded-lg p-3 transition-all duration-200 pointer-events-none ${showSquads ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
-                        >
-                            <div className="space-y-2">
-                                <h4 className="text-[9px] font-bold text-sky-500 uppercase tracking-widest border-b border-sky-500/10 pb-1 mb-1">Squad Details (M)</h4>
-                                <div className="flex justify-between items-center text-xs">
-                                    <span className="text-slate-400">{t('label.squad2')}:</span>
-                                    <span className="font-mono text-white">{player.secondSquadPower ? formatMillions(player.secondSquadPower) : '-'}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-xs">
-                                    <span className="text-slate-400">{t('label.squad3')}:</span>
-                                    <span className="font-mono text-white">{player.thirdSquadPower ? formatMillions(player.thirdSquadPower) : '-'}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-xs">
-                                    <span className="text-slate-400">{t('label.squad4')}:</span>
-                                    <span className="font-mono text-white">{player.fourthSquadPower ? formatMillions(player.fourthSquadPower) : '-'}</span>
-                                </div>
-                            </div>
-                            {/* Arrow */}
-                            <div className="absolute top-full left-6 -mt-px border-4 border-transparent border-t-slate-900"></div>
-                        </div>
-                     )}
-                 </div>
-
-                 {player.totalHeroPower > 0 && (
-                     <div className="text-end">
-                         <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">{t('card.hero_pwr')}</p>
-                         <p className="text-lg font-mono font-bold text-amber-400">{formatMillions(player.totalHeroPower)}</p>
-                     </div>
-                 )}
-             </div>
-
-             {/* Performance Gauges */}
-             <div className="grid grid-cols-3 gap-3">
-                 {[
-                     { val: player.heroPercent, icon: HeroIcon, col: 'bg-amber-500', txt: 'text-amber-500' },
-                     { val: player.duelPercent, icon: DuelIcon, col: 'bg-sky-500', txt: 'text-sky-500' },
-                     { val: player.unitsPercent, icon: UnitsIcon, col: 'bg-emerald-500', txt: 'text-emerald-500' }
-                 ].map((s, i) => (
-                     <div key={i} className="bg-slate-900 p-3 rounded border border-white/5 flex flex-col items-center gap-2 relative overflow-hidden group/stat">
-                         <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${s.col} opacity-40 group-hover/stat:h-full group-hover/stat:opacity-5 transition-all duration-500`}></div>
-                         <div className={`w-6 h-6 z-10 ${s.txt}`}><s.icon /></div>
-                         <span className="font-mono font-bold text-white z-10 text-sm">{s.val}%</span>
-                     </div>
-                 ))}
-             </div>
-             
-             {/* T10 Stats */}
-             <div className="grid grid-cols-5 gap-2 border-t border-white/5 pt-4">
-                <T10Item label="Morale" value={player.t10Morale} icon={MoraleIcon} color="text-amber-400 group-hover/t10:border-amber-500/50" />
-                <T10Item label="Prot" value={player.t10Protection} icon={IconProtect} color="text-indigo-400 group-hover/t10:border-indigo-500/50" />
-                <T10Item label="HP" value={player.t10Hp} icon={IconHeart} color="text-emerald-400 group-hover/t10:border-emerald-500/50" />
-                <T10Item label="Atk" value={player.t10Atk} icon={IconSword} color="text-rose-400 group-hover/t10:border-rose-500/50" />
-                <T10Item label="Def" value={player.t10Def} icon={IconShield} color="text-cyan-400 group-hover/t10:border-cyan-500/50" />
-             </div>
-          </div>
-
-          {/* Footer - Tech Info */}
-          <div className="px-5 py-3 bg-slate-950 border-t border-white/5 flex flex-wrap gap-x-4 gap-y-2 text-[9px] uppercase font-bold tracking-widest text-slate-500">
-              <span className="flex gap-1 items-center">{t('card.tech_short')}: <b className="text-white text-xs">{player.techLevel || '-'}</b></span>
-              <span className="flex gap-1 items-center">{t('card.barr_short')}: <b className="text-white text-xs">{player.barracksLevel || '-'}</b></span>
-              <span className="flex gap-1 items-center">{t('card.tank_short')}: <b className="text-white text-xs">{player.tankCenterLevel || '-'}</b></span>
-              <span className="flex gap-1 items-center">{t('card.air_short')}: <b className="text-white text-xs">{player.airCenterLevel || '-'}</b></span>
-              <span className="flex gap-1 items-center">{t('card.misl_short')}: <b className="text-white text-xs">{player.missileCenterLevel || '-'}</b></span>
-          </div>
-      </div>
+            </div>
+        </div>
     </div>
   );
 };

@@ -159,7 +159,9 @@ export const MockApi = {
         const { data: existing } = await supabase
             .from('players')
             .select('pin')
-            .eq('language', playerData.language)
+            // Remove language check here if you want unique names across ALL languages
+            // But keeping it consistent with schema constraint:
+            .eq('language', playerData.language) 
             .eq('name_normalized', nameNormalized)
             .single();
 
