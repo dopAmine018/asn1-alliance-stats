@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Language } from '../types';
 
@@ -7,6 +8,7 @@ type TranslationKey =
   | 'section.identity' | 'section.identity.desc' | 'section.power' | 'section.power.desc' | 'section.techtree' | 'section.techtree.desc'
   | 'section.buildings' | 'section.buildings.status'
   | 'label.language' | 'label.name' | 'label.power' | 'label.squad2' | 'label.squad3' | 'label.squad4' | 'label.totalHeroPower'
+  | 'label.pin_locked' | 'label.pin_optional' | 'label.pin_req' | 'label.pin_set' | 'msg.forgot_pin' | 'err.pin_mismatch'
   | 'placeholder.server_rank'
   | 'stat.hero' | 'stat.duel' | 'stat.units'
   | 't10.title' | 't10.morale' | 't10.protection' | 't10.hp' | 't10.atk' | 't10.def'
@@ -47,6 +49,12 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'label.squad3': 'Squad 3',
     'label.squad4': 'Squad 4',
     'label.totalHeroPower': 'Total Hero Power',
+    'label.pin_locked': '🔒 Security PIN (Locked)',
+    'label.pin_optional': '🛡️ Security PIN (Optional)',
+    'label.pin_req': 'Required to update',
+    'label.pin_set': 'Set for quick filling',
+    'msg.forgot_pin': 'Forgot PIN? Contact R5/4 in game',
+    'err.pin_mismatch': 'Locked Profile: Incorrect PIN',
     'placeholder.server_rank': 'Get it from Server Rankings',
     'stat.hero': 'Hero %',
     'stat.duel': "VS 'Duel' %",
@@ -142,6 +150,12 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'label.squad3': 'الفريق 3',
     'label.squad4': 'الفريق 4',
     'label.totalHeroPower': 'إجمالي قوة الأبطال',
+    'label.pin_locked': '🔒 الرمز السري (مغلق)',
+    'label.pin_optional': '🛡️ الرمز السري (اختياري)',
+    'label.pin_req': 'مطلوب للتحديث',
+    'label.pin_set': 'تعيين للتعبئة السريعة',
+    'msg.forgot_pin': 'نسيت الرمز؟ تواصل مع R5/4 في اللعبة',
+    'err.pin_mismatch': 'الملف مغلق: الرمز السري غير صحيح',
     'placeholder.server_rank': 'احصل عليها من تصنيفات السيرفر',
     'stat.hero': 'الأبطال%',
     'stat.duel': 'مبارزة التحالف %',
@@ -237,6 +251,12 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'label.squad3': '3. Takım',
     'label.squad4': '4. Takım',
     'label.totalHeroPower': 'Toplam Kahraman Gücü',
+    'label.pin_locked': '🔒 Güvenlik PIN (Kilitli)',
+    'label.pin_optional': '🛡️ Güvenlik PIN (İsteğe Bağlı)',
+    'label.pin_req': 'Güncelleme için gerekli',
+    'label.pin_set': 'Hızlı doldurma için ayarla',
+    'msg.forgot_pin': 'PIN unuttunuz mu? Oyunda R5/4 ile iletişime geçin',
+    'err.pin_mismatch': 'Kilitli Profil: Hatalı PIN',
     'placeholder.server_rank': 'Sunucu Sıralamasından al',
     'stat.hero': 'Kahraman %',
     'stat.duel': "VS 'Düello' %",
@@ -332,6 +352,12 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'label.squad3': 'Pasukan 3',
     'label.squad4': 'Pasukan 4',
     'label.totalHeroPower': 'Total Kekuatan Hero',
+    'label.pin_locked': '🔒 PIN Keamanan (Terkunci)',
+    'label.pin_optional': '🛡️ PIN Keamanan (Opsional)',
+    'label.pin_req': 'Wajib untuk pembaruan',
+    'label.pin_set': 'Atur untuk pengisian cepat',
+    'msg.forgot_pin': 'Lupa PIN? Hubungi R5/4 di game',
+    'err.pin_mismatch': 'Profil Terkunci: PIN Salah',
     'placeholder.server_rank': 'Dapatkan dari Peringkat Server',
     'stat.hero': "Hero %",
     'stat.duel': "VS 'Duel' %",

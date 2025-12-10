@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { MockApi } from '../services/mockBackend';
 import { Language } from '../types';
@@ -145,6 +146,7 @@ const T10Badge = ({ name, labelKey, icon: Icon, colorTheme, value, t, onDropdown
 
 const defaultFormData = {
   name: '',
+  pin: '',
   firstSquadPower: '',
   secondSquadPower: '',
   thirdSquadPower: '',
@@ -170,6 +172,7 @@ const StatsForm: React.FC<StatsFormProps> = ({ onSuccess }) => {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [loadingPlayer, setLoadingPlayer] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
   
   const [formData, setFormData] = useState({
     language: 'english' as Language, 
@@ -185,7 +188,8 @@ const StatsForm: React.FC<StatsFormProps> = ({ onSuccess }) => {
         setFormData(prev => ({
           ...prev,
           ...parsed,
-          language: language
+          language: language,
+          pin: '' // Do not load pin from local storage for security
         }));
       } catch(e) {
         console.error("Error loading saved form data", e);
@@ -212,13 +216,23 @@ const StatsForm: React.FC<StatsFormProps> = ({ onSuccess }) => {
               activeOnly: false
           });
           
+          let foundMatch = false;
           if(res.items && res.items.length > 0) {
               // Find best match (exact name match preferred)
               const normalizedInput = formData.name.toLowerCase().trim();
-              const match = res.items.find(p => p.nameNormalized === normalizedInput) || res.items[0];
+              const match = res.items.find(p => p.nameNormalized === normalizedInput);
               
               if(match) {
+                  foundMatch = true;
                   addToast('info', `Loaded existing data for ${match.name}`);
+                  
+                  // Check if profile is PIN protected
+                  if (match.pin && match.pin.trim() !== "") {
+                    setIsLocked(true);
+                  } else {
+                    setIsLocked(false);
+                  }
+
                   // Map DB data back to form format
                   const normalizePowerToInput = (val: number | undefined) => val ? String(val / 1000000) : '';
                   
@@ -243,8 +257,13 @@ const StatsForm: React.FC<StatsFormProps> = ({ onSuccess }) => {
                       tankCenterLevel: String(match.tankCenterLevel || ''),
                       airCenterLevel: String(match.airCenterLevel || ''),
                       missileCenterLevel: String(match.missileCenterLevel || ''),
+                      // Do NOT set PIN
                   }));
               }
+          }
+
+          if (!foundMatch) {
+            setIsLocked(false);
           }
       } catch(e) {
           // Silent fail on lookup
@@ -260,6 +279,7 @@ const StatsForm: React.FC<StatsFormProps> = ({ onSuccess }) => {
             language: language,
             ...defaultFormData
         });
+        setIsLocked(false);
         addToast('info', 'Form cleared');
     }
   };
@@ -286,6 +306,10 @@ const StatsForm: React.FC<StatsFormProps> = ({ onSuccess }) => {
       if (!formData.techLevel || !formData.barracksLevel || !formData.tankCenterLevel || 
           !formData.airCenterLevel || !formData.missileCenterLevel) {
           throw new Error(t('form.required_error'));
+      }
+      
+      if (isLocked && !formData.pin) {
+          throw new Error(t('err.pin_mismatch'));
       }
 
       const payload = { 
@@ -314,11 +338,19 @@ const StatsForm: React.FC<StatsFormProps> = ({ onSuccess }) => {
       
       const res = await MockApi.upsertPlayer(payload);
       if (res.success) { 
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+          // Save everything EXCEPT pin to local storage
+          const { pin, ...safeData } = formData;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(safeData));
           addToast('success', t('form.success')); 
           onSuccess(); 
       } 
-      else { throw new Error(res.error || 'Failed to save'); }
+      else { 
+          // Check for specific locked error
+          if (res.error?.includes("Locked Profile")) {
+              throw new Error(t('err.pin_mismatch'));
+          }
+          throw new Error(res.error || 'Failed to save'); 
+      }
     } catch (err: any) { 
       addToast('error', err.message); 
     } finally { 
@@ -360,21 +392,45 @@ const StatsForm: React.FC<StatsFormProps> = ({ onSuccess }) => {
                      * Type name to load existing data
                  </div>
               </div>
-              <div className="md:col-span-8 relative">
-                  <InputField 
-                    label={t('label.name')} 
-                    name="name" 
-                    value={formData.name} 
-                    onChange={handleChange} 
-                    onBlur={handleNameBlur}
-                    required={true} 
-                    placeholder="Commander Name" 
-                  />
-                  {loadingPlayer && (
-                      <div className="absolute right-3 top-9 text-sky-500 animate-spin">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="relative">
+                      <InputField 
+                        label={t('label.name')} 
+                        name="name" 
+                        value={formData.name} 
+                        onChange={handleChange} 
+                        onBlur={handleNameBlur}
+                        required={true} 
+                        placeholder="Commander Name" 
+                      />
+                      {loadingPlayer && (
+                          <div className="absolute right-3 top-9 text-sky-500 animate-spin">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                          </div>
+                      )}
+                  </div>
+                  <div>
+                      <InputField 
+                        label={isLocked ? t('label.pin_locked') : t('label.pin_optional')}
+                        subLabel={isLocked ? t('label.pin_req') : t('label.pin_set')}
+                        name="pin" 
+                        value={formData.pin} 
+                        onChange={handleChange} 
+                        type="password"
+                        required={isLocked}
+                        placeholder={isLocked ? "****" : "Create PIN"} 
+                      />
+                      <div className="mt-1.5 flex justify-end">
+                          <a 
+                             href="https://discord.gg/yVwQT88bxf" 
+                             target="_blank" 
+                             rel="noopener noreferrer"
+                             className="text-[9px] text-slate-500 hover:text-sky-400 transition-colors cursor-pointer flex items-center gap-1"
+                          >
+                             {t('msg.forgot_pin')}
+                          </a>
                       </div>
-                  )}
+                  </div>
               </div>
           </div>
 

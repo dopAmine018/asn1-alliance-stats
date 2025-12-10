@@ -1,3 +1,4 @@
+
 export type Language = 'english' | 'arabic' | 'turkish' | 'indonesian';
 
 export interface Player {
@@ -7,6 +8,7 @@ export interface Player {
   language: Language;
   name: string;
   nameNormalized: string;
+  pin?: string;
   
   firstSquadPower: number;
   secondSquadPower?: number;
