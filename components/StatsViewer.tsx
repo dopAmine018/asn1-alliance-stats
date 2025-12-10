@@ -17,7 +17,7 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
-  const [filter, setFilter] = useState<PlayerFilter>({ language: 'all', search: '', sort: 'power_desc', activeOnly: true });
+  const [filter, setFilter] = useState<PlayerFilter>({ language: 'all', search: '', sort: 'time_desc', activeOnly: true });
 
   const fetchData = async () => {
     if(players.length === 0 && !errorMsg) setLoading(true);
