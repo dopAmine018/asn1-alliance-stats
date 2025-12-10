@@ -9,18 +9,59 @@ interface PlayerCardProps {
 
 const formatNumber = (num: number) => new Intl.NumberFormat('en-US').format(num);
 
-// Icons
-const DuelIcon = () => <svg className="w-full h-full text-sky-500" viewBox="0 0 24 24" fill="currentColor"><path d="M14.5 3.5l1.5 1.5-4 4L14 11l4-4 1.5 1.5L8.5 19.5l-2-2L17.5 6.5l-3-3z"/><path d="M10.5 6.5l8 8-1.5 1.5-8-8 1.5-1.5z"/><path d="M5.2 17.8L6.2 18.8L3.5 21.5L2.5 20.5L5.2 17.8Z"/></svg>;
-const HeroIcon = () => <svg className="w-full h-full text-amber-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/></svg>;
-const UnitsIcon = () => <svg className="w-full h-full text-emerald-500" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>;
+// --- Modern Icons (Stroke-based for clarity) ---
+const DuelIcon = () => (
+  <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14.5 17.5L3 6V3h3l11.5 11.5" />
+    <path d="M13 19l6-6" />
+    <path d="M16 16l4 4" />
+    <path d="M19 21l-2-2" />
+  </svg>
+);
 
-// T10 Icons
-const IconSword = () => <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M13.5 4.5l2 2-7.5 7.5-3-1.5 1.5-3 7-5zm-5 8l-2 2H2v-4.5l2-2 3.5 3.5z" clipRule="evenodd"/></svg>;
-const IconShield = () => <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 002 0V7z" clipRule="evenodd"/></svg>;
-const IconHeart = () => <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/></svg>;
-const IconProtect = () => <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>;
-const MoraleIcon = () => <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M20 12h-1.56l-1.34-4.02C16.48 6.13 14.54 5 12.38 5h-0.76c-2.16 0-4.1 1.13-4.72 2.98L5.56 12H4c-1.1 0-2 0.9-2 2v2h20v-2c0-1.1-0.9-2-2-2z M12 21c-2.38 0-4.48-1.21-5.69-3.04l-0.57-0.85C5.39 16.59 5 15.85 5 15h14c0 0.85-0.39 1.59-0.74 2.11l-0.57 0.85C16.48 19.79 14.38 21 12 21z"/></svg>;
+const HeroIcon = () => (
+  <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14v2H5z" />
+  </svg>
+);
 
+const UnitsIcon = () => (
+  <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
+// T10 Mini Icons (Stroke)
+const IconSword = () => (
+  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14.5 17.5L3 6V3h3l11.5 11.5" />
+    <path d="M13 19l6-6" />
+  </svg>
+);
+const IconShield = () => (
+  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+const IconHeart = () => (
+  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+  </svg>
+);
+const IconProtect = () => (
+  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+const MoraleIcon = () => (
+  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
 
 const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
   const { t, language } = useLanguage();
@@ -51,7 +92,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
 
   const T10Item = ({ icon: Icon, value, color, label }: any) => (
       <div className="flex flex-col items-center gap-1 group/t10">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-slate-900 border border-white/10 ${color} transition-colors shadow-lg`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-slate-950 border border-white/10 ${color} transition-colors shadow-lg`}>
               <Icon />
           </div>
           <span className={`text-[10px] font-mono font-bold ${value === 10 ? 'text-sky-400' : 'text-slate-400'}`}>
