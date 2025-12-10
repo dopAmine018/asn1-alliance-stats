@@ -4,6 +4,7 @@ import { MockApi } from '../services/mockBackend';
 import { Player, PlayerFilter } from '../types';
 import { useLanguage } from '../utils/i18n';
 import VsTracker from './VsTracker';
+import TrainManager from './TrainManager'; // Import the new component
 import { CustomDropdown } from './CustomDropdown';
 import { useToast } from './Toast';
 
@@ -14,7 +15,9 @@ const AdminDashboard: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'db' | 'vs'>('db');
+  
+  // Added 'train' to tab state
+  const [activeTab, setActiveTab] = useState<'db' | 'vs' | 'train'>('db');
   
   const [players, setPlayers] = useState<Player[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -204,12 +207,13 @@ const AdminDashboard: React.FC = () => {
              <div className="bg-slate-900 p-1 rounded-lg border border-slate-700 flex">
                  <button onClick={() => setActiveTab('db')} className={`px-6 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'db' ? 'bg-sky-500 text-white' : 'text-slate-500 hover:text-white'}`}>{t('admin.db')}</button>
                  <button onClick={() => setActiveTab('vs')} className={`px-6 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'vs' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-white'}`}>{t('admin.vs')}</button>
+                 <button onClick={() => setActiveTab('train')} className={`px-6 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'train' ? 'bg-amber-600 text-white' : 'text-slate-500 hover:text-white'}`}>{t('admin.train')}</button>
              </div>
         </div>
         <button onClick={handleLogout} className="text-xs font-bold text-slate-400 hover:text-white border border-slate-700 px-4 py-2 rounded-lg hover:bg-slate-800 transition-all">{t('admin.terminate')}</button>
       </div>
 
-      {activeTab === 'vs' ? ( <VsTracker /> ) : (
+      {activeTab === 'vs' ? ( <VsTracker /> ) : activeTab === 'train' ? ( <TrainManager /> ) : (
           <div className="bg-[#0f172a] rounded-xl border border-slate-700/50 flex flex-col">
                 <div className="p-4 border-b border-slate-700/50 flex flex-col sm:flex-row gap-4 bg-slate-900">
                      <input type="text" placeholder={t('admin.filter')} className="bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-xs text-white focus:border-sky-500 outline-none w-full sm:w-64 font-mono" value={filter.search} onChange={(e) => setFilter(prev => ({...prev, search: e.target.value}))} />

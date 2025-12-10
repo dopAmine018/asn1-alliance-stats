@@ -166,9 +166,12 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
         t10Protection: Number(formData.t10Protection),
         t10Hp: Number(formData.t10Hp),
         t10Atk: Number(formData.t10Atk),
-        t10Def: Number(formData.t10Def)
+        t10Def: Number(formData.t10Def),
+        // Pass building levels for calculation
+        barracksLevel: Number(formData.barracksLevel),
+        techLevel: Number(formData.techLevel)
     });
-  }, [formData.t10Protection, formData.t10Hp, formData.t10Atk, formData.t10Def]);
+  }, [formData.t10Protection, formData.t10Hp, formData.t10Atk, formData.t10Def, formData.barracksLevel, formData.techLevel]);
 
   const formatResource = (num: number) => {
       if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
@@ -346,7 +349,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                                          <span className="w-1.5 h-1.5 bg-sky-500 rounded-full animate-pulse"></span>
                                          {t('calc.remaining')}
                                      </h4>
-                                     <p className="text-[9px] text-slate-500 font-mono max-w-[200px]">Projected resources required to complete all research and unlock Tier 10.</p>
+                                     <p className="text-[9px] text-slate-500 font-mono max-w-[200px]">Projected resources required to complete all research and unlock Tier 10 (incl. Building Lvl 30).</p>
                                  </div>
 
                                  <div className="flex gap-4 sm:gap-8">
