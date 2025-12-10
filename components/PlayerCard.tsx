@@ -38,7 +38,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
 
   return (
     <div 
-        className="group relative w-full h-full cursor-pointer"
+        className="group relative w-full h-full cursor-pointer tap-highlight-transparent"
         onMouseEnter={() => setShowOverlay(true)}
         onMouseLeave={() => setShowOverlay(false)}
         onClick={() => setShowOverlay(prev => !prev)}

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '../utils/i18n';
@@ -150,7 +151,7 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, onChange,
           {options.length > 10 && !disableSearch && (
             <div className="p-2 border-b border-white/5 bg-slate-900 sticky top-0 z-10">
               <input 
-                autoFocus
+                // Removed autoFocus to fix mobile keyboard glitch
                 type="text"
                 placeholder={t('viewer.search')}
                 value={searchTerm}

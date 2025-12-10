@@ -23,7 +23,33 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
     if(players.length === 0 && !errorMsg) setLoading(true);
     try {
       const res = await MockApi.getPlayers(filter);
-      setPlayers(res.items);
+      
+      // Client-side Deduplication
+      // Maps nameNormalized -> Player. If duplicates exist, we take the one with the latest update.
+      const uniquePlayersMap = new Map<string, Player>();
+      
+      res.items.forEach(p => {
+          const existing = uniquePlayersMap.get(p.nameNormalized);
+          if (!existing) {
+              uniquePlayersMap.set(p.nameNormalized, p);
+          } else {
+              // If duplicate found, keep the one updated most recently
+              if (new Date(p.updatedAt) > new Date(existing.updatedAt)) {
+                  uniquePlayersMap.set(p.nameNormalized, p);
+              }
+          }
+      });
+      
+      const uniqueItems = Array.from(uniquePlayersMap.values());
+      
+      // Re-sort because Map iteration might lose order specific nuances if not careful, 
+      // though API usually sorts. Let's rely on API sort order by preserving original relative order where possible 
+      // or just sorting again client side to be safe.
+      // Since API does sorting, let's filter the original list to maintain that order.
+      const uniqueIds = new Set(uniqueItems.map(p => p.id));
+      const sortedUniqueItems = res.items.filter(p => uniqueIds.has(p.id));
+
+      setPlayers(sortedUniqueItems);
       setErrorMsg(null);
     } catch (e: any) { 
       setErrorMsg(e.message || "Connection Error");

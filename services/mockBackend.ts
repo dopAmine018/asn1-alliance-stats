@@ -151,23 +151,49 @@ export const MockApi = {
 
   upsertPlayer: async (playerData: Partial<Player>): Promise<ApiResponse<Player>> => {
     const nameNormalized = playerData.name?.trim().toLowerCase().replace(/\s+/g, ' ') || '';
+    
+    // 1. Manually check for ANY existing player with this name (ignoring language/id for now)
+    // This ensures that "M7saif" (IND) and "M7saif" (ARA) are treated as the SAME person.
+    const { data: existingMatch } = await supabase
+        .from('players')
+        .select('id')
+        .eq('name_normalized', nameNormalized)
+        .maybeSingle();
+
     const payload = mapPlayerToDb({ ...playerData, nameNormalized });
     
     try {
         if (!payload.language || !payload.name_normalized) {
             throw new Error("Missing required identity fields (Language or Name)");
         }
+        
+        let result;
+        
+        if (existingMatch) {
+            // Update existing record using ID found by name match
+            result = await supabase
+                .from('players')
+                .update(payload)
+                .eq('id', existingMatch.id)
+                .select()
+                .single();
+        } else {
+            // Insert new record
+            result = await supabase
+                .from('players')
+                .insert(payload)
+                .select()
+                .single();
+        }
 
-        const { data, error } = await supabase
-          .from('players')
-          .upsert(payload, { onConflict: 'language,name_normalized' })
-          .select()
-          .single();
-
-        if (error) throw error;
-        return { success: true, data: mapPlayerFromDb(data) };
+        if (result.error) throw result.error;
+        return { success: true, data: mapPlayerFromDb(result.data) };
     } catch (e: any) {
         console.error("Upsert Failed Details:", e);
+        // Handle "missing column" error gracefully
+        if (e.message && e.message.includes('column') && e.message.includes('does not exist')) {
+             return { success: false, error: "Database schema mismatch. Please update tables." };
+        }
         return { success: false, error: e.message || JSON.stringify(e) || "Failed to save" };
     }
   },

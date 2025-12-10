@@ -7,13 +7,27 @@ const BackendReference: React.FC = () => {
       <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-6">
         <h2 className="text-2xl font-bold text-emerald-400 mb-4">Supabase Setup Guide</h2>
         <p className="text-slate-300 mb-4">
-          To enable the shared backend, go to the <strong>SQL Editor</strong> in your Supabase dashboard and run the following script.
+          To enable the shared backend, go to the <strong>SQL Editor</strong> in your Supabase dashboard.
         </p>
       </div>
-
+      
       <div className="space-y-6">
         <section>
-          <h3 className="text-xl font-semibold text-white mb-3">SQL Schema Script</h3>
+          <h3 className="text-xl font-semibold text-amber-500 mb-3">⚠️ Critical Migration (Fix Duplicates)</h3>
+          <p className="text-sm text-slate-400 mb-2">Run this if you want to prevent duplicate players when they change languages.</p>
+          <pre className="bg-slate-950 p-4 rounded-lg border border-amber-500/30 overflow-x-auto text-sm text-amber-400 font-mono">
+{`-- 1. Remove old composite constraint (Language + Name)
+ALTER TABLE players DROP CONSTRAINT IF EXISTS players_language_name_normalized_key;
+
+-- 2. Add new strict constraint (Name Only)
+-- Note: This will fail if you already have duplicates. You must delete duplicates first.
+ALTER TABLE players ADD CONSTRAINT players_name_normalized_key UNIQUE (name_normalized);
+`}
+          </pre>
+        </section>
+
+        <section>
+          <h3 className="text-xl font-semibold text-white mb-3">Full SQL Schema Script</h3>
           <pre className="bg-slate-950 p-4 rounded-lg border border-slate-800 overflow-x-auto text-sm text-sky-400 font-mono">
 {`-- 1. Create Players Table
 create table players (
@@ -49,8 +63,8 @@ create table players (
   
   active boolean default true,
 
-  -- Unique constraint for Upsert logic
-  unique(language, name_normalized)
+  -- Unique constraint for Upsert logic (NAME ONLY)
+  unique(name_normalized)
 );
 
 -- 2. Create VS Tracker Tables

@@ -238,7 +238,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
     setLoading(true);
     const norm = (v: string) => { const n = Number(v); if(isNaN(n)) return 0; return n > 1000 ? n : n * 1000000; };
     try {
-        if (!formData.name || !formData.firstSquadPower || !formData.totalHeroPower) throw new Error("Missing critical data");
+        if (!formData.name || !formData.firstSquadPower || !formData.secondSquadPower || !formData.totalHeroPower) throw new Error("Missing critical data");
         
         const payload = {
             ...formData,
@@ -327,7 +327,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                     {/* Squads First */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                         <FormInput label={t('label.power') + " (M)"} name="firstSquadPower" val={formData.firstSquadPower} change={handleChange} req={true} type="number" />
-                        <FormInput label={t('label.squad2') + " (M)"} name="secondSquadPower" val={formData.secondSquadPower} change={handleChange} type="number" />
+                        <FormInput label={t('label.squad2') + " (M)"} name="secondSquadPower" val={formData.secondSquadPower} change={handleChange} req={true} type="number" />
                         <FormInput label={t('label.squad3') + " (M)"} name="thirdSquadPower" val={formData.thirdSquadPower} change={handleChange} type="number" />
                         <FormInput label={t('label.squad4') + " (M)"} name="fourthSquadPower" val={formData.fourthSquadPower} change={handleChange} type="number" />
                     </div>
