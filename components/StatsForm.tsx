@@ -1,7 +1,7 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { MockApi } from '../services/mockBackend';
-import { Language } from '../types';
+import { Player, Language } from '../types';
 import { useLanguage } from '../utils/i18n';
 import { CustomDropdown } from './CustomDropdown';
 import { useToast } from './Toast';
@@ -37,10 +37,10 @@ const defaultFormData = {
 
 // --- Sub-components extracted to prevent re-mount/focus loss ---
 
-const FormInput = ({ label, name, val, change, req, locked, type="text", loading, onBlur }: any) => (
+const FormInput = ({ label, name, val, change, req, locked, type="text", loading, onBlur, autoComplete, children }: any) => (
   <div className="relative group">
       <input 
-          type={type} name={name} value={val} onChange={change} required={req} placeholder=" " onBlur={onBlur}
+          type={type} name={name} value={val} onChange={change} required={req} placeholder=" " onBlur={onBlur} autoComplete={autoComplete}
           className={`peer w-full bg-transparent border-b-2 py-2 px-1 text-sm text-white font-mono placeholder-transparent focus:outline-none transition-all
               ${locked ? 'border-amber-500/50 focus:border-amber-500 text-amber-100' : 'border-slate-700 focus:border-sky-500'}
           `}
@@ -54,6 +54,7 @@ const FormInput = ({ label, name, val, change, req, locked, type="text", loading
       </label>
       {locked && <div className="absolute right-0 top-2 text-amber-500"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg></div>}
       {loading && <div className="absolute right-0 top-2 text-sky-500 animate-spin">⟳</div>}
+      {children}
   </div>
 );
 
@@ -93,6 +94,12 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
   const [loading, setLoading] = useState(false);
   const [loadingPlayer, setLoadingPlayer] = useState(false);
   
+  // Suggestion State
+  const [suggestions, setSuggestions] = useState<Player[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchTimeout = useRef<any>(null);
+  const isSelectingSuggestion = useRef(false);
+
   const [formData, setFormData] = useState({ language: 'english' as Language, ...defaultFormData });
 
   React.useEffect(() => {
@@ -108,6 +115,71 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
 
   const handleChange = (e: any) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
   const handleDropdown = (name: string) => (val: any) => setFormData(p => ({ ...p, [name]: String(val) }));
+
+  // --- Name Autocomplete Logic ---
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value;
+      setFormData(prev => ({ ...prev, name: val }));
+      
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+      
+      if (val.length >= 2) {
+          searchTimeout.current = setTimeout(async () => {
+              try {
+                  const res = await MockApi.getPlayers({ search: val, language: 'all', sort: 'power_desc', activeOnly: false });
+                  setSuggestions(res.items.slice(0, 5));
+                  setShowSuggestions(true);
+              } catch(e) {}
+          }, 50); // Debounce reduced to 50ms for instant feel
+      } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+      }
+  };
+
+  const populateWithPlayer = (match: Player) => {
+      addToast('info', `Uplink established: ${match.name}`);
+      const norm = (v: number|undefined) => v ? String(v/1000000) : '';
+      setFormData(prev => ({
+          ...prev, name: match.name,
+          firstSquadPower: norm(match.firstSquadPower), secondSquadPower: norm(match.secondSquadPower),
+          thirdSquadPower: norm(match.thirdSquadPower), fourthSquadPower: norm(match.fourthSquadPower),
+          totalHeroPower: norm(match.totalHeroPower),
+          heroPercent: String(match.heroPercent), duelPercent: String(match.duelPercent), unitsPercent: String(match.unitsPercent),
+          t10Morale: String(match.t10Morale), t10Protection: String(match.t10Protection), t10Hp: String(match.t10Hp), t10Atk: String(match.t10Atk), t10Def: String(match.t10Def),
+          techLevel: String(match.techLevel || ''), barracksLevel: String(match.barracksLevel || ''),
+          tankCenterLevel: String(match.tankCenterLevel || ''), airCenterLevel: String(match.airCenterLevel || ''), missileCenterLevel: String(match.missileCenterLevel || ''),
+      }));
+  };
+
+  const handleSuggestionClick = (player: Player) => {
+      isSelectingSuggestion.current = true;
+      populateWithPlayer(player);
+      setShowSuggestions(false);
+      // Reset ref after a brief moment to allow blur to pass safely if needed
+      setTimeout(() => { isSelectingSuggestion.current = false; }, 200);
+  };
+
+  const handleNameBlur = async () => {
+      // If we are currently clicking a suggestion, do not trigger the blur fetch
+      if (isSelectingSuggestion.current) return;
+      
+      // Delay slightly to check if a suggestion was clicked (redundant safety)
+      setTimeout(async () => {
+          if (isSelectingSuggestion.current) return;
+          setShowSuggestions(false); // Hide menu on blur
+
+          if(!formData.name || formData.name.length < 3) return;
+          setLoadingPlayer(true);
+          try {
+              const res = await MockApi.getPlayers({ search: formData.name, language: 'all', sort: 'time_desc', activeOnly: false });
+              const match = res.items?.find(p => p.nameNormalized === formData.name.toLowerCase().trim());
+              if(match) {
+                  populateWithPlayer(match);
+              }
+          } catch(e) {} finally { setLoadingPlayer(false); }
+      }, 150);
+  };
 
   // --- Resource Calculation Logic ---
   const resourcesNeeded = useMemo(() => {
@@ -159,30 +231,6 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
       if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
       if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
       return num.toString();
-  };
-
-  const handleNameBlur = async () => {
-      if(!formData.name || formData.name.length < 3) return;
-      setLoadingPlayer(true);
-      try {
-          const res = await MockApi.getPlayers({ search: formData.name, language: 'all', sort: 'time_desc', activeOnly: false });
-          const match = res.items?.find(p => p.nameNormalized === formData.name.toLowerCase().trim());
-          if(match) {
-              addToast('info', `Uplink established: ${match.name}`);
-              
-              const norm = (v: number|undefined) => v ? String(v/1000000) : '';
-              setFormData(prev => ({
-                  ...prev, name: match.name,
-                  firstSquadPower: norm(match.firstSquadPower), secondSquadPower: norm(match.secondSquadPower),
-                  thirdSquadPower: norm(match.thirdSquadPower), fourthSquadPower: norm(match.fourthSquadPower),
-                  totalHeroPower: norm(match.totalHeroPower),
-                  heroPercent: String(match.heroPercent), duelPercent: String(match.duelPercent), unitsPercent: String(match.unitsPercent),
-                  t10Morale: String(match.t10Morale), t10Protection: String(match.t10Protection), t10Hp: String(match.t10Hp), t10Atk: String(match.t10Atk), t10Def: String(match.t10Def),
-                  techLevel: String(match.techLevel || ''), barracksLevel: String(match.barracksLevel || ''),
-                  tankCenterLevel: String(match.tankCenterLevel || ''), airCenterLevel: String(match.airCenterLevel || ''), missileCenterLevel: String(match.missileCenterLevel || ''),
-              }));
-          }
-      } catch(e) {} finally { setLoadingPlayer(false); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -237,8 +285,38 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
             {/* 1. Identity */}
             <section className="space-y-6">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest border-l-2 border-sky-500 pl-3">{t('section.identity')}</h3>
-                <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 shadow-lg">
-                    <FormInput label={t('label.name')} name="name" val={formData.name} change={handleChange} req={true} onBlur={handleNameBlur} loading={loadingPlayer} />
+                <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 shadow-lg relative">
+                    <FormInput 
+                        label={t('label.name')} 
+                        name="name" 
+                        val={formData.name} 
+                        change={handleNameChange} 
+                        req={true} 
+                        onBlur={handleNameBlur} 
+                        loading={loadingPlayer} 
+                        autoComplete="off"
+                    >
+                        {showSuggestions && suggestions.length > 0 && (
+                            <div className="absolute top-full left-0 w-full bg-[#0f172a] border border-slate-700 border-t-0 rounded-b-lg shadow-xl z-50 max-h-60 overflow-y-auto ring-1 ring-sky-500/20">
+                                {suggestions.map(s => (
+                                    <div 
+                                        key={s.id} 
+                                        onMouseDown={() => handleSuggestionClick(s)}
+                                        className="px-4 py-3 text-sm text-slate-300 hover:bg-slate-800 hover:text-white cursor-pointer border-b border-slate-800 last:border-0 flex justify-between items-center group transition-colors"
+                                    >
+                                        <div className="flex flex-col">
+                                            <span className="font-bold font-header group-hover:text-sky-400 transition-colors">{s.name}</span>
+                                            <span className="text-[9px] uppercase text-slate-500">{s.language}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-xs text-sky-500 font-mono font-bold block">{(s.firstSquadPower/1000000).toFixed(1)}M</span>
+                                            <span className="text-[8px] text-slate-600 uppercase">Power</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </FormInput>
                 </div>
             </section>
 
