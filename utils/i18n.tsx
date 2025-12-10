@@ -193,7 +193,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'stat.duel': 'المبارزة %',
     'stat.units': 'الجنود %',
     't10.title': 'مكافآت T10',
-    't10.morale': 'معنويات',
+    't10.morale': 'جبروت',
     't10.protection': 'حماية',
     't10.hp': 'صحة HP',
     't10.atk': 'هجوم',

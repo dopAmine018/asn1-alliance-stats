@@ -145,10 +145,12 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
     valor += sumRemaining(def, T10_COSTS.boost3.valor);
     foodIron += sumRemaining(def, T10_COSTS.boost3.foodIron);
 
-    // Final Unlock Cost
-    gold += T10_COSTS.unlock.gold;
-    valor += T10_COSTS.unlock.valor;
-    foodIron += T10_COSTS.unlock.foodIron;
+    // Final Unlock Cost - Only add if not everything is maxed
+    if (prot < 10 || hp < 10 || atk < 10 || def < 10) {
+        gold += T10_COSTS.unlock.gold;
+        valor += T10_COSTS.unlock.valor;
+        foodIron += T10_COSTS.unlock.foodIron;
+    }
 
     return { gold, valor, foodIron };
   }, [formData.t10Protection, formData.t10Hp, formData.t10Atk, formData.t10Def]);

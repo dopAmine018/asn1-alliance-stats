@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Player } from '../types';
 import { useLanguage } from '../utils/i18n';
@@ -16,7 +17,7 @@ const UnitsIcon = () => ( <svg className="w-full h-full" viewBox="0 0 24 24" fil
 
 const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
   const { t } = useLanguage();
-  const [isHovered, setIsHovered] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(false);
 
   const formatMillions = (val: number) => {
       const millions = val / 1000000;
@@ -37,9 +38,10 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
 
   return (
     <div 
-        className="group relative w-full h-full"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        className="group relative w-full h-full cursor-pointer"
+        onMouseEnter={() => setShowOverlay(true)}
+        onMouseLeave={() => setShowOverlay(false)}
+        onClick={() => setShowOverlay(prev => !prev)}
     >
         {/* Glow Effect */}
         <div className="absolute -inset-0.5 bg-gradient-to-b from-sky-500/20 to-indigo-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-700"></div>
@@ -140,8 +142,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
                 )}
             </div>
 
-            {/* Expandable Overlay (Hover) */}
-            <div className={`absolute inset-0 bg-[#020617]/95 backdrop-blur-sm z-20 flex flex-col justify-center items-center p-6 space-y-4 transition-all duration-300 ${isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            {/* Expandable Overlay (Hover/Click) */}
+            <div className={`absolute inset-0 bg-[#020617]/95 backdrop-blur-sm z-20 flex flex-col justify-center items-center p-6 space-y-4 transition-all duration-300 ${showOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                  <div className="w-full space-y-2">
                     <h4 className="text-xs font-bold text-sky-500 uppercase tracking-widest border-b border-sky-500/20 pb-1">Squad Details</h4>
                     <div className="flex justify-between text-xs font-mono text-slate-300"><span>Squad 1</span><span>{formatMillions(player.firstSquadPower)}</span></div>
