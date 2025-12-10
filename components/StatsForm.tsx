@@ -29,7 +29,7 @@ const T10_COSTS = {
 };
 
 const defaultFormData = {
-  name: '', pin: '', firstSquadPower: '', secondSquadPower: '', thirdSquadPower: '', fourthSquadPower: '', totalHeroPower: '',
+  name: '', firstSquadPower: '', secondSquadPower: '', thirdSquadPower: '', fourthSquadPower: '', totalHeroPower: '',
   heroPercent: '0', duelPercent: '0', unitsPercent: '0',
   t10Morale: '0', t10Protection: '0', t10Hp: '0', t10Atk: '0', t10Def: '0',
   techLevel: '', barracksLevel: '', tankCenterLevel: '', airCenterLevel: '', missileCenterLevel: '',
@@ -92,7 +92,6 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [loadingPlayer, setLoadingPlayer] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
   
   const [formData, setFormData] = useState({ language: 'english' as Language, ...defaultFormData });
 
@@ -101,7 +100,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setFormData(prev => ({ ...prev, ...parsed, language, pin: '' }));
+        setFormData(prev => ({ ...prev, ...parsed, language }));
       } catch(e) {}
     }
   }, []);
@@ -170,7 +169,6 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
           const match = res.items?.find(p => p.nameNormalized === formData.name.toLowerCase().trim());
           if(match) {
               addToast('info', `Uplink established: ${match.name}`);
-              setIsLocked(!!(match.pin && match.pin.trim() !== ""));
               
               const norm = (v: number|undefined) => v ? String(v/1000000) : '';
               setFormData(prev => ({
@@ -183,7 +181,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                   techLevel: String(match.techLevel || ''), barracksLevel: String(match.barracksLevel || ''),
                   tankCenterLevel: String(match.tankCenterLevel || ''), airCenterLevel: String(match.airCenterLevel || ''), missileCenterLevel: String(match.missileCenterLevel || ''),
               }));
-          } else { setIsLocked(false); }
+          }
       } catch(e) {} finally { setLoadingPlayer(false); }
   };
 
@@ -193,7 +191,6 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
     const norm = (v: string) => { const n = Number(v); if(isNaN(n)) return 0; return n > 1000 ? n : n * 1000000; };
     try {
         if (!formData.name || !formData.firstSquadPower || !formData.totalHeroPower) throw new Error("Missing critical data");
-        if (isLocked && !formData.pin) throw new Error("Security Clearance Required (PIN)");
         
         const payload = {
             ...formData,
@@ -207,12 +204,10 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
         };
         const res = await MockApi.upsertPlayer(payload);
         if(res.success) {
-            const { pin, ...safe } = formData;
-            localStorage.setItem('asn1_last_submission', JSON.stringify(safe));
+            localStorage.setItem('asn1_last_submission', JSON.stringify(formData));
             addToast('success', 'Data Upload Complete');
             onSuccess();
         } else {
-             if (res.error?.includes("Locked Profile")) throw new Error("Access Denied: Invalid PIN");
              throw new Error(res.error || "Upload Failed");
         }
     } catch(err: any) { addToast('error', err.message); } finally { setLoading(false); }
@@ -234,7 +229,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                 </h2>
             </div>
             <div className="flex gap-2">
-                <button type="button" onClick={() => { localStorage.removeItem('asn1_last_submission'); setFormData({ language, ...defaultFormData }); setIsLocked(false); addToast('info', 'Form Cleared'); }} className="text-[10px] font-bold text-slate-500 hover:text-white uppercase px-3 py-1 border border-slate-800 hover:border-slate-600 rounded transition-colors click-scale">Reset</button>
+                <button type="button" onClick={() => { localStorage.removeItem('asn1_last_submission'); setFormData({ language, ...defaultFormData }); addToast('info', 'Form Cleared'); }} className="text-[10px] font-bold text-slate-500 hover:text-white uppercase px-3 py-1 border border-slate-800 hover:border-slate-600 rounded transition-colors click-scale">Reset</button>
             </div>
         </div>
 
@@ -242,14 +237,8 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
             {/* 1. Identity */}
             <section className="space-y-6">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest border-l-2 border-sky-500 pl-3">{t('section.identity')}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 shadow-lg">
+                <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 shadow-lg">
                     <FormInput label={t('label.name')} name="name" val={formData.name} change={handleChange} req={true} onBlur={handleNameBlur} loading={loadingPlayer} />
-                    <div>
-                        <FormInput label={isLocked ? t('label.pin_locked') : t('label.pin_optional')} name="pin" val={formData.pin} change={handleChange} req={isLocked} locked={isLocked} type="password" />
-                        <div className="mt-2 text-right">
-                             <a href="https://discord.gg/yVwQT88bxf" target="_blank" className="text-[9px] text-slate-500 hover:text-sky-400 transition-colors">{t('msg.forgot_pin')}</a>
-                        </div>
-                    </div>
                 </div>
             </section>
 

@@ -78,7 +78,6 @@ const AdminDashboard: React.FC = () => {
     setEditingPlayer(player);
     setEditForm({
       ...player,
-      pin: player.pin || '', // Add PIN
       firstSquadPower: player.firstSquadPower / 1000000,
       secondSquadPower: (player.secondSquadPower || 0) / 1000000,
       thirdSquadPower: (player.thirdSquadPower || 0) / 1000000,
@@ -101,7 +100,6 @@ const AdminDashboard: React.FC = () => {
         name: editForm.name,
         language: editForm.language,
         active: editForm.active,
-        pin: editForm.pin, // Save PIN
         
         firstSquadPower: normalizePower(editForm.firstSquadPower),
         secondSquadPower: normalizePower(editForm.secondSquadPower),
@@ -297,7 +295,6 @@ const AdminDashboard: React.FC = () => {
                       <div className="space-y-4">
                           <h4 className="text-xs font-bold text-sky-500 uppercase tracking-widest border-b border-slate-800 pb-2">Identity & Powers (M)</h4>
                           <EditInput label="Name" field="name" />
-                          <EditInput label="PIN (Leave empty to remove)" field="pin" type="text" />
                           <div className="grid grid-cols-2 gap-4">
                               <EditInput label="Squad 1 (M)" field="firstSquadPower" type="number" step="0.1" />
                               <EditInput label="Squad 2 (M)" field="secondSquadPower" type="number" step="0.1" />

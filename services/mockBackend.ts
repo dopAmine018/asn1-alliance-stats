@@ -57,7 +57,6 @@ const mapPlayerFromDb = (row: any): Player => ({
   language: row.language,
   name: row.name,
   nameNormalized: row.name_normalized,
-  pin: row.pin,
   firstSquadPower: row.first_squad_power,
   secondSquadPower: row.second_squad_power,
   thirdSquadPower: row.third_squad_power,
@@ -84,7 +83,6 @@ const mapPlayerToDb = (p: Partial<Player>) => {
   if (p.name) out.name = p.name;
   if (p.nameNormalized) out.name_normalized = p.nameNormalized;
   if (p.language) out.language = p.language;
-  if (p.pin !== undefined) out.pin = p.pin; // Allow clearing pin if empty string passed
   if (p.firstSquadPower !== undefined) out.first_squad_power = p.firstSquadPower;
   if (p.secondSquadPower !== undefined) out.second_squad_power = p.secondSquadPower;
   if (p.thirdSquadPower !== undefined) out.third_squad_power = p.thirdSquadPower;
@@ -153,34 +151,13 @@ export const MockApi = {
 
   upsertPlayer: async (playerData: Partial<Player>): Promise<ApiResponse<Player>> => {
     const nameNormalized = playerData.name?.trim().toLowerCase().replace(/\s+/g, ' ') || '';
-    
-    // Security: Check PIN before allowing update
-    try {
-        const { data: existing } = await supabase
-            .from('players')
-            .select('pin')
-            // Remove language check here if you want unique names across ALL languages
-            // But keeping it consistent with schema constraint:
-            .eq('language', playerData.language) 
-            .eq('name_normalized', nameNormalized)
-            .single();
-
-        if (existing) {
-             // If player exists and has a PIN
-             if (existing.pin && String(existing.pin).trim() !== '') {
-                 const providedPin = playerData.pin ? String(playerData.pin).trim() : '';
-                 if (providedPin !== String(existing.pin).trim()) {
-                     return { success: false, error: "Locked Profile: Incorrect PIN." };
-                 }
-             }
-        }
-    } catch (e) {
-        // Player likely doesn't exist, proceed to create
-    }
-
     const payload = mapPlayerToDb({ ...playerData, nameNormalized });
     
     try {
+        if (!payload.language || !payload.name_normalized) {
+            throw new Error("Missing required identity fields (Language or Name)");
+        }
+
         const { data, error } = await supabase
           .from('players')
           .upsert(payload, { onConflict: 'language,name_normalized' })
@@ -190,8 +167,8 @@ export const MockApi = {
         if (error) throw error;
         return { success: true, data: mapPlayerFromDb(data) };
     } catch (e: any) {
-        console.error("Upsert Failed:", e);
-        return { success: false, error: e.message || "Failed to save" };
+        console.error("Upsert Failed Details:", e);
+        return { success: false, error: e.message || JSON.stringify(e) || "Failed to save" };
     }
   },
 

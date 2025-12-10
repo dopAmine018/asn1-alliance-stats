@@ -11,7 +11,6 @@ type TranslationKey =
   | 'section.infrastructure' | 'section.infrastructure.desc'
   | 'section.t10' | 'section.t10.desc'
   | 'label.language' | 'label.name' | 'label.power' | 'label.squad2' | 'label.squad3' | 'label.squad4' | 'label.totalHeroPower'
-  | 'label.pin_locked' | 'label.pin_optional' | 'label.pin_req' | 'label.pin_set' | 'msg.forgot_pin' | 'err.pin_mismatch'
   | 'placeholder.server_rank' | 'hint.server_rank'
   | 'stat.hero' | 'stat.duel' | 'stat.units'
   | 't10.title' | 't10.morale' | 't10.protection' | 't10.hp' | 't10.atk' | 't10.def'
@@ -63,12 +62,6 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'label.squad3': 'Squad 3',
     'label.squad4': 'Squad 4',
     'label.totalHeroPower': 'Total Hero Power',
-    'label.pin_locked': '🔒 Security PIN (Locked)',
-    'label.pin_optional': '🛡️ Security PIN (Optional)',
-    'label.pin_req': 'Required to update',
-    'label.pin_set': 'Set for quick filling',
-    'msg.forgot_pin': 'Forgot PIN? Contact R5/4',
-    'err.pin_mismatch': 'Locked Profile: Incorrect PIN',
     'placeholder.server_rank': 'Server Rank',
     'hint.server_rank': 'ℹ️ Find this in Server Rankings',
     'stat.hero': 'Hero %',
@@ -181,12 +174,6 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'label.squad3': 'الفريق 3',
     'label.squad4': 'الفريق 4',
     'label.totalHeroPower': 'قوة الأبطال',
-    'label.pin_locked': '🔒 الرمز السري (مغلق)',
-    'label.pin_optional': '🛡️ الرمز السري (اختياري)',
-    'label.pin_req': 'مطلوب للتحديث',
-    'label.pin_set': 'للإدخال السريع',
-    'msg.forgot_pin': 'نسيت الرمز؟ تواصل مع R5/4',
-    'err.pin_mismatch': 'خطأ في الرمز السري',
     'placeholder.server_rank': 'ترتيب السيرفر',
     'hint.server_rank': 'ℹ️ تجدها في تصنيف السيرفر',
     'stat.hero': 'الأبطال %',
@@ -299,12 +286,6 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'label.squad3': '3. Takım',
     'label.squad4': '4. Takım',
     'label.totalHeroPower': 'Kahraman Gücü',
-    'label.pin_locked': '🔒 PIN (Kilitli)',
-    'label.pin_optional': '🛡️ PIN (İsteğe Bağlı)',
-    'label.pin_req': 'Güncelleme için gerekli',
-    'label.pin_set': 'Hızlı giriş için',
-    'msg.forgot_pin': 'PIN unuttun mu? R5/4\'e yaz',
-    'err.pin_mismatch': 'Hatalı PIN',
     'placeholder.server_rank': 'Sunucu Sırası',
     'hint.server_rank': 'ℹ️ Sunucu Sıralamasından al',
     'stat.hero': 'Kahraman %',
@@ -417,12 +398,6 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'label.squad3': 'Pasukan 3',
     'label.squad4': 'Pasukan 4',
     'label.totalHeroPower': 'Kekuatan Hero',
-    'label.pin_locked': '🔒 PIN (Terkunci)',
-    'label.pin_optional': '🛡️ PIN (Opsional)',
-    'label.pin_req': 'Wajib',
-    'label.pin_set': 'Atur untuk cepat',
-    'msg.forgot_pin': 'Lupa PIN? Hubungi R5/4',
-    'err.pin_mismatch': 'PIN Salah',
     'placeholder.server_rank': 'Peringkat Server',
     'hint.server_rank': 'ℹ️ Dapatkan dari Peringkat Server',
     'stat.hero': 'Hero %',

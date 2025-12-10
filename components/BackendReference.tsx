@@ -24,7 +24,6 @@ create table players (
   language text not null,
   name text not null,
   name_normalized text not null,
-  pin text, -- Optional Security PIN
   
   first_squad_power bigint default 0,
   second_squad_power bigint default 0,
