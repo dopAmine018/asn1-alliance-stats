@@ -1,4 +1,3 @@
-
 export type Language = 'english' | 'arabic' | 'turkish' | 'indonesian';
 
 export interface Player {

@@ -4,9 +4,11 @@ import { Player, PlayerFilter } from '../types';
 import { useLanguage } from '../utils/i18n';
 import VsTracker from './VsTracker';
 import { CustomDropdown } from './CustomDropdown';
+import { useToast } from './Toast';
 
 const AdminDashboard: React.FC = () => {
   const { t } = useLanguage();
+  const { addToast } = useToast();
   const [token, setToken] = useState(localStorage.getItem('asn1_auth_token'));
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -32,12 +34,17 @@ const AdminDashboard: React.FC = () => {
       if (res.success && res.data) { 
           localStorage.setItem('asn1_auth_token', res.data.token);
           setToken(res.data.token); 
+          addToast('success', 'Authenticated as Admin');
       } else { 
           setError(res.error || 'Login failed'); 
       } 
   };
 
-  const handleLogout = () => { MockApi.logout(); setToken(null); };
+  const handleLogout = () => { 
+    MockApi.logout(); 
+    setToken(null); 
+    addToast('info', 'Logged out');
+  };
   
   const fetchPlayers = async () => { 
     setLoading(true); 
@@ -47,8 +54,21 @@ const AdminDashboard: React.FC = () => {
     setLoading(false); 
   };
   
-  const handleDelete = async (id: string) => { if (!window.confirm('Confirm Deletion?')) return; await MockApi.adminDeletePlayer(id); fetchPlayers(); };
-  const handleToggleActive = async (player: Player) => { await MockApi.adminUpdatePlayer(player.id, { active: !player.active }); fetchPlayers(); };
+  const handleDelete = async (id: string) => { 
+      if (!window.confirm('Confirm Deletion?')) return; 
+      const res = await MockApi.adminDeletePlayer(id);
+      if(res.success) {
+          addToast('success', 'Player deleted');
+          fetchPlayers();
+      } else {
+          addToast('error', res.error || 'Delete failed');
+      }
+  };
+
+  const handleToggleActive = async (player: Player) => { 
+      await MockApi.adminUpdatePlayer(player.id, { active: !player.active }); 
+      fetchPlayers(); 
+  };
   
   const formatPower = (val: number | undefined) => { if (!val) return '-'; return (val / 1000000).toLocaleString(undefined, { maximumFractionDigits: 2 }) + 'M'; };
 
@@ -103,11 +123,16 @@ const AdminDashboard: React.FC = () => {
         missileCenterLevel: Number(editForm.missileCenterLevel),
       };
 
-      await MockApi.adminUpdatePlayer(editingPlayer.id, payload);
-      setEditingPlayer(null);
-      fetchPlayers();
-    } catch (e) {
-      alert("Error saving: " + e);
+      const res = await MockApi.adminUpdatePlayer(editingPlayer.id, payload);
+      if(res.success) {
+          addToast('success', 'Player updated');
+          setEditingPlayer(null);
+          fetchPlayers();
+      } else {
+          addToast('error', res.error || 'Update failed');
+      }
+    } catch (e: any) {
+      addToast('error', e.message);
     }
   };
 
@@ -198,7 +223,7 @@ const AdminDashboard: React.FC = () => {
                      </div>
                 </div>
                 
-                {/* Desktop Table View (Hidden on Mobile) */}
+                {/* Desktop Table View */}
                 <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left text-sm text-slate-300">
                         <thead className="bg-slate-950 text-[10px] uppercase font-bold text-slate-500 tracking-widest border-b border-slate-800">
@@ -221,7 +246,7 @@ const AdminDashboard: React.FC = () => {
                     </table>
                 </div>
 
-                {/* Mobile Card View (Hidden on Desktop) */}
+                {/* Mobile Card View */}
                 <div className="md:hidden p-4 space-y-4">
                     {players.map(player => (
                         <div key={player.id} className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex flex-col gap-3 relative overflow-hidden">

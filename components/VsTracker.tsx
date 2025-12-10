@@ -1,12 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { VsWeek, VsRecord, Player } from '../types';
 import { VsApi, MockApi } from '../services/mockBackend';
 import { CustomDropdown } from './CustomDropdown';
 import { useLanguage } from '../utils/i18n';
+import { useToast } from './Toast';
 
 const VsTracker: React.FC = () => {
   const { t } = useLanguage();
+  const { addToast } = useToast();
   const [weeks, setWeeks] = useState<VsWeek[]>([]);
   const [selectedWeekId, setSelectedWeekId] = useState<string>('');
   const [records, setRecords] = useState<VsRecord[]>([]);
@@ -33,9 +34,35 @@ const VsTracker: React.FC = () => {
   
   const loadRecords = async (weekId: string) => { const data = await VsApi.getRecords(weekId); setRecords(data); };
   
-  const handleCreateWeek = async () => { if (!newWeekName.trim()) return; const week = await VsApi.createWeek(newWeekName); setNewWeekName(''); setShowNewWeekModal(false); await loadWeeks(); setSelectedWeekId(week.id); };
-  const handleAddPlayer = async (e: React.FormEvent) => { e.preventDefault(); if (!newPlayerName.trim() || !selectedWeekId) return; try { await VsApi.addPlayerToWeek(selectedWeekId, newPlayerName); setNewPlayerName(''); loadRecords(selectedWeekId); } catch (err: any) { alert(err.message); } };
+  const handleCreateWeek = async () => { 
+      if (!newWeekName.trim()) return; 
+      try {
+        const week = await VsApi.createWeek(newWeekName); 
+        setNewWeekName(''); 
+        setShowNewWeekModal(false); 
+        await loadWeeks(); 
+        setSelectedWeekId(week.id); 
+        addToast('success', 'Duel created');
+      } catch (e: any) {
+        addToast('error', e.message);
+      }
+  };
+
+  const handleAddPlayer = async (e: React.FormEvent) => { 
+      e.preventDefault(); 
+      if (!newPlayerName.trim() || !selectedWeekId) return; 
+      try { 
+          await VsApi.addPlayerToWeek(selectedWeekId, newPlayerName); 
+          setNewPlayerName(''); 
+          loadRecords(selectedWeekId); 
+          addToast('success', 'Agent injected');
+      } catch (err: any) { 
+          addToast('error', err.message); 
+      } 
+  };
+
   const handleScoreChange = (record: VsRecord, field: keyof VsRecord, value: string) => { const numVal = Number(value); if(isNaN(numVal)) return; const updated = { ...record, [field]: numVal }; setRecords(prev => prev.map(r => r.id === record.id ? updated : r)); VsApi.updateRecord(updated); };
+  
   const exportToCSV = () => { if (!records.length) return; const weekName = weeks.find(w => w.id === selectedWeekId)?.name || 'Week'; let csvContent = "data:text/csv;charset=utf-8,Player Name,Mon,Tue,Wed,Thu,Fri,Sat,Total\n"; records.forEach(r => csvContent += `${r.playerName},${r.mon},${r.tue},${r.wed},${r.thu},${r.fri},${r.sat},${r.total}\n`); const encodedUri = encodeURI(csvContent); const link = document.createElement("a"); link.setAttribute("href", encodedUri); link.setAttribute("download", `${weekName.replace(/\s+/g, '_')}_export.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); };
   const weekOptions = weeks.map(w => ({ value: w.id, label: w.name }));
 

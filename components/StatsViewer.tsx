@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Player, PlayerFilter } from '../types';
 import { MockApi } from '../services/mockBackend';

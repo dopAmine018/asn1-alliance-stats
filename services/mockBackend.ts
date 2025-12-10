@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { Player, PlayerFilter, ApiResponse, AuthResponse, VsWeek, VsRecord } from '../types';
 

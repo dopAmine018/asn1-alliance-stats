@@ -1,11 +1,12 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Layout from './components/Layout';
 import StatsForm from './components/StatsForm';
 import StatsViewer from './components/StatsViewer';
-import AdminDashboard from './components/AdminDashboard';
 import { MockApi } from './services/mockBackend';
 import { useLanguage } from './utils/i18n';
+
+// Lazy load Admin Dashboard to improve initial load performance for public users
+const AdminDashboard = React.lazy(() => import('./components/AdminDashboard'));
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'public' | 'admin'>('public');
@@ -19,7 +20,7 @@ const App: React.FC = () => {
 
   const handleFormSuccess = () => {
     setRefreshTrigger(prev => prev + 1);
-    window.scrollTo({ top: 300, behavior: 'smooth' });
+    window.scrollTo({ top: 500, behavior: 'smooth' });
   };
 
   return (
@@ -40,7 +41,14 @@ const App: React.FC = () => {
       )}
 
       {activeTab === 'admin' && (
-        <AdminDashboard />
+        <Suspense fallback={
+            <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
+                <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-xs font-mono text-sky-500 uppercase tracking-widest">Loading Admin Module...</p>
+            </div>
+        }>
+            <AdminDashboard />
+        </Suspense>
       )}
     </Layout>
   );

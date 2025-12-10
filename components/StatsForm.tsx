@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { MockApi } from '../services/mockBackend';
 import { Language } from '../types';
 import { useLanguage } from '../utils/i18n';
 import { CustomDropdown } from './CustomDropdown';
+import { useToast } from './Toast';
 
 // --- Icons (Vector Paths) ---
 const DuelIcon = () => <svg className="w-full h-full text-sky-500 drop-shadow-[0_0_8px_rgba(14,165,233,0.3)]" viewBox="0 0 24 24" fill="currentColor"><path d="M14.5 3.5l1.5 1.5-4 4L14 11l4-4 1.5 1.5L8.5 19.5l-2-2L17.5 6.5l-3-3z"/><path d="M10.5 6.5l8 8-1.5 1.5-8-8 1.5-1.5z"/><path d="M5.2 17.8L6.2 18.8L3.5 21.5L2.5 20.5L5.2 17.8Z"/></svg>;
@@ -20,7 +20,9 @@ interface StatsFormProps {
   onSuccess: () => void;
 }
 
-const InputField = ({ label, subLabel, name, value, required = false, type="text", placeholder, onChange }: any) => (
+const STORAGE_KEY = 'asn1_last_submission';
+
+const InputField = ({ label, subLabel, name, value, required = false, type="text", placeholder, onChange, onBlur }: any) => (
   <div className="space-y-1.5 group w-full">
       <div className="flex justify-between items-baseline px-1">
           <label className={`text-[10px] font-bold uppercase tracking-widest group-focus-within:text-sky-500 transition-colors ${required ? 'text-sky-200' : 'text-slate-400'}`}>
@@ -35,6 +37,7 @@ const InputField = ({ label, subLabel, name, value, required = false, type="text
               name={name}
               value={value}
               onChange={onChange}
+              onBlur={onBlur}
               required={required}
               className="w-full bg-slate-900 border border-slate-700/50 rounded-lg px-4 py-3 text-white placeholder-slate-600 outline-none text-sm font-medium font-mono focus:border-sky-500/50 focus:shadow-[0_0_15px_rgba(14,165,233,0.1)] transition-all"
               style={type === 'number' ? { direction: 'ltr' } : undefined}
@@ -94,42 +97,130 @@ const T10Badge = ({ name, labelKey, icon: Icon, colorTheme, value, t, onDropdown
   );
 };
 
+const defaultFormData = {
+  name: '',
+  firstSquadPower: '',
+  secondSquadPower: '',
+  thirdSquadPower: '',
+  fourthSquadPower: '',
+  totalHeroPower: '',
+  heroPercent: '0',
+  duelPercent: '0',
+  unitsPercent: '0',
+  t10Morale: '1',
+  t10Protection: '1',
+  t10Hp: '1',
+  t10Atk: '1',
+  t10Def: '1',
+  techLevel: '',
+  barracksLevel: '',
+  tankCenterLevel: '',
+  airCenterLevel: '',
+  missileCenterLevel: '',
+};
+
 const StatsForm: React.FC<StatsFormProps> = ({ onSuccess }) => {
   const { t, language } = useLanguage();
+  const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
+  const [loadingPlayer, setLoadingPlayer] = useState(false);
+  
   const [formData, setFormData] = useState({
     language: 'english' as Language, 
-    name: '',
-    firstSquadPower: '',
-    secondSquadPower: '',
-    thirdSquadPower: '',
-    fourthSquadPower: '',
-    totalHeroPower: '',
-    heroPercent: '0',
-    duelPercent: '0',
-    unitsPercent: '0',
-    t10Morale: '1',
-    t10Protection: '1',
-    t10Hp: '1',
-    t10Atk: '1',
-    t10Def: '1',
-    techLevel: '',
-    barracksLevel: '',
-    tankCenterLevel: '',
-    airCenterLevel: '',
-    missileCenterLevel: '',
+    ...defaultFormData
   });
 
+  // Load saved data on mount
+  React.useEffect(() => {
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setFormData(prev => ({
+          ...prev,
+          ...parsed,
+          language: language
+        }));
+      } catch(e) {
+        console.error("Error loading saved form data", e);
+      }
+    }
+  }, []);
+
   React.useEffect(() => { setFormData(prev => ({...prev, language: language })); }, [language]);
+  
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value })); };
   const handleDropdownChange = (name: string) => (value: string | number) => { setFormData(prev => ({ ...prev, [name]: String(value) })); };
+
+  // New function to load player data from server by name
+  const handleNameBlur = async () => {
+      if(!formData.name || formData.name.length < 3) return;
+      
+      setLoadingPlayer(true);
+      try {
+          // Search for exact match normalized
+          const res = await MockApi.getPlayers({
+              search: formData.name,
+              language: 'all',
+              sort: 'time_desc',
+              activeOnly: false
+          });
+          
+          if(res.items && res.items.length > 0) {
+              // Find best match (exact name match preferred)
+              const normalizedInput = formData.name.toLowerCase().trim();
+              const match = res.items.find(p => p.nameNormalized === normalizedInput) || res.items[0];
+              
+              if(match) {
+                  addToast('info', `Loaded existing data for ${match.name}`);
+                  // Map DB data back to form format
+                  const normalizePowerToInput = (val: number | undefined) => val ? String(val / 1000000) : '';
+                  
+                  setFormData(prev => ({
+                      ...prev,
+                      name: match.name, // Keep exact casing from DB
+                      firstSquadPower: normalizePowerToInput(match.firstSquadPower),
+                      secondSquadPower: normalizePowerToInput(match.secondSquadPower),
+                      thirdSquadPower: normalizePowerToInput(match.thirdSquadPower),
+                      fourthSquadPower: normalizePowerToInput(match.fourthSquadPower),
+                      totalHeroPower: normalizePowerToInput(match.totalHeroPower),
+                      heroPercent: String(match.heroPercent),
+                      duelPercent: String(match.duelPercent),
+                      unitsPercent: String(match.unitsPercent),
+                      t10Morale: String(match.t10Morale),
+                      t10Protection: String(match.t10Protection),
+                      t10Hp: String(match.t10Hp),
+                      t10Atk: String(match.t10Atk),
+                      t10Def: String(match.t10Def),
+                      techLevel: String(match.techLevel || ''),
+                      barracksLevel: String(match.barracksLevel || ''),
+                      tankCenterLevel: String(match.tankCenterLevel || ''),
+                      airCenterLevel: String(match.airCenterLevel || ''),
+                      missileCenterLevel: String(match.missileCenterLevel || ''),
+                  }));
+              }
+          }
+      } catch(e) {
+          // Silent fail on lookup
+      } finally {
+          setLoadingPlayer(false);
+      }
+  };
+
+  const handleClear = () => {
+    if (window.confirm("Are you sure you want to clear the form? This will remove your saved data.")) {
+        localStorage.removeItem(STORAGE_KEY);
+        setFormData({
+            language: language,
+            ...defaultFormData
+        });
+        addToast('info', 'Form cleared');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMessage(null);
 
     const normalizePower = (val: string | undefined) => {
         if (!val) return undefined;
@@ -176,35 +267,40 @@ const StatsForm: React.FC<StatsFormProps> = ({ onSuccess }) => {
       if (payload.firstSquadPower <= 0) throw new Error("Power must be positive");
       
       const res = await MockApi.upsertPlayer(payload);
-      if (res.success) { setMessage({ type: 'success', text: t('form.success') }); onSuccess(); } 
+      if (res.success) { 
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+          addToast('success', t('form.success')); 
+          onSuccess(); 
+      } 
       else { throw new Error(res.error || 'Failed to save'); }
-    } catch (err: any) { setMessage({ type: 'error', text: err.message }); } finally { setLoading(false); }
+    } catch (err: any) { 
+      addToast('error', err.message); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const percentOptions = Array.from({length: 101}, (_, i) => ({ value: i, label: `${i}%` }));
   const levelOptions = Array.from({length: 35}, (_, i) => ({ value: i + 1, label: `Lvl ${i + 1}` }));
 
   return (
-    <>
-      {message && (
-        <div className="fixed top-28 left-4 right-4 sm:left-auto sm:right-6 z-[10000] bg-slate-900 border border-slate-700 px-6 py-4 rounded-xl flex items-center gap-4 animate-in slide-in-from-right duration-500 shadow-2xl">
-           <div className={`w-3 h-3 rounded-full ${message.type === 'success' ? 'bg-emerald-500 shadow-[0_0_10px_#34d399]' : 'bg-rose-500 shadow-[0_0_10px_#fb7185]'}`}></div>
-           <div className="flex-1">
-               <h4 className="text-sm font-bold text-white uppercase tracking-wider">{message.type === 'success' ? 'Confirmed' : 'Error'}</h4>
-               <p className="text-xs text-slate-400 break-words">{message.text}</p>
-           </div>
-           <button onClick={() => setMessage(null)} className="ml-2 text-slate-500 hover:text-white p-2">✕</button>
-        </div>
-      )}
-
-      <div className="glass-panel relative rounded-2xl overflow-hidden">
+    <div className="glass-panel relative rounded-2xl overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-sky-500 to-transparent opacity-50"></div>
         <div className="p-4 sm:p-6 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between bg-slate-900/40 gap-3">
             <h2 className="text-lg font-header font-bold text-white tracking-widest uppercase flex items-center gap-3">
                 <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
                 {t('form.title')}
             </h2>
-            <div className="self-start sm:self-auto text-[9px] font-mono text-sky-500/80 border border-sky-500/20 px-2 py-1 rounded bg-sky-500/5">SECURE UPLINK</div>
+            <div className="flex items-center gap-3 self-start sm:self-auto">
+                <button 
+                  type="button" 
+                  onClick={handleClear} 
+                  className="text-[10px] font-bold text-slate-500 hover:text-white uppercase tracking-wider transition-colors px-2 py-1"
+                >
+                  Clear Form
+                </button>
+                <div className="text-[9px] font-mono text-sky-500/80 border border-sky-500/20 px-2 py-1 rounded bg-sky-500/5">SECURE UPLINK</div>
+            </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 sm:p-8 space-y-8 sm:space-y-10">
@@ -214,10 +310,25 @@ const StatsForm: React.FC<StatsFormProps> = ({ onSuccess }) => {
               <div className="md:col-span-4">
                  <h3 className="text-[10px] font-bold text-sky-500 uppercase tracking-[0.2em] mb-2">{t('section.identity')}</h3>
                  <p className="text-[10px] text-slate-500 leading-relaxed max-w-xs">{t('section.identity.desc')}</p>
+                 <div className="mt-2 text-[10px] text-sky-400 font-mono">
+                     * Type name to load existing data
+                 </div>
               </div>
-              <div className="md:col-span-8">
-                  {/* Language selection removed. Automatically uses site language. */}
-                  <InputField label={t('label.name')} name="name" value={formData.name} onChange={handleChange} required={true} placeholder="Commander Name" />
+              <div className="md:col-span-8 relative">
+                  <InputField 
+                    label={t('label.name')} 
+                    name="name" 
+                    value={formData.name} 
+                    onChange={handleChange} 
+                    onBlur={handleNameBlur}
+                    required={true} 
+                    placeholder="Commander Name" 
+                  />
+                  {loadingPlayer && (
+                      <div className="absolute right-3 top-9 text-sky-500 animate-spin">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      </div>
+                  )}
               </div>
           </div>
 
@@ -349,8 +460,7 @@ const StatsForm: React.FC<StatsFormProps> = ({ onSuccess }) => {
           </div>
 
         </form>
-      </div>
-    </>
+    </div>
   );
 };
 

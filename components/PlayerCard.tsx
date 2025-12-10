@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Player } from '../types';
 import { useLanguage } from '../utils/i18n';
