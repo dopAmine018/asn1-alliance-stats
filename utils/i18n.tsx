@@ -17,9 +17,9 @@ type TranslationKey =
   | 'calc.title' | 'calc.gold' | 'calc.valor' | 'calc.food_iron' | 'calc.remaining'
   | 'level.tech' | 'level.barracks' | 'level.tank' | 'level.air' | 'level.missile'
   | 'card.hero_pwr' | 'card.tech_short' | 'card.barr_short' | 'card.tank_short' | 'card.air_short' | 'card.misl_short'
-  | 'viewer.leaderboard' | 'viewer.search' | 'viewer.sort' | 'viewer.showing' | 'viewer.no_results' | 'viewer.updated' | 'viewer.export' | 'viewer.back'
+  | 'viewer.leaderboard' | 'viewer.search' | 'viewer.sort' | 'viewer.showing' | 'viewer.no_results' | 'viewer.updated' | 'viewer.export' | 'viewer.excel' | 'viewer.back'
   | 'sort.newest' | 'sort.oldest' | 'sort.highest_power' | 'sort.lowest_power'
-  | 'sort.highest_total_hero_power' | 'sort.lowest_total_hero_power'
+  | 'sort.highest_total_hero_power' | 'sort.lowest_total_hero_power' | 'sort.t10_closest'
   | 'admin.login.title' | 'admin.login.btn' | 'admin.dashboard' | 'admin.password' | 'admin.db' | 'admin.vs' | 'admin.filter'
   | 'admin.active_only' | 'admin.active_only' | 'admin.all_records' | 'admin.status' | 'admin.identity' | 'admin.control' | 'admin.terminate' | 'admin.save' | 'admin.cancel' | 'admin.edit' | 'admin.del'
   | 'vs.select' | 'vs.create_btn' | 'vs.extract' | 'vs.modal_title' | 'vs.modal_placeholder' | 'vs.abort' | 'vs.launch' 
@@ -95,7 +95,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'viewer.showing': 'active',
     'viewer.no_results': 'No players found.',
     'viewer.updated': 'Updated',
-    'viewer.export': 'Export CSV',
+    'viewer.export': 'Export XLS',
+    'viewer.excel': 'Excel',
     'viewer.back': 'Back',
     'sort.newest': 'Newest',
     'sort.oldest': 'Oldest',
@@ -103,6 +104,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'sort.lowest_power': 'Lowest Power',
     'sort.highest_total_hero_power': 'Highest Hero Power',
     'sort.lowest_total_hero_power': 'Lowest Hero Power',
+    'sort.t10_closest': 'Closest to T10',
     'admin.login.title': 'Admin Access',
     'admin.login.btn': 'Unlock Panel',
     'admin.dashboard': 'Admin Dashboard',
@@ -207,7 +209,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'viewer.showing': 'نشط',
     'viewer.no_results': 'لا توجد نتائج.',
     'viewer.updated': 'تحديث',
-    'viewer.export': 'CSV',
+    'viewer.export': 'تصدير XLS',
+    'viewer.excel': 'Excel',
     'viewer.back': 'عودة',
     'sort.newest': 'الأحدث',
     'sort.oldest': 'الأقدم',
@@ -215,6 +218,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'sort.lowest_power': 'الأقل قوة',
     'sort.highest_total_hero_power': 'أعلى قوة أبطال',
     'sort.lowest_total_hero_power': 'أقل قوة أبطال',
+    'sort.t10_closest': 'الأقرب لـ T10',
     'admin.login.title': 'دخول المشرف',
     'admin.login.btn': 'دخول',
     'admin.dashboard': 'لوحة المشرف',
@@ -319,7 +323,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'viewer.showing': 'aktif',
     'viewer.no_results': 'Sonuç yok.',
     'viewer.updated': 'Güncel',
-    'viewer.export': 'CSV',
+    'viewer.export': 'XLS İndir',
+    'viewer.excel': 'Excel',
     'viewer.back': 'Geri',
     'sort.newest': 'En Yeni',
     'sort.oldest': 'En Eski',
@@ -327,6 +332,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'sort.lowest_power': 'En Düşük Güç',
     'sort.highest_total_hero_power': 'Yüksek Kahraman Gücü',
     'sort.lowest_total_hero_power': 'Düşük Kahraman Gücü',
+    'sort.t10_closest': "T10'a En Yakın",
     'admin.login.title': 'Yönetici',
     'admin.login.btn': 'Giriş',
     'admin.dashboard': 'Panel',
@@ -431,7 +437,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'viewer.showing': 'aktif',
     'viewer.no_results': 'Tidak ada.',
     'viewer.updated': 'Diperbarui',
-    'viewer.export': 'CSV',
+    'viewer.export': 'Ekspor XLS',
+    'viewer.excel': 'Excel',
     'viewer.back': 'Kembali',
     'sort.newest': 'Terbaru',
     'sort.oldest': 'Terlama',
@@ -439,6 +446,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'sort.lowest_power': 'Terendah',
     'sort.highest_total_hero_power': 'Hero Tertinggi',
     'sort.lowest_total_hero_power': 'Hero Terendah',
+    'sort.t10_closest': 'Terdekat ke T10',
     'admin.login.title': 'Admin',
     'admin.login.btn': 'Masuk',
     'admin.dashboard': 'Dasbor',

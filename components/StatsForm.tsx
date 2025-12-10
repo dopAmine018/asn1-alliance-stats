@@ -5,28 +5,7 @@ import { Player, Language } from '../types';
 import { useLanguage } from '../utils/i18n';
 import { CustomDropdown } from './CustomDropdown';
 import { useToast } from './Toast';
-
-// --- T10 Resource Data Constants ---
-const T10_COSTS = {
-    // Morale & Protection
-    advProt: {
-        gold: [64600000, 92300000, 92300000, 158000000, 158000000, 221000000, 221000000, 287000000, 287000000, 403000000],
-        valor: [1280, 1440, 1440, 1600, 1600, 1800, 1800, 2000, 2000, 2000],
-        foodIron: [21700000, 31000000, 31000000, 53000000, 53000000, 74000000, 74000000, 96000000, 96000000, 134000000]
-    },
-    // HP, Atk, Def
-    boost3: {
-        gold: [92300000, 158000000, 158000000, 221000000, 221000000, 287000000, 287000000, 403000000, 403000000, 563000000],
-        valor: [1440, 1600, 1600, 1800, 1800, 2000, 2000, 2200, 2200, 2400],
-        foodIron: [31000000, 53000000, 53000000, 74000000, 74000000, 96000000, 96000000, 134000000, 134000000, 175000000]
-    },
-    // Final Unlock
-    unlock: {
-        gold: 563000000,
-        valor: 2400,
-        foodIron: 188000000
-    }
-};
+import { calculateT10RemainingCost } from '../utils/gameLogic';
 
 const defaultFormData = {
   name: '', firstSquadPower: '', secondSquadPower: '', thirdSquadPower: '', fourthSquadPower: '', totalHeroPower: '',
@@ -183,47 +162,12 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
 
   // --- Resource Calculation Logic ---
   const resourcesNeeded = useMemo(() => {
-    // Helper to sum remaining costs from array based on current level
-    const sumRemaining = (currentLevel: number, costArray: number[]) => {
-        if (currentLevel >= 10) return 0;
-        return costArray.slice(currentLevel).reduce((a, b) => a + b, 0);
-    };
-
-    const prot = parseInt(formData.t10Protection) || 0;
-    const hp = parseInt(formData.t10Hp) || 0;
-    const atk = parseInt(formData.t10Atk) || 0;
-    const def = parseInt(formData.t10Def) || 0;
-
-    let gold = 0, valor = 0, foodIron = 0;
-
-    // Protection
-    gold += sumRemaining(prot, T10_COSTS.advProt.gold);
-    valor += sumRemaining(prot, T10_COSTS.advProt.valor);
-    foodIron += sumRemaining(prot, T10_COSTS.advProt.foodIron);
-
-    // HP
-    gold += sumRemaining(hp, T10_COSTS.boost3.gold);
-    valor += sumRemaining(hp, T10_COSTS.boost3.valor);
-    foodIron += sumRemaining(hp, T10_COSTS.boost3.foodIron);
-
-    // Atk
-    gold += sumRemaining(atk, T10_COSTS.boost3.gold);
-    valor += sumRemaining(atk, T10_COSTS.boost3.valor);
-    foodIron += sumRemaining(atk, T10_COSTS.boost3.foodIron);
-
-    // Def
-    gold += sumRemaining(def, T10_COSTS.boost3.gold);
-    valor += sumRemaining(def, T10_COSTS.boost3.valor);
-    foodIron += sumRemaining(def, T10_COSTS.boost3.foodIron);
-
-    // Final Unlock Cost - Only add if not everything is maxed
-    if (prot < 10 || hp < 10 || atk < 10 || def < 10) {
-        gold += T10_COSTS.unlock.gold;
-        valor += T10_COSTS.unlock.valor;
-        foodIron += T10_COSTS.unlock.foodIron;
-    }
-
-    return { gold, valor, foodIron };
+    return calculateT10RemainingCost({
+        t10Protection: Number(formData.t10Protection),
+        t10Hp: Number(formData.t10Hp),
+        t10Atk: Number(formData.t10Atk),
+        t10Def: Number(formData.t10Def)
+    });
   }, [formData.t10Protection, formData.t10Hp, formData.t10Atk, formData.t10Def]);
 
   const formatResource = (num: number) => {

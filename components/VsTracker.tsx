@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { VsWeek, VsRecord, Player } from '../types';
 import { VsApi, MockApi } from '../services/mockBackend';
@@ -63,9 +64,68 @@ const VsTracker: React.FC = () => {
 
   const handleScoreChange = (record: VsRecord, field: keyof VsRecord, value: string) => { const numVal = Number(value); if(isNaN(numVal)) return; const updated = { ...record, [field]: numVal }; setRecords(prev => prev.map(r => r.id === record.id ? updated : r)); VsApi.updateRecord(updated); };
   
-  const exportToCSV = () => { if (!records.length) return; const weekName = weeks.find(w => w.id === selectedWeekId)?.name || 'Week'; let csvContent = "data:text/csv;charset=utf-8,Player Name,Mon,Tue,Wed,Thu,Fri,Sat,Total\n"; records.forEach(r => csvContent += `${r.playerName},${r.mon},${r.tue},${r.wed},${r.thu},${r.fri},${r.sat},${r.total}\n`); const encodedUri = encodeURI(csvContent); const link = document.createElement("a"); link.setAttribute("href", encodedUri); link.setAttribute("download", `${weekName.replace(/\s+/g, '_')}_export.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); };
-  const weekOptions = weeks.map(w => ({ value: w.id, label: w.name }));
+  // Helper to trigger download using Blob (Fixes truncating issues)
+  const downloadFile = (content: string, fileName: string, mimeType: string) => {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+  };
 
+  const exportToExcel = () => {
+    if (!records.length) return;
+    const weekName = weeks.find(w => w.id === selectedWeekId)?.name || 'Week';
+    const safeName = weekName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+
+    let xmlContent = `<?xml version="1.0"?>
+    <?mso-application progid="Excel.Sheet"?>
+    <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+     xmlns:o="urn:schemas-microsoft-com:office:office"
+     xmlns:x="urn:schemas-microsoft-com:office:excel"
+     xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+     xmlns:html="http://www.w3.org/TR/REC-html40">
+     <Worksheet ss:Name="${safeName}">
+      <Table>
+       <Row>
+        <Cell><Data ss:Type="String">Player Name</Data></Cell>
+        <Cell><Data ss:Type="String">Mon</Data></Cell>
+        <Cell><Data ss:Type="String">Tue</Data></Cell>
+        <Cell><Data ss:Type="String">Wed</Data></Cell>
+        <Cell><Data ss:Type="String">Thu</Data></Cell>
+        <Cell><Data ss:Type="String">Fri</Data></Cell>
+        <Cell><Data ss:Type="String">Sat</Data></Cell>
+        <Cell><Data ss:Type="String">Total</Data></Cell>
+       </Row>`;
+
+    records.forEach(r => {
+       const pName = r.playerName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+       xmlContent += `
+       <Row>
+        <Cell><Data ss:Type="String">${pName}</Data></Cell>
+        <Cell><Data ss:Type="Number">${r.mon}</Data></Cell>
+        <Cell><Data ss:Type="Number">${r.tue}</Data></Cell>
+        <Cell><Data ss:Type="Number">${r.wed}</Data></Cell>
+        <Cell><Data ss:Type="Number">${r.thu}</Data></Cell>
+        <Cell><Data ss:Type="Number">${r.fri}</Data></Cell>
+        <Cell><Data ss:Type="Number">${r.sat}</Data></Cell>
+        <Cell><Data ss:Type="Number">${r.total}</Data></Cell>
+       </Row>`;
+    });
+
+    xmlContent += `
+      </Table>
+     </Worksheet>
+    </Workbook>`;
+
+    downloadFile(xmlContent, `${safeName}_export.xls`, 'application/vnd.ms-excel');
+  };
+
+  const weekOptions = weeks.map(w => ({ value: w.id, label: w.name }));
   const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
   return (
@@ -86,7 +146,11 @@ const VsTracker: React.FC = () => {
                 <button onClick={() => setShowNewWeekModal(true)} className="whitespace-nowrap bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-lg transition-all">{t('vs.create_btn')}</button>
             </div>
             {selectedWeekId && (
-                <button onClick={exportToCSV} className="text-emerald-500 hover:text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all tracking-wider text-center sm:text-left">{t('vs.extract')}</button>
+                <div className="flex gap-2 w-full sm:w-auto">
+                    <button onClick={exportToExcel} className="flex-1 sm:flex-none text-emerald-500 hover:text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all tracking-wider text-center flex items-center justify-center gap-1">
+                        XLS
+                    </button>
+                </div>
             )}
         </div>
 

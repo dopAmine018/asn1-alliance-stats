@@ -140,7 +140,11 @@ export const MockApi = {
         else if (filter.sort === 'total_hero_power_desc') query = query.order('total_hero_power', { ascending: false });
         else if (filter.sort === 'total_hero_power_asc') query = query.order('total_hero_power', { ascending: true });
         else if (filter.sort === 'time_asc') query = query.order('updated_at', { ascending: true });
+        // Default to updated_at desc for normal view OR for T10 sort (which happens client-side)
         else query = query.order('updated_at', { ascending: false });
+
+        // IMPORTANT: Increase limit to 10k to prevent truncation in exports
+        query = query.range(0, 9999);
 
         const { data, count, error } = await query;
         if (error) throw error;
@@ -247,7 +251,8 @@ export const VsApi = {
 
   getRecords: async (weekId: string): Promise<VsRecord[]> => {
     try {
-        const { data, error } = await supabase.from('vs_records').select('*').eq('week_id', weekId);
+        // Increase range for VS records too
+        const { data, error } = await supabase.from('vs_records').select('*').eq('week_id', weekId).range(0, 9999);
         if (error) throw error;
         return (data || []).map((r: any) => ({
           id: r.id, weekId: r.week_id, playerName: r.player_name,

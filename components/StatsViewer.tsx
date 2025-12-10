@@ -5,6 +5,7 @@ import { MockApi } from '../services/mockBackend';
 import PlayerCard from './PlayerCard';
 import { useLanguage } from '../utils/i18n';
 import { CustomDropdown } from './CustomDropdown';
+import { calculateT10RemainingCost } from '../utils/gameLogic';
 
 interface StatsViewerProps {
   refreshTrigger: number;
@@ -25,7 +26,6 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
       const res = await MockApi.getPlayers(filter);
       
       // Client-side Deduplication
-      // Maps nameNormalized -> Player. If duplicates exist, we take the one with the latest update.
       const uniquePlayersMap = new Map<string, Player>();
       
       res.items.forEach(p => {
@@ -40,16 +40,21 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
           }
       });
       
-      const uniqueItems = Array.from(uniquePlayersMap.values());
+      let uniqueItems = Array.from(uniquePlayersMap.values());
       
-      // Re-sort because Map iteration might lose order specific nuances if not careful, 
-      // though API usually sorts. Let's rely on API sort order by preserving original relative order where possible 
-      // or just sorting again client side to be safe.
-      // Since API does sorting, let's filter the original list to maintain that order.
-      const uniqueIds = new Set(uniqueItems.map(p => p.id));
-      const sortedUniqueItems = res.items.filter(p => uniqueIds.has(p.id));
+      // Client Side Sorting for T10
+      if (filter.sort === 't10_closest') {
+          uniqueItems.sort((a, b) => {
+              const costA = calculateT10RemainingCost(a).gold;
+              const costB = calculateT10RemainingCost(b).gold;
+              return costA - costB;
+          });
+      } else {
+          const uniqueIds = new Set(uniqueItems.map(p => p.id));
+          uniqueItems = res.items.filter(p => uniqueIds.has(p.id));
+      }
 
-      setPlayers(sortedUniqueItems);
+      setPlayers(uniqueItems);
       setErrorMsg(null);
     } catch (e: any) { 
       setErrorMsg(e.message || "Connection Error");
@@ -67,26 +72,95 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFilter(prev => ({ ...prev, search: e.target.value })); };
   
-  const exportToCSV = () => {
+  // Helper to trigger download using Blob (Fixes truncating issues)
+  const downloadFile = (content: string, fileName: string, mimeType: string) => {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+  };
+
+  const exportToExcel = () => {
     if (!players.length) return;
-    const BOM = "\uFEFF";
-    let csvContent = `data:text/csv;charset=utf-8,${BOM}Player Name,Power (M),Updated,Tech,Barracks\n`;
+    
+    // XML Spreadsheet 2003 format - natively supported by Excel
+    let xmlContent = `<?xml version="1.0"?>
+    <?mso-application progid="Excel.Sheet"?>
+    <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+     xmlns:o="urn:schemas-microsoft-com:office:office"
+     xmlns:x="urn:schemas-microsoft-com:office:excel"
+     xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+     xmlns:html="http://www.w3.org/TR/REC-html40">
+     <Worksheet ss:Name="Leaderboard">
+      <Table>
+       <Row>
+        <Cell><Data ss:Type="String">Player Name</Data></Cell>
+        <Cell><Data ss:Type="String">Squad 1 (M)</Data></Cell>
+        <Cell><Data ss:Type="String">Squad 2 (M)</Data></Cell>
+        <Cell><Data ss:Type="String">Hero Pwr (M)</Data></Cell>
+        <Cell><Data ss:Type="String">Hero %</Data></Cell>
+        <Cell><Data ss:Type="String">Duel %</Data></Cell>
+        <Cell><Data ss:Type="String">Unit %</Data></Cell>
+        <Cell><Data ss:Type="String">T10 Morale</Data></Cell>
+        <Cell><Data ss:Type="String">T10 Prot</Data></Cell>
+        <Cell><Data ss:Type="String">T10 HP</Data></Cell>
+        <Cell><Data ss:Type="String">T10 Atk</Data></Cell>
+        <Cell><Data ss:Type="String">T10 Def</Data></Cell>
+        <Cell><Data ss:Type="String">Tech</Data></Cell>
+        <Cell><Data ss:Type="String">Barracks</Data></Cell>
+        <Cell><Data ss:Type="String">Updated</Data></Cell>
+       </Row>`;
+
     players.forEach(p => {
-        const date = new Date(p.updatedAt).toLocaleDateString();
-        const power = (p.firstSquadPower / 1000000).toFixed(2);
-        csvContent += `"${p.name}",${power},${date},${p.techLevel},${p.barracksLevel}\n`;
+       const date = new Date(p.updatedAt).toLocaleDateString();
+       const sq1 = (p.firstSquadPower / 1000000).toFixed(2);
+       const sq2 = (p.secondSquadPower ? p.secondSquadPower / 1000000 : 0).toFixed(2);
+       const heroPwr = (p.totalHeroPower / 1000000).toFixed(2);
+       
+       // Escape XML special chars
+       const safeName = p.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+       xmlContent += `
+       <Row>
+        <Cell><Data ss:Type="String">${safeName}</Data></Cell>
+        <Cell><Data ss:Type="Number">${sq1}</Data></Cell>
+        <Cell><Data ss:Type="Number">${sq2}</Data></Cell>
+        <Cell><Data ss:Type="Number">${heroPwr}</Data></Cell>
+        <Cell><Data ss:Type="Number">${p.heroPercent}</Data></Cell>
+        <Cell><Data ss:Type="Number">${p.duelPercent}</Data></Cell>
+        <Cell><Data ss:Type="Number">${p.unitsPercent}</Data></Cell>
+        <Cell><Data ss:Type="Number">${p.t10Morale || 0}</Data></Cell>
+        <Cell><Data ss:Type="Number">${p.t10Protection || 0}</Data></Cell>
+        <Cell><Data ss:Type="Number">${p.t10Hp || 0}</Data></Cell>
+        <Cell><Data ss:Type="Number">${p.t10Atk || 0}</Data></Cell>
+        <Cell><Data ss:Type="Number">${p.t10Def || 0}</Data></Cell>
+        <Cell><Data ss:Type="Number">${p.techLevel}</Data></Cell>
+        <Cell><Data ss:Type="Number">${p.barracksLevel}</Data></Cell>
+        <Cell><Data ss:Type="String">${date}</Data></Cell>
+       </Row>`;
     });
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `asn1_export.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    xmlContent += `
+      </Table>
+     </Worksheet>
+    </Workbook>`;
+
+    downloadFile(xmlContent, 'asn1_export.xls', 'application/vnd.ms-excel');
   };
 
   const languageOptions = [ { value: 'all', label: 'All Regions' }, { value: 'english', label: 'English' }, { value: 'arabic', label: 'Arabic' }, { value: 'turkish', label: 'Turkish' }, { value: 'indonesian', label: 'Indonesian' } ];
-  const sortOptions = [ { value: 'power_desc', label: t('sort.highest_power') }, { value: 'power_asc', label: t('sort.lowest_power') }, { value: 'time_desc', label: t('sort.newest') }, { value: 'total_hero_power_desc', label: t('sort.highest_total_hero_power') } ];
+  const sortOptions = [ 
+      { value: 'power_desc', label: t('sort.highest_power') }, 
+      { value: 'power_asc', label: t('sort.lowest_power') }, 
+      { value: 'time_desc', label: t('sort.newest') }, 
+      { value: 'total_hero_power_desc', label: t('sort.highest_total_hero_power') },
+      { value: 't10_closest', label: t('sort.t10_closest') }
+  ];
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -130,14 +204,15 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
              <CustomDropdown value={filter.sort} onChange={(val) => setFilter(prev => ({ ...prev, sort: val as any }))} options={sortOptions} color="blue" />
         </div>
         
-        {/* Export */}
-        <div className="md:col-span-2">
+        {/* Export Group */}
+        <div className="md:col-span-2 flex gap-1">
             <button 
-                onClick={exportToCSV}
-                className="w-full h-full bg-[#0a0f1e] hover:bg-[#0f172a] text-slate-400 hover:text-emerald-400 border border-transparent hover:border-emerald-500/30 rounded-xl px-4 py-3 flex items-center justify-center gap-2 transition-all font-bold text-xs uppercase tracking-widest click-scale"
+                onClick={exportToExcel}
+                title="Export Excel"
+                className="flex-1 bg-[#0a0f1e] hover:bg-[#0f172a] text-slate-400 hover:text-emerald-400 border border-transparent hover:border-emerald-500/30 rounded-xl px-2 py-3 flex items-center justify-center gap-1 transition-all font-bold text-[10px] uppercase tracking-wider click-scale"
             >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                CSV
+               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+               {t('viewer.export')}
             </button>
         </div>
       </div>

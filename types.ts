@@ -34,7 +34,7 @@ export interface Player {
   active: boolean;
 }
 
-export type SortOption = 'time_desc' | 'time_asc' | 'power_desc' | 'power_asc' | 'total_hero_power_desc' | 'total_hero_power_asc';
+export type SortOption = 'time_desc' | 'time_asc' | 'power_desc' | 'power_asc' | 'total_hero_power_desc' | 'total_hero_power_asc' | 't10_closest';
 
 export interface PlayerFilter {
   language: Language | 'all';
