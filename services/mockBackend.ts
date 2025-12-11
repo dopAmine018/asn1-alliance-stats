@@ -285,3 +285,39 @@ export const VsApi = {
     if (error) console.error("Error updating record:", error);
   }
 };
+
+export const TrainApi = {
+    getSchedule: async (): Promise<any | null> => {
+        try {
+            // Fetch the most recent schedule entry
+            const { data, error } = await supabase
+                .from('train_schedule')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            
+            if (error) throw error;
+            return data?.schedule_data || null;
+        } catch(e) {
+            console.error("Failed to fetch train schedule", e);
+            return null;
+        }
+    },
+
+    saveSchedule: async (scheduleData: any): Promise<void> => {
+        try {
+            // Insert a new record (snapshot approach) or update could work too.
+            // Insert is safer for history, but clean up might be needed later.
+            // For this app, we'll just insert.
+            const { error } = await supabase
+                .from('train_schedule')
+                .insert({ schedule_data: scheduleData });
+            
+            if (error) throw error;
+        } catch(e) {
+            console.error("Failed to save train schedule", e);
+            throw e;
+        }
+    }
+};

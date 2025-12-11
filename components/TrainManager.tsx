@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Player } from '../types';
-import { MockApi } from '../services/mockBackend';
+import { MockApi, TrainApi } from '../services/mockBackend';
 import { calculateT10RemainingCost } from '../utils/gameLogic';
 import { useLanguage } from '../utils/i18n';
 import { useToast } from './Toast';
@@ -82,14 +82,19 @@ const TrainManager: React.FC = () => {
       return () => clearInterval(interval);
   }, []);
 
-  // --- EFFECT 1: Sync Manual Schedule with fresh stats (Backend -> UI) ---
-  // This runs ONLY when 'candidates' updates (every 10s), NOT when schedule changes.
+  // --- EFFECT: Sync Manual Schedule with fresh stats (Backend -> UI) ---
+  // This updates numbers if players change, OR updates the whole schedule if another admin changed it in DB.
   useEffect(() => {
-      if (isManualMode && candidates.length > 0) {
+      if (candidates.length > 0) {
+          // If we are currently editing, don't overwrite the form (simple conflict avoidance)
+          if (editingDayIdx !== null) return;
+          
+          // Re-hydrate logic with latest candidate stats
           setSchedule(prevSchedule => {
-              // Map over the existing schedule and inject the latest stats from 'candidates'
-              // This preserves the 'Who' but updates the 'Status'
+              if (prevSchedule.length === 0) return prevSchedule;
+
               return prevSchedule.map(day => {
+                // Try to find updated player object from fresh candidates list
                 const newConductor = day.conductor ? candidates.find(c => c.id === day.conductor!.id) || day.conductor : null;
                 const newVip = day.vip ? candidates.find(c => c.id === day.vip!.id) || day.vip : null;
                 
@@ -122,27 +127,13 @@ const TrainManager: React.FC = () => {
             });
           });
       }
-  }, [candidates, isManualMode]); // Removed 'schedule' to prevent infinite loop
-
-  // --- EFFECT 2: Persistence (UI -> LocalStorage) ---
-  // This runs whenever the schedule changes (e.g. after edit or sync)
-  useEffect(() => {
-      if (isManualMode && schedule.length > 0) {
-          localStorage.setItem('asn1_manual_schedule', JSON.stringify({
-              timestamp: Date.now(),
-              schedule: schedule.map(d => ({
-                  ...d,
-                  conductorId: d.conductor?.id,
-                  vipId: d.vip?.id
-              }))
-          }));
-      }
-  }, [schedule, isManualMode]);
+  }, [candidates]); // Dependent only on candidates update (which happens via polling)
 
   const fetchAndAnalyze = async () => {
       if (candidates.length === 0) setLoading(true);
       
       try {
+          // 1. Fetch Players
           const res = await MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false });
           
           const enriched: EnrichedPlayer[] = res.items.map(p => {
@@ -168,14 +159,15 @@ const TrainManager: React.FC = () => {
 
           setCandidates(sorted);
           
-          // Check for saved manual schedule on first load
-          if (!isManualMode && schedule.length === 0) {
-              const saved = localStorage.getItem('asn1_manual_schedule');
-              if (saved) {
+          // 2. Fetch Shared Schedule from DB
+          // We only overwrite local schedule if we aren't currently editing
+          if (editingDayIdx === null) {
+              const savedScheduleData = await TrainApi.getSchedule();
+              
+              if (savedScheduleData) {
                   try {
-                      const parsed = JSON.parse(saved);
                       // Reconstruct schedule using IDs
-                      const restoredSchedule: TrainDay[] = parsed.schedule.map((d: any) => {
+                      const restoredSchedule: TrainDay[] = savedScheduleData.schedule.map((d: any) => {
                           const conductor = sorted.find(p => p.id === d.conductorId) || null;
                           const vip = sorted.find(p => p.id === d.vipId) || null;
                           // Recalc logic
@@ -196,24 +188,25 @@ const TrainManager: React.FC = () => {
                           };
                       });
                       
-                      setSchedule(restoredSchedule);
-                      setIsManualMode(true);
+                      // Check if different to avoid unnecessary renders/toasts
+                      const currentJSON = JSON.stringify(schedule.map(d => ({c: d.conductor?.id, v: d.vip?.id})));
+                      const newJSON = JSON.stringify(restoredSchedule.map(d => ({c: d.conductor?.id, v: d.vip?.id})));
                       
-                      // Fix: Only show toast ONCE
-                      if (!hasRestoredRef.current) {
-                          addToast('info', 'Restored saved schedule');
-                          hasRestoredRef.current = true;
+                      if (currentJSON !== newJSON) {
+                          setSchedule(restoredSchedule);
+                          setIsManualMode(true);
+                          if (!hasRestoredRef.current && schedule.length === 0) {
+                              addToast('info', 'Synced with Alliance Command');
+                              hasRestoredRef.current = true;
+                          }
                       }
-                      
-                      return; // Skip auto generation
                   } catch (e) {
                       console.error("Failed to restore schedule", e);
-                      localStorage.removeItem('asn1_manual_schedule');
                   }
+              } else if (schedule.length === 0) {
+                  // Fallback to auto gen if NO schedule exists in DB
+                   generateSchedule(sorted);
               }
-              
-              // Fallback to auto gen
-              generateSchedule(sorted);
           }
       } catch(e) {
           console.error("Failed to fetch players", e);
@@ -270,6 +263,24 @@ const TrainManager: React.FC = () => {
       setSchedule(scheduleData);
   };
 
+  // --- Helper to Push to DB ---
+  const pushScheduleToCloud = async (newSchedule: TrainDay[]) => {
+      try {
+          const payload = {
+              timestamp: Date.now(),
+              schedule: newSchedule.map(d => ({
+                  dayName: d.dayName,
+                  conductorId: d.conductor?.id,
+                  vipId: d.vip?.id
+              }))
+          };
+          await TrainApi.saveSchedule(payload);
+          // Don't toast on every save, maybe just errors
+      } catch (e: any) {
+          addToast('error', 'Failed to sync schedule');
+      }
+  };
+
   // --- Edit Logic ---
 
   const startEdit = (idx: number) => {
@@ -281,7 +292,7 @@ const TrainManager: React.FC = () => {
       setEditingDayIdx(idx);
   };
 
-  const saveEdit = (idx: number) => {
+  const saveEdit = async (idx: number) => {
       // 1. Find Players
       const findPlayer = (name: string) => {
           if (!name || !name.trim()) return null;
@@ -310,9 +321,6 @@ const TrainManager: React.FC = () => {
       else if (idx === 2 || idx === 3) pairGroupIndices = [2, 3];
       else if (idx === 4 || idx === 5) pairGroupIndices = [4, 5];
 
-      // 3. Determine Base Pair (P1, P2) from the user's input
-      // If editing a "Normal" day (0, 2, 4, 6): Conductor is P1, VIP is P2
-      // If editing a "Swap" day (1, 3, 5): Conductor is P2, VIP is P1
       const isSwapDay = idx % 2 !== 0; // 1, 3, 5 are swaps
       
       let p1: EnrichedPlayer | null = null;
@@ -326,7 +334,7 @@ const TrainManager: React.FC = () => {
           p2 = userInputConductor;
       }
 
-      // 4. Update ALL days in this pair group
+      // 3. Update ALL days in this pair group
       const newSchedule = [...schedule];
 
       pairGroupIndices.forEach(dayIndex => {
@@ -335,7 +343,6 @@ const TrainManager: React.FC = () => {
           let dayConductor = isThisDaySwap ? p2 : p1;
           let dayVip = isThisDaySwap ? p1 : p2;
 
-          // Logic Recalc for this day
           let mode: 'VIP' | 'Guardian' = 'VIP';
           let defender = null;
 
@@ -366,18 +373,58 @@ const TrainManager: React.FC = () => {
       setSchedule(newSchedule);
       setIsManualMode(true);
       setEditingDayIdx(null);
-      addToast('success', 'Schedule Updated for Pair');
+      
+      // Push to Cloud
+      await pushScheduleToCloud(newSchedule);
+      addToast('success', 'Schedule updated & synced to all users');
   };
 
   const cancelEdit = () => {
       setEditingDayIdx(null);
   };
 
-  const resetToAuto = () => {
-      localStorage.removeItem('asn1_manual_schedule');
-      setIsManualMode(false);
+  const handleManualSync = async () => {
+      if (schedule.length > 0) {
+          // Force save current local state to cloud (overwriting remote)
+          await pushScheduleToCloud(schedule);
+          addToast('success', 'Forced Push: Schedule Synced to Everyone');
+      }
+      // Also refresh
+      fetchAndAnalyze();
+  };
+
+  const resetToAuto = async () => {
+      // Logic for Auto Gen
       generateSchedule(candidates);
-      addToast('info', 'Auto-Schedule Resumed');
+      setIsManualMode(false);
+      
+      // We must assume generateSchedule updates state asynchronously, 
+      // but here we need to push the RESULT of auto-gen.
+      // Re-running logic locally for push:
+      const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+      const autoSchedule: TrainDay[] = [];
+      if (candidates.length >= 2) {
+          for (let i = 0; i < 7; i++) {
+              const pairIndex = Math.floor(i / 2) % 3;
+              const p1 = candidates[pairIndex * 2];
+              const p2 = candidates[pairIndex * 2 + 1];
+              if (!p1 || !p2) continue;
+              const isSwap = i % 2 !== 0; 
+              let conductor = isSwap ? p2 : p1;
+              let passenger = isSwap ? p1 : p2;
+              let mode: 'VIP' | 'Guardian' = conductor.firstSquadPower >= passenger.firstSquadPower ? 'VIP' : 'Guardian';
+              autoSchedule.push({
+                  dayName: days[i],
+                  conductor,
+                  vip: passenger,
+                  mode,
+                  defender: mode === 'VIP' ? conductor : passenger
+              });
+          }
+      }
+
+      await pushScheduleToCloud(autoSchedule);
+      addToast('info', 'Reset to Auto & Synced');
   };
 
   // --- Render Helpers ---
@@ -442,11 +489,8 @@ const TrainManager: React.FC = () => {
                   <span className="text-purple-400">const</span> <span className="text-blue-400">trainLogic</span> <span className="text-white">=</span> <span className="text-yellow-400">()</span> <span className="text-purple-400">=&gt;</span> <span className="text-yellow-400">{`{`}</span><br/>
                   &nbsp;&nbsp;<span className="text-slate-500">// 1. Sort by Gold Cost (ASC), Maxed Last</span><br/>
                   &nbsp;&nbsp;<span className="text-purple-400">const</span> <span className="text-white">queue</span> <span className="text-white">=</span> <span className="text-white">players.</span><span className="text-blue-400">sortBy</span><span className="text-yellow-400">(</span><span className="text-green-400">'gold'</span><span className="text-yellow-400">)</span><span className="text-white">;</span><br/>
-                  &nbsp;&nbsp;<span className="text-slate-500">// 2. Top 6 Candidates (3 Pairs)</span><br/>
-                  &nbsp;&nbsp;<span className="text-purple-400">const</span> <span className="text-white">schedule</span> <span className="text-white">=</span> <span className="text-white">days.</span><span className="text-blue-400">map</span><span className="text-yellow-400">(</span><span className="text-white">day</span> <span className="text-purple-400">=&gt;</span> <span className="text-yellow-400">{`{`}</span><br/>
-                  &nbsp;&nbsp;&nbsp;&nbsp;<span className="text-white">role:</span> <span className="text-white">day.isOdd</span> <span className="text-white">?</span> <span className="text-green-400">'SWAP'</span> <span className="text-white">:</span> <span className="text-green-400">'NORMAL'</span><span className="text-white">,</span><br/>
-                  &nbsp;&nbsp;&nbsp;&nbsp;<span className="text-white">def:</span> <span className="text-blue-400">Math</span><span className="text-white">.</span><span className="text-blue-400">max</span><span className="text-purple-400">(</span><span className="text-white">p1.pwr, p2.pwr</span><span className="text-purple-400">)</span><br/>
-                  &nbsp;&nbsp;<span className="text-yellow-400">{`}`}</span><span className="text-yellow-400">)</span><span className="text-white">;</span><br/>
+                  &nbsp;&nbsp;<span className="text-slate-500">// 2. Sync with Cloud Database</span><br/>
+                  &nbsp;&nbsp;<span className="text-purple-400">await</span> <span className="text-white">TrainApi.</span><span className="text-blue-400">sync</span><span className="text-yellow-400">(</span><span className="text-white">schedule</span><span className="text-yellow-400">)</span><span className="text-white">;</span><br/>
                   <span className="text-yellow-400">{`}`}</span>
                 </div>
             </div>
@@ -547,7 +591,7 @@ const TrainManager: React.FC = () => {
                                 Reset Auto
                             </button>
                         )}
-                        <button onClick={fetchAndAnalyze} className="text-[10px] text-slate-400 hover:text-white uppercase font-bold border border-slate-700 px-3 py-1 rounded hover:bg-slate-800 transition-colors">
+                        <button onClick={handleManualSync} className="text-[10px] text-slate-400 hover:text-white uppercase font-bold border border-slate-700 px-3 py-1 rounded hover:bg-slate-800 transition-colors">
                             Sync
                         </button>
                     </div>

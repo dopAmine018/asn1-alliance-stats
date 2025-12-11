@@ -87,15 +87,24 @@ create table vs_records (
   total int default 0
 );
 
--- 3. Enable RLS (Optional for now, required for secure production)
+-- 3. Create Train Schedule Table (NEW)
+create table train_schedule (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  schedule_data jsonb not null
+);
+
+-- 4. Enable RLS
 alter table players enable row level security;
 alter table vs_weeks enable row level security;
 alter table vs_records enable row level security;
+alter table train_schedule enable row level security;
 
 -- Allow public read/write for this hobby project
 create policy "Public Access" on players for all using (true) with check (true);
 create policy "Public Access VS" on vs_weeks for all using (true) with check (true);
 create policy "Public Access Records" on vs_records for all using (true) with check (true);
+create policy "Public Access Train" on train_schedule for all using (true) with check (true);
 `}
           </pre>
         </section>
