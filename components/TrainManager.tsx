@@ -4,6 +4,7 @@ import { Player } from '../types';
 import { MockApi } from '../services/mockBackend';
 import { calculateT10RemainingCost } from '../utils/gameLogic';
 import { useLanguage } from '../utils/i18n';
+import { useToast } from './Toast';
 
 interface EnrichedPlayer extends Player {
     remainingGold: number;
@@ -21,7 +22,7 @@ interface TrainDay {
 }
 
 // Extracted Component to prevent re-mounting on every keystroke
-const PlayerSearchInput = ({ value, onChange, placeholder, candidates }: { value: string, onChange: (v: string) => void, placeholder: string, candidates: EnrichedPlayer[] }) => {
+const PlayerSearchInput = ({ value, onChange, placeholder, candidates, onEnter }: { value: string, onChange: (v: string) => void, placeholder: string, candidates: EnrichedPlayer[], onEnter: () => void }) => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     
     const suggestions = value.length > 1 
@@ -36,6 +37,7 @@ const PlayerSearchInput = ({ value, onChange, placeholder, candidates }: { value
                 onChange={(e) => { onChange(e.target.value); setShowSuggestions(true); }}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onKeyDown={(e) => e.key === 'Enter' && onEnter()}
                 placeholder={placeholder}
                 className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:border-sky-500 outline-none font-bold placeholder-slate-600"
             />
@@ -59,10 +61,10 @@ const PlayerSearchInput = ({ value, onChange, placeholder, candidates }: { value
 
 const TrainManager: React.FC = () => {
   const { t } = useLanguage();
+  const { addToast } = useToast();
   const [candidates, setCandidates] = useState<EnrichedPlayer[]>([]);
   const [schedule, setSchedule] = useState<TrainDay[]>([]);
   const [loading, setLoading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState('');
   
   // Manual Edit State
@@ -75,17 +77,64 @@ const TrainManager: React.FC = () => {
       fetchAndAnalyze();
       const interval = setInterval(fetchAndAnalyze, 10000); // Poll every 10s
       return () => clearInterval(interval);
-  }, [isManualMode]); // Re-bind if manual mode changes to respect the flag inside
+  }, []);
+
+  // Sync Manual Schedule with fresh stats & Persistence
+  useEffect(() => {
+      if (isManualMode && schedule.length > 0) {
+          // Save to local storage
+          localStorage.setItem('asn1_manual_schedule', JSON.stringify({
+              timestamp: Date.now(),
+              schedule: schedule.map(d => ({
+                  ...d,
+                  conductorId: d.conductor?.id,
+                  vipId: d.vip?.id
+              }))
+          }));
+
+          // Update stats if candidates available
+          if (candidates.length > 0) {
+            setSchedule(prevSchedule => prevSchedule.map(day => {
+                const newConductor = day.conductor ? candidates.find(c => c.id === day.conductor!.id) || day.conductor : null;
+                const newVip = day.vip ? candidates.find(c => c.id === day.vip!.id) || day.vip : null;
+                
+                // Recalculate Logic based on potentially new power stats
+                let mode: 'VIP' | 'Guardian' = 'VIP';
+                let defender = null;
+
+                if (newConductor && newVip) {
+                    if (newConductor.firstSquadPower >= newVip.firstSquadPower) {
+                        mode = 'VIP';
+                        defender = newConductor;
+                    } else {
+                        mode = 'Guardian';
+                        defender = newVip;
+                    }
+                } else if (newConductor) {
+                    defender = newConductor;
+                } else if (newVip) {
+                    mode = 'Guardian';
+                    defender = newVip;
+                }
+
+                return {
+                    ...day,
+                    conductor: newConductor,
+                    vip: newVip,
+                    defender,
+                    mode
+                };
+            }));
+          }
+      }
+  }, [schedule, isManualMode, candidates]);
 
   const fetchAndAnalyze = async () => {
-      // Don't set global loading on poll to avoid UI flicker
       if (candidates.length === 0) setLoading(true);
       
       try {
-          // CRITICAL: Set activeOnly to FALSE to ensure we see everyone (like iko99)
           const res = await MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false });
           
-          // Enrich players with cost data
           const enriched: EnrichedPlayer[] = res.items.map(p => {
               const cost = calculateT10RemainingCost(p);
               return {
@@ -97,28 +146,58 @@ const TrainManager: React.FC = () => {
               };
           });
 
-          // Sort by lowest cost first, BUT put completed (0 gold) at the bottom
           const sorted = enriched.sort((a, b) => {
-              // If both have 0 gold (Completed), sort by power descending (Strongest completed on top of completed list)
               if (a.remainingGold === 0 && b.remainingGold === 0) {
                   return b.firstSquadPower - a.firstSquadPower;
               }
-              // If A is completed (0), move to bottom
               if (a.remainingGold === 0) return 1;
-              // If B is completed (0), move to bottom
               if (b.remainingGold === 0) return -1;
-              
-              // Otherwise, standard ascending sort (Closest first)
               return a.totalCostScore - b.totalCostScore;
           });
 
           setCandidates(sorted);
-          setLastUpdated(new Date());
           
-          // Only auto-generate if NOT in manual mode
-          if (!isManualMode) {
-              const validForSchedule = sorted.filter(p => p.remainingGold > 0);
-              generateSchedule(validForSchedule);
+          // Check for saved manual schedule on first load
+          if (!isManualMode && schedule.length === 0) {
+              const saved = localStorage.getItem('asn1_manual_schedule');
+              if (saved) {
+                  try {
+                      const parsed = JSON.parse(saved);
+                      // Check if saved schedule is recent (optional, currently ignoring time)
+                      // Reconstruct schedule using IDs
+                      const restoredSchedule: TrainDay[] = parsed.schedule.map((d: any) => {
+                          const conductor = sorted.find(p => p.id === d.conductorId) || null;
+                          const vip = sorted.find(p => p.id === d.vipId) || null;
+                          // Recalc logic
+                          let mode: 'VIP' | 'Guardian' = 'VIP';
+                          let defender = null;
+                          if (conductor && vip) {
+                            if (conductor.firstSquadPower >= vip.firstSquadPower) { mode = 'VIP'; defender = conductor; }
+                            else { mode = 'Guardian'; defender = vip; }
+                          } else if (conductor) defender = conductor;
+                          else if (vip) { mode = 'Guardian'; defender = vip; }
+
+                          return {
+                              dayName: d.dayName,
+                              conductor,
+                              vip,
+                              mode,
+                              defender
+                          };
+                      });
+                      
+                      setSchedule(restoredSchedule);
+                      setIsManualMode(true);
+                      addToast('info', 'Restored saved schedule');
+                      return; // Skip auto generation
+                  } catch (e) {
+                      console.error("Failed to restore schedule", e);
+                      localStorage.removeItem('asn1_manual_schedule');
+                  }
+              }
+              
+              // Fallback to auto gen
+              generateSchedule(sorted);
           }
       } catch(e) {
           console.error("Failed to fetch players", e);
@@ -131,20 +210,17 @@ const TrainManager: React.FC = () => {
       const scheduleData: TrainDay[] = [];
       const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
-      // We need at least 2 players to start a schedule
       if (list.length < 2) {
-          // Keep empty or partial? Let's just reset
-          if (!isManualMode) setSchedule([]); 
+          setSchedule([]); 
           return;
       }
 
       for (let i = 0; i < 7; i++) {
-          const pairIndex = Math.floor(i / 2) % 3; // Returns 0, 0, 1, 1, 2, 2, 0
+          const pairIndex = Math.floor(i / 2) % 3;
           const p1 = list[pairIndex * 2];
           const p2 = list[pairIndex * 2 + 1];
 
           if (!p1 || !p2) {
-              // Push placeholder if not enough players
               scheduleData.push({
                   dayName: days[i],
                   conductor: null,
@@ -155,17 +231,16 @@ const TrainManager: React.FC = () => {
               continue;
           }
 
-          const isSwap = i % 2 !== 0;
-          
+          // Swap logic: Days 0,2,4,6 = Normal. Days 1,3,5 = Swap.
+          const isSwap = i % 2 !== 0; 
           let conductor = isSwap ? p2 : p1;
           let passenger = isSwap ? p1 : p2;
 
-          // Determine Mode based on Power
           let mode: 'VIP' | 'Guardian' = 'VIP';
           if (conductor.firstSquadPower >= passenger.firstSquadPower) {
-              mode = 'VIP'; // Conductor defends
+              mode = 'VIP'; 
           } else {
-              mode = 'Guardian'; // Passenger defends
+              mode = 'Guardian'; 
           }
 
           scheduleData.push({
@@ -191,40 +266,91 @@ const TrainManager: React.FC = () => {
   };
 
   const saveEdit = (idx: number) => {
-      const newSchedule = [...schedule];
+      // 1. Find Players
+      const findPlayer = (name: string) => {
+          if (!name || !name.trim()) return null;
+          const normalizedInput = name.trim().toLowerCase();
+          return candidates.find(p => p.name.trim().toLowerCase() === normalizedInput) || null;
+      };
       
-      // Find full player objects from candidates list
-      const findPlayer = (name: string) => candidates.find(p => p.name.toLowerCase() === name.toLowerCase().trim()) || null;
-      
-      const newConductor = findPlayer(editForm.conductorName);
-      const newVip = findPlayer(editForm.vipName);
-      
-      let mode: 'VIP' | 'Guardian' = 'VIP';
-      let defender = null;
+      const userInputConductor = findPlayer(editForm.conductorName);
+      const userInputVip = findPlayer(editForm.vipName);
 
-      if (newConductor && newVip) {
-          if (newConductor.firstSquadPower >= newVip.firstSquadPower) {
-              mode = 'VIP';
-              defender = newConductor;
-          } else {
-              mode = 'Guardian';
-              defender = newVip;
-          }
-      } else if (newConductor) {
-          defender = newConductor;
+      if (editForm.conductorName.trim() && !userInputConductor) {
+          addToast('error', `Player "${editForm.conductorName}" not found!`);
+          return;
+      }
+      if (editForm.vipName.trim() && !userInputVip) {
+          addToast('error', `Player "${editForm.vipName}" not found!`);
+          return;
       }
 
-      newSchedule[idx] = {
-          ...newSchedule[idx],
-          conductor: newConductor,
-          vip: newVip,
-          mode,
-          defender
-      };
+      // 2. Identify Pair Logic
+      // Pair 0: Index 0, 1, 6
+      // Pair 1: Index 2, 3
+      // Pair 2: Index 4, 5
+      let pairGroupIndices: number[] = [];
+      if (idx === 0 || idx === 1 || idx === 6) pairGroupIndices = [0, 1, 6];
+      else if (idx === 2 || idx === 3) pairGroupIndices = [2, 3];
+      else if (idx === 4 || idx === 5) pairGroupIndices = [4, 5];
+
+      // 3. Determine Base Pair (P1, P2) from the user's input
+      // If editing a "Normal" day (0, 2, 4, 6): Conductor is P1, VIP is P2
+      // If editing a "Swap" day (1, 3, 5): Conductor is P2, VIP is P1
+      const isSwapDay = idx % 2 !== 0; // 1, 3, 5 are swaps
+      
+      let p1: EnrichedPlayer | null = null;
+      let p2: EnrichedPlayer | null = null;
+
+      if (!isSwapDay) {
+          p1 = userInputConductor;
+          p2 = userInputVip;
+      } else {
+          p1 = userInputVip;
+          p2 = userInputConductor;
+      }
+
+      // 4. Update ALL days in this pair group
+      const newSchedule = [...schedule];
+
+      pairGroupIndices.forEach(dayIndex => {
+          const isThisDaySwap = dayIndex % 2 !== 0; // 1, 3, 5
+          
+          let dayConductor = isThisDaySwap ? p2 : p1;
+          let dayVip = isThisDaySwap ? p1 : p2;
+
+          // Logic Recalc for this day
+          let mode: 'VIP' | 'Guardian' = 'VIP';
+          let defender = null;
+
+          if (dayConductor && dayVip) {
+              if (dayConductor.firstSquadPower >= dayVip.firstSquadPower) {
+                  mode = 'VIP';
+                  defender = dayConductor;
+              } else {
+                  mode = 'Guardian';
+                  defender = dayVip;
+              }
+          } else if (dayConductor) {
+              defender = dayConductor;
+          } else if (dayVip) {
+              mode = 'Guardian';
+              defender = dayVip;
+          }
+
+          newSchedule[dayIndex] = {
+              ...newSchedule[dayIndex],
+              conductor: dayConductor,
+              vip: dayVip,
+              mode,
+              defender
+          };
+      });
 
       setSchedule(newSchedule);
-      setIsManualMode(true); // Lock auto-refresh
+      setIsManualMode(true);
       setEditingDayIdx(null);
+      addToast('success', 'Schedule Updated for Pair');
   };
 
   const cancelEdit = () => {
@@ -232,9 +358,10 @@ const TrainManager: React.FC = () => {
   };
 
   const resetToAuto = () => {
+      localStorage.removeItem('asn1_manual_schedule');
       setIsManualMode(false);
-      const validForSchedule = candidates.filter(p => p.remainingGold > 0);
-      generateSchedule(validForSchedule);
+      generateSchedule(candidates);
+      addToast('info', 'Auto-Schedule Resumed');
   };
 
   // --- Render Helpers ---
@@ -285,7 +412,7 @@ const TrainManager: React.FC = () => {
                 <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Logic Engine</div>
                 <div className="text-xs font-mono text-sky-500">3 Pairs / 7 Days / Auto-Swap</div>
                 <div className="text-[9px] font-mono text-slate-600 mt-2">
-                    {isManualMode ? <span className="text-amber-500">MANUAL OVERRIDE</span> : "AUTO SYNC"}
+                    {isManualMode ? <span className="text-amber-500 animate-pulse">MANUAL OVERRIDE</span> : "AUTO SYNC"}
                 </div>
             </div>
         </div>
@@ -397,7 +524,7 @@ const TrainManager: React.FC = () => {
                                     
                                     {isEditing ? (
                                         <div className="flex gap-2">
-                                            <button onClick={() => saveEdit(idx)} className="text-[9px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded uppercase">Save</button>
+                                            <button onClick={() => saveEdit(idx)} className="text-[9px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded uppercase">Save Pair</button>
                                             <button onClick={cancelEdit} className="text-[9px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded uppercase">Cancel</button>
                                         </div>
                                     ) : (
@@ -424,6 +551,7 @@ const TrainManager: React.FC = () => {
                                                 <PlayerSearchInput 
                                                     value={editForm.conductorName} 
                                                     onChange={(v) => setEditForm(prev => ({...prev, conductorName: v}))}
+                                                    onEnter={() => saveEdit(idx)}
                                                     placeholder="Search Conductor..."
                                                     candidates={candidates}
                                                 />
@@ -459,6 +587,7 @@ const TrainManager: React.FC = () => {
                                                 <PlayerSearchInput 
                                                     value={editForm.vipName} 
                                                     onChange={(v) => setEditForm(prev => ({...prev, vipName: v}))}
+                                                    onEnter={() => saveEdit(idx)}
                                                     placeholder="Search VIP..."
                                                     candidates={candidates}
                                                 />
