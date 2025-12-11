@@ -4,7 +4,7 @@ import { MockApi } from '../services/mockBackend';
 import { Player, PlayerFilter } from '../types';
 import { useLanguage } from '../utils/i18n';
 import VsTracker from './VsTracker';
-import TrainManager from './TrainManager'; // Import the new component
+import TrainManager from './TrainManager';
 import { CustomDropdown } from './CustomDropdown';
 import { useToast } from './Toast';
 
@@ -16,7 +16,6 @@ const AdminDashboard: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   
-  // Added 'train' to tab state
   const [activeTab, setActiveTab] = useState<'db' | 'vs' | 'train'>('db');
   
   const [players, setPlayers] = useState<Player[]>([]);
@@ -173,7 +172,7 @@ const AdminDashboard: React.FC = () => {
 
   if (!token) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh]">
+      <div className="flex justify-center items-center min-h-[60vh] animate-in fade-in zoom-in-95 duration-500">
         <div className="bg-[#0f172a] p-10 rounded-2xl shadow-2xl w-full max-w-sm border border-slate-700 relative overflow-hidden">
            <div className="absolute top-0 left-0 w-full h-1 bg-sky-500 shadow-[0_0_20px_#0ea5e9]"></div>
            <div className="text-center mb-8">
@@ -193,7 +192,9 @@ const AdminDashboard: React.FC = () => {
                    />
                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute end-3 top-3.5 text-slate-500 hover:text-white text-xs uppercase tracking-wider font-bold">{showPassword ? "HIDE" : "SHOW"}</button>
                </div>
-               <button className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-sm tracking-widest transition-all">{t('admin.login.btn')}</button>
+               <button className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-sm tracking-widest transition-all shadow-[0_0_20px_rgba(14,165,233,0.3)] hover:shadow-[0_0_30px_rgba(14,165,233,0.5)]">
+                 {loading ? 'Authenticating...' : t('admin.login.btn')}
+               </button>
            </form>
         </div>
       </div>
@@ -201,28 +202,31 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="glass-panel p-4 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-4 bg-[#0f172a] border border-slate-700">
-        <div className="flex items-center gap-2">
-             <div className="bg-slate-900 p-1 rounded-lg border border-slate-700 flex">
-                 <button onClick={() => setActiveTab('db')} className={`px-6 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'db' ? 'bg-sky-500 text-white' : 'text-slate-500 hover:text-white'}`}>{t('admin.db')}</button>
-                 <button onClick={() => setActiveTab('vs')} className={`px-6 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'vs' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-white'}`}>{t('admin.vs')}</button>
-                 <button onClick={() => setActiveTab('train')} className={`px-6 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${activeTab === 'train' ? 'bg-amber-600 text-white' : 'text-slate-500 hover:text-white'}`}>{t('admin.train')}</button>
-             </div>
+    <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-700">
+      <div className="bg-[#0f172a]/80 backdrop-blur-xl p-2 rounded-xl border border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4 sticky top-24 z-40 shadow-2xl">
+        <div className="flex items-center gap-2 p-1 bg-slate-900/50 rounded-lg w-full sm:w-auto overflow-x-auto">
+             <button onClick={() => setActiveTab('db')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeTab === 'db' ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/25' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}>{t('admin.db')}</button>
+             <button onClick={() => setActiveTab('vs')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeTab === 'vs' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}>{t('admin.vs')}</button>
+             <button onClick={() => setActiveTab('train')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeTab === 'train' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/25' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}>{t('admin.train')}</button>
         </div>
-        <button onClick={handleLogout} className="text-xs font-bold text-slate-400 hover:text-white border border-slate-700 px-4 py-2 rounded-lg hover:bg-slate-800 transition-all">{t('admin.terminate')}</button>
+        <button onClick={handleLogout} className="text-xs font-bold text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 px-4 py-2 rounded-lg hover:bg-rose-500/10 transition-all uppercase tracking-wider w-full sm:w-auto">{t('admin.terminate')}</button>
       </div>
 
-      {activeTab === 'vs' ? ( <VsTracker /> ) : activeTab === 'train' ? ( <TrainManager /> ) : (
-          <div className="bg-[#0f172a] rounded-xl border border-slate-700/50 flex flex-col">
-                <div className="p-4 border-b border-slate-700/50 flex flex-col sm:flex-row gap-4 bg-slate-900">
-                     <input type="text" placeholder={t('admin.filter')} className="bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-xs text-white focus:border-sky-500 outline-none w-full sm:w-64 font-mono" value={filter.search} onChange={(e) => setFilter(prev => ({...prev, search: e.target.value}))} />
+      <div className="min-h-[600px]">
+      {activeTab === 'vs' ? ( <VsTracker /> ) : 
+       activeTab === 'train' ? ( <TrainManager /> ) : (
+          <div className="bg-[#0f172a] rounded-xl border border-slate-700/50 flex flex-col shadow-xl">
+                <div className="p-4 border-b border-slate-700/50 flex flex-col sm:flex-row gap-4 bg-slate-900/50">
+                     <div className="relative w-full sm:w-64">
+                        <input type="text" placeholder={t('admin.filter')} className="bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-4 py-2.5 text-xs text-white focus:border-sky-500 outline-none w-full font-mono transition-all focus:bg-slate-900" value={filter.search} onChange={(e) => setFilter(prev => ({...prev, search: e.target.value}))} />
+                        <svg className="w-4 h-4 text-slate-600 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                     </div>
                      
                      <div className="flex gap-2 w-full sm:w-auto">
-                        <div className="bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-xs text-slate-400 font-mono flex items-center justify-center whitespace-nowrap min-w-[100px]">
+                        <div className="bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-xs text-slate-400 font-mono flex items-center justify-center whitespace-nowrap min-w-[100px] shadow-inner">
                             {totalCount} Players
                         </div>
-                        <button onClick={() => setFilter(prev => ({...prev, activeOnly: !prev.activeOnly}))} className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold uppercase border transition-all ${filter.activeOnly ? 'bg-sky-500 border-sky-500 text-white' : 'bg-transparent border-slate-700 text-slate-400'}`}>
+                        <button onClick={() => setFilter(prev => ({...prev, activeOnly: !prev.activeOnly}))} className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-bold uppercase border transition-all ${filter.activeOnly ? 'bg-sky-500/10 border-sky-500 text-sky-400' : 'bg-transparent border-slate-700 text-slate-400 hover:border-slate-500'}`}>
                             {filter.activeOnly ? t('admin.active_only') : t('admin.all_records')}
                         </button>
                      </div>
@@ -234,16 +238,16 @@ const AdminDashboard: React.FC = () => {
                         <thead className="bg-slate-950 text-[10px] uppercase font-bold text-slate-500 tracking-widest border-b border-slate-800">
                             <tr> <th className="px-6 py-4">{t('admin.status')}</th> <th className="px-6 py-4">{t('admin.identity')}</th> <th className="px-6 py-4">{t('label.power')} (M)</th> <th className="px-6 py-4">{t('label.language')}</th> <th className="px-6 py-4 text-right">{t('admin.control')}</th> </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-800">
+                        <tbody className="divide-y divide-slate-800/50">
                             {players.map(player => (
-                                <tr key={player.id} className="hover:bg-white/5 transition-colors">
+                                <tr key={player.id} className="hover:bg-sky-500/5 transition-colors group">
                                     <td className="px-6 py-4"><button onClick={() => handleToggleActive(player)} className={`w-8 h-4 rounded-full relative transition-colors ${player.active ? 'bg-emerald-900/30 border border-emerald-500/50' : 'bg-slate-800 border border-slate-600'}`}><div className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full transition-transform ${player.active ? 'translate-x-4 bg-emerald-500' : 'bg-slate-500'}`}></div></button></td>
-                                    <td className="px-6 py-4 font-medium text-white">{player.name}</td>
-                                    <td className="px-6 py-4 font-mono text-sky-400">{formatPower(player.firstSquadPower)}</td>
-                                    <td className="px-6 py-4"><span className="text-[10px] font-bold border border-slate-700 px-2 py-1 rounded bg-slate-800 uppercase">{player.language.substring(0,3)}</span></td>
+                                    <td className="px-6 py-4 font-medium text-white group-hover:text-sky-300 transition-colors">{player.name}</td>
+                                    <td className="px-6 py-4 font-mono text-sky-400 font-bold">{formatPower(player.firstSquadPower)}</td>
+                                    <td className="px-6 py-4"><span className="text-[10px] font-bold border border-slate-700 px-2 py-1 rounded bg-slate-800/50 uppercase text-slate-400">{player.language.substring(0,3)}</span></td>
                                     <td className="px-6 py-4 text-right space-x-2">
-                                    <button onClick={() => startEdit(player)} className="text-sky-500 hover:text-sky-400 text-xs font-bold uppercase">{t('admin.edit')}</button>
-                                    <button onClick={() => handleDelete(player.id)} className="text-rose-500 hover:text-rose-400 text-xs font-bold uppercase">{t('admin.del')}</button>
+                                    <button onClick={() => startEdit(player)} className="text-sky-500 hover:text-white bg-sky-500/10 hover:bg-sky-500 border border-sky-500/20 px-3 py-1 rounded text-[10px] font-bold uppercase transition-all">{t('admin.edit')}</button>
+                                    <button onClick={() => handleDelete(player.id)} className="text-rose-500 hover:text-white bg-rose-500/10 hover:bg-rose-500 border border-rose-500/20 px-3 py-1 rounded text-[10px] font-bold uppercase transition-all">{t('admin.del')}</button>
                                     </td>
                                 </tr>
                             ))}
@@ -281,22 +285,28 @@ const AdminDashboard: React.FC = () => {
                 </div>
           </div>
       )}
+      </div>
 
       {/* Full Edit Modal */}
       {editingPlayer && (
-        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-           <div className="bg-[#0f172a] w-full max-w-4xl rounded-2xl border border-slate-700 shadow-2xl my-8 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+           <div className="bg-[#0f172a] w-full max-w-4xl rounded-2xl border border-slate-700 shadow-2xl my-8 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
               {/* Header */}
-              <div className="p-6 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
-                  <h3 className="text-lg font-header font-bold text-white uppercase tracking-widest">Editing: <span className="text-sky-400">{editingPlayer.name}</span></h3>
-                  <button onClick={() => setEditingPlayer(null)} className="text-slate-400 hover:text-white p-2">✕</button>
+              <div className="p-6 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center sticky top-0 z-10 backdrop-blur">
+                  <h3 className="text-lg font-header font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                      <span className="w-1.5 h-6 bg-sky-500 rounded-sm"></span>
+                      Editing: <span className="text-sky-400">{editingPlayer.name}</span>
+                  </h3>
+                  <button onClick={() => setEditingPlayer(null)} className="text-slate-400 hover:text-white p-2 hover:bg-slate-800 rounded-full transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
               </div>
 
               {/* Body */}
               <div className="p-6 overflow-y-auto custom-scrollbar space-y-8">
                   {/* Section 1: Identity & Power */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="space-y-4 bg-slate-900/30 p-4 rounded-xl border border-slate-800">
                           <h4 className="text-xs font-bold text-sky-500 uppercase tracking-widest border-b border-slate-800 pb-2">Identity & Powers (M)</h4>
                           <EditInput label="Name" field="name" />
                           <div className="grid grid-cols-2 gap-4">
@@ -310,7 +320,7 @@ const AdminDashboard: React.FC = () => {
                           </div>
                       </div>
 
-                      <div className="space-y-4">
+                      <div className="space-y-4 bg-slate-900/30 p-4 rounded-xl border border-slate-800">
                            <h4 className="text-xs font-bold text-sky-500 uppercase tracking-widest border-b border-slate-800 pb-2">Percentages & T10</h4>
                            <div className="grid grid-cols-3 gap-4">
                               <EditInput label="Hero %" field="heroPercent" type="number" />
@@ -328,7 +338,7 @@ const AdminDashboard: React.FC = () => {
                   </div>
 
                   {/* Section 2: Buildings */}
-                  <div>
+                  <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-800">
                       <h4 className="text-xs font-bold text-sky-500 uppercase tracking-widest border-b border-slate-800 pb-2 mb-4">Building Levels</h4>
                       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                           <EditDropdown label="Tech" field="techLevel" max={35} />
@@ -341,9 +351,9 @@ const AdminDashboard: React.FC = () => {
               </div>
 
               {/* Footer */}
-              <div className="p-6 border-t border-slate-700 bg-slate-900/50 flex justify-end gap-3">
-                  <button onClick={() => setEditingPlayer(null)} className="px-6 py-2 rounded-lg border border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-bold uppercase tracking-widest">Cancel</button>
-                  <button onClick={saveEdit} className="px-6 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-emerald-500/20">Save Changes</button>
+              <div className="p-6 border-t border-slate-700 bg-slate-900/50 flex justify-end gap-3 sticky bottom-0 z-10 backdrop-blur">
+                  <button onClick={() => setEditingPlayer(null)} className="px-6 py-2 rounded-lg border border-slate-600 text-slate-300 hover:text-white hover:bg-slate-800 text-xs font-bold uppercase tracking-widest transition-colors">Cancel</button>
+                  <button onClick={saveEdit} className="px-6 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all transform hover:scale-105">Save Changes</button>
               </div>
            </div>
         </div>

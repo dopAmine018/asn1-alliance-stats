@@ -299,24 +299,34 @@ export const TrainApi = {
             
             if (error) throw error;
             return data?.schedule_data || null;
-        } catch(e) {
-            console.error("Failed to fetch train schedule", e);
+        } catch(e: any) {
+            // Gracefully handle missing table to avoid [object Object] console errors
+            if (e.code === '42P01') {
+                 console.warn("Table 'train_schedule' does not exist. Skipping fetch. Please run SQL migration.");
+                 return null;
+            }
+            // Fix [object Object] by stringifying if message is missing
+            const errorMsg = e.message || JSON.stringify(e);
+            console.error("Failed to fetch train schedule:", errorMsg);
             return null;
         }
     },
 
     saveSchedule: async (scheduleData: any): Promise<void> => {
         try {
-            // Insert a new record (snapshot approach) or update could work too.
-            // Insert is safer for history, but clean up might be needed later.
-            // For this app, we'll just insert.
+            // Insert a new record (snapshot approach)
             const { error } = await supabase
                 .from('train_schedule')
                 .insert({ schedule_data: scheduleData });
             
             if (error) throw error;
-        } catch(e) {
-            console.error("Failed to save train schedule", e);
+        } catch(e: any) {
+            if (e.code === '42P01') {
+                 console.warn("Table 'train_schedule' does not exist. Save skipped.");
+                 throw new Error("Database missing train_schedule table.");
+            }
+            const errorMsg = e.message || JSON.stringify(e);
+            console.error("Failed to save train schedule:", errorMsg);
             throw e;
         }
     }
