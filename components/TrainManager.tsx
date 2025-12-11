@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Player } from '../types';
 import { MockApi } from '../services/mockBackend';
 import { calculateT10RemainingCost } from '../utils/gameLogic';
@@ -20,6 +20,43 @@ interface TrainDay {
     defender: EnrichedPlayer | null;
 }
 
+// Extracted Component to prevent re-mounting on every keystroke
+const PlayerSearchInput = ({ value, onChange, placeholder, candidates }: { value: string, onChange: (v: string) => void, placeholder: string, candidates: EnrichedPlayer[] }) => {
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    
+    const suggestions = value.length > 1 
+        ? candidates.filter(p => p.name.toLowerCase().includes(value.toLowerCase())).slice(0, 5) 
+        : [];
+
+    return (
+        <div className="relative w-full">
+            <input 
+                type="text" 
+                value={value} 
+                onChange={(e) => { onChange(e.target.value); setShowSuggestions(true); }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                placeholder={placeholder}
+                className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:border-sky-500 outline-none font-bold placeholder-slate-600"
+            />
+            {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 w-full bg-[#0f172a] border border-slate-700 shadow-xl z-50 rounded-b max-h-40 overflow-y-auto">
+                    {suggestions.map(s => (
+                        <div 
+                            key={s.id} 
+                            className="px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white cursor-pointer border-b border-slate-800 last:border-0 flex justify-between items-center"
+                            onMouseDown={() => { onChange(s.name); setShowSuggestions(false); }}
+                        >
+                            <span className="font-bold">{s.name}</span>
+                            <span className="font-mono text-[9px] text-sky-500">{(s.firstSquadPower/1000000).toFixed(1)}M</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 const TrainManager: React.FC = () => {
   const { t } = useLanguage();
   const [candidates, setCandidates] = useState<EnrichedPlayer[]>([]);
@@ -28,12 +65,17 @@ const TrainManager: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Manual Edit State
+  const [isManualMode, setIsManualMode] = useState(false);
+  const [editingDayIdx, setEditingDayIdx] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<{ conductorName: string, vipName: string }>({ conductorName: '', vipName: '' });
+
   // Initial Load + Polling
   useEffect(() => {
       fetchAndAnalyze();
       const interval = setInterval(fetchAndAnalyze, 10000); // Poll every 10s
       return () => clearInterval(interval);
-  }, []);
+  }, [isManualMode]); // Re-bind if manual mode changes to respect the flag inside
 
   const fetchAndAnalyze = async () => {
       // Don't set global loading on poll to avoid UI flicker
@@ -73,10 +115,11 @@ const TrainManager: React.FC = () => {
           setCandidates(sorted);
           setLastUpdated(new Date());
           
-          // Generate Schedule using top valid candidates (Gold > 0)
-          // We only schedule people who actually need resources
-          const validForSchedule = sorted.filter(p => p.remainingGold > 0);
-          generateSchedule(validForSchedule);
+          // Only auto-generate if NOT in manual mode
+          if (!isManualMode) {
+              const validForSchedule = sorted.filter(p => p.remainingGold > 0);
+              generateSchedule(validForSchedule);
+          }
       } catch(e) {
           console.error("Failed to fetch players", e);
       } finally {
@@ -90,25 +133,28 @@ const TrainManager: React.FC = () => {
 
       // We need at least 2 players to start a schedule
       if (list.length < 2) {
-          setSchedule([]);
+          // Keep empty or partial? Let's just reset
+          if (!isManualMode) setSchedule([]); 
           return;
       }
 
       for (let i = 0; i < 7; i++) {
-          // Logic: 6 Players = 3 Pairs.
-          // Pair 1: Days 1, 2 (Index 0,1)
-          // Pair 2: Days 3, 4 (Index 2,3)
-          // Pair 3: Days 5, 6 (Index 4,5)
-          // Day 7: Loop back to Pair 1 (Index 0)
-          
           const pairIndex = Math.floor(i / 2) % 3; // Returns 0, 0, 1, 1, 2, 2, 0
           const p1 = list[pairIndex * 2];
           const p2 = list[pairIndex * 2 + 1];
 
-          if (!p1 || !p2) continue;
+          if (!p1 || !p2) {
+              // Push placeholder if not enough players
+              scheduleData.push({
+                  dayName: days[i],
+                  conductor: null,
+                  vip: null,
+                  mode: 'VIP',
+                  defender: null
+              });
+              continue;
+          }
 
-          // Swap Roles: Even Index (0, 2, 4...) -> P1 Conductor. Odd Index (1, 3, 5...) -> P2 Conductor.
-          // This ensures within a 2-day block, they swap.
           const isSwap = i % 2 !== 0;
           
           let conductor = isSwap ? p2 : p1;
@@ -132,6 +178,66 @@ const TrainManager: React.FC = () => {
       }
       setSchedule(scheduleData);
   };
+
+  // --- Edit Logic ---
+
+  const startEdit = (idx: number) => {
+      const day = schedule[idx];
+      setEditForm({
+          conductorName: day.conductor?.name || '',
+          vipName: day.vip?.name || ''
+      });
+      setEditingDayIdx(idx);
+  };
+
+  const saveEdit = (idx: number) => {
+      const newSchedule = [...schedule];
+      
+      // Find full player objects from candidates list
+      const findPlayer = (name: string) => candidates.find(p => p.name.toLowerCase() === name.toLowerCase().trim()) || null;
+      
+      const newConductor = findPlayer(editForm.conductorName);
+      const newVip = findPlayer(editForm.vipName);
+      
+      let mode: 'VIP' | 'Guardian' = 'VIP';
+      let defender = null;
+
+      if (newConductor && newVip) {
+          if (newConductor.firstSquadPower >= newVip.firstSquadPower) {
+              mode = 'VIP';
+              defender = newConductor;
+          } else {
+              mode = 'Guardian';
+              defender = newVip;
+          }
+      } else if (newConductor) {
+          defender = newConductor;
+      }
+
+      newSchedule[idx] = {
+          ...newSchedule[idx],
+          conductor: newConductor,
+          vip: newVip,
+          mode,
+          defender
+      };
+
+      setSchedule(newSchedule);
+      setIsManualMode(true); // Lock auto-refresh
+      setEditingDayIdx(null);
+  };
+
+  const cancelEdit = () => {
+      setEditingDayIdx(null);
+  };
+
+  const resetToAuto = () => {
+      setIsManualMode(false);
+      const validForSchedule = candidates.filter(p => p.remainingGold > 0);
+      generateSchedule(validForSchedule);
+  };
+
+  // --- Render Helpers ---
 
   const formatNumber = (num: number) => {
       if (num === 0) return "DONE";
@@ -178,7 +284,9 @@ const TrainManager: React.FC = () => {
             <div className="text-right whitespace-nowrap hidden sm:block">
                 <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Logic Engine</div>
                 <div className="text-xs font-mono text-sky-500">3 Pairs / 7 Days / Auto-Swap</div>
-                <div className="text-[9px] font-mono text-slate-600 mt-2">Last Sync: {lastUpdated.toLocaleTimeString()}</div>
+                <div className="text-[9px] font-mono text-slate-600 mt-2">
+                    {isManualMode ? <span className="text-amber-500">MANUAL OVERRIDE</span> : "AUTO SYNC"}
+                </div>
             </div>
         </div>
 
@@ -260,66 +368,124 @@ const TrainManager: React.FC = () => {
             <div className="flex flex-col h-[600px] gap-4">
                  <div className="flex justify-between items-center mb-2">
                     <h3 className="text-sm font-bold text-emerald-500 uppercase tracking-widest">{t('train.schedule')}</h3>
-                    <button onClick={fetchAndAnalyze} className="text-[10px] text-slate-400 hover:text-white uppercase font-bold border border-slate-700 px-3 py-1 rounded hover:bg-slate-800 transition-colors">
-                        Refresh
-                    </button>
+                    <div className="flex gap-2">
+                        {isManualMode && (
+                            <button onClick={resetToAuto} className="text-[10px] text-amber-500 hover:text-white uppercase font-bold border border-amber-500/50 px-3 py-1 rounded hover:bg-amber-600 transition-colors animate-pulse">
+                                Reset to Auto
+                            </button>
+                        )}
+                        <button onClick={fetchAndAnalyze} className="text-[10px] text-slate-400 hover:text-white uppercase font-bold border border-slate-700 px-3 py-1 rounded hover:bg-slate-800 transition-colors">
+                            Sync
+                        </button>
+                    </div>
                  </div>
 
                  <div className="overflow-y-auto custom-scrollbar flex-1 space-y-4 pr-2">
-                     {schedule.length > 0 ? schedule.map((day, idx) => (
-                         <div key={idx} className="bg-[#0f172a] border border-slate-700 rounded-xl overflow-hidden relative group">
-                             {/* Mode Indicator Bar */}
-                             <div className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-b ${day.mode === 'VIP' ? 'from-amber-500 to-amber-700' : 'from-sky-500 to-indigo-500'}`}></div>
-                             
-                             <div className="p-3 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
-                                 <h4 className="text-xs font-header font-bold text-white uppercase tracking-widest">{t(`day.${day.dayName}` as any)}</h4>
-                                 <div className="flex items-center gap-2">
-                                     <span className="text-[9px] font-mono text-slate-500 uppercase">Pair {Math.floor(idx/2) % 3 + 1}</span>
-                                     <span className={`text-[9px] font-mono px-2 py-0.5 rounded border ${day.mode === 'VIP' ? 'border-amber-500/30 text-amber-500 bg-amber-500/10' : 'border-sky-500/30 text-sky-500 bg-sky-500/10'}`}>
-                                         {day.mode === 'VIP' ? t('train.mode_vip') : t('train.mode_guardian')}
-                                     </span>
-                                 </div>
-                             </div>
+                     {schedule.length > 0 ? schedule.map((day, idx) => {
+                         const isEditing = editingDayIdx === idx;
+                         const conductorMatch = isEditing ? candidates.find(c => c.name.toLowerCase() === editForm.conductorName.toLowerCase().trim()) : null;
+                         const vipMatch = isEditing ? candidates.find(c => c.name.toLowerCase() === editForm.vipName.toLowerCase().trim()) : null;
 
-                             <div className="grid grid-cols-2 divide-x divide-slate-800">
-                                 {/* Conductor */}
-                                 <div className="p-3 flex flex-col gap-1 relative overflow-hidden bg-gradient-to-b from-transparent to-amber-900/5">
-                                     <span className="text-[8px] font-bold text-amber-500 uppercase tracking-widest mb-1">{t('train.conductor')}</span>
-                                     {day.conductor ? (
-                                         <div>
-                                             <div className="text-sm font-bold text-white truncate flex items-center gap-1">
-                                                {day.conductor.name}
-                                                {day.defender?.id === day.conductor.id && <DefenderShield />}
-                                                {!day.conductor.active && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" title="Inactive"></span>}
-                                             </div>
-                                             <div className="text-[9px] text-slate-400 font-mono mt-1">
-                                                 Need: <span className="text-amber-400">{formatNumber(day.conductor.remainingGold)}</span>
-                                             </div>
-                                         </div>
-                                     ) : ( <div className="text-xs text-slate-600 italic">-- Empty --</div> )}
-                                 </div>
+                         return (
+                            <div key={idx} className={`bg-[#0f172a] border rounded-xl overflow-hidden relative group transition-colors ${editingDayIdx === idx ? 'border-sky-500 shadow-[0_0_20px_rgba(14,165,233,0.2)]' : 'border-slate-700'}`}>
+                                {/* Mode Indicator Bar */}
+                                <div className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-b ${day.mode === 'VIP' ? 'from-amber-500 to-amber-700' : 'from-sky-500 to-indigo-500'}`}></div>
+                                
+                                {/* Card Header */}
+                                <div className="p-3 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
+                                    <h4 className="text-xs font-header font-bold text-white uppercase tracking-widest">{t(`day.${day.dayName}` as any)}</h4>
+                                    
+                                    {isEditing ? (
+                                        <div className="flex gap-2">
+                                            <button onClick={() => saveEdit(idx)} className="text-[9px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded uppercase">Save</button>
+                                            <button onClick={cancelEdit} className="text-[9px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 rounded uppercase">Cancel</button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[9px] font-mono text-slate-500 uppercase">Pair {Math.floor(idx/2) % 3 + 1}</span>
+                                            <span className={`text-[9px] font-mono px-2 py-0.5 rounded border ${day.mode === 'VIP' ? 'border-amber-500/30 text-amber-500 bg-amber-500/10' : 'border-sky-500/30 text-sky-500 bg-sky-500/10'}`}>
+                                                {day.mode === 'VIP' ? t('train.mode_vip') : t('train.mode_guardian')}
+                                            </span>
+                                            <button onClick={() => startEdit(idx)} className="ml-2 text-slate-500 hover:text-sky-400">
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
 
-                                 {/* Passenger */}
-                                 <div className={`p-3 flex flex-col gap-1 relative overflow-hidden ${day.mode === 'Guardian' ? 'bg-gradient-to-b from-transparent to-sky-900/5' : ''}`}>
-                                     <span className={`text-[8px] font-bold uppercase tracking-widest mb-1 ${day.mode === 'Guardian' ? 'text-sky-400' : 'text-purple-500'}`}>
-                                         {day.mode === 'Guardian' ? t('train.guardian') : t('train.vip')}
-                                     </span>
-                                     {day.vip ? (
-                                         <div>
-                                             <div className="text-sm font-bold text-white truncate flex items-center gap-1">
-                                                {day.vip.name}
-                                                {day.defender?.id === day.vip.id && <DefenderShield />}
-                                                {!day.vip.active && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" title="Inactive"></span>}
-                                             </div>
-                                             <div className="text-[9px] text-slate-400 font-mono mt-1">
-                                                 Need: <span className="text-amber-400">{formatNumber(day.vip.remainingGold)}</span>
-                                             </div>
-                                         </div>
-                                     ) : ( <div className="text-xs text-slate-600 italic">-- Empty --</div> )}
-                                 </div>
-                             </div>
-                         </div>
-                     )) : (
+                                {/* Card Body */}
+                                <div className="grid grid-cols-2 divide-x divide-slate-800">
+                                    {/* Conductor */}
+                                    <div className="p-3 flex flex-col gap-1 relative overflow-hidden bg-gradient-to-b from-transparent to-amber-900/5">
+                                        <span className="text-[8px] font-bold text-amber-500 uppercase tracking-widest mb-1">{t('train.conductor')}</span>
+                                        
+                                        {isEditing ? (
+                                            <div className="mt-1">
+                                                <PlayerSearchInput 
+                                                    value={editForm.conductorName} 
+                                                    onChange={(v) => setEditForm(prev => ({...prev, conductorName: v}))}
+                                                    placeholder="Search Conductor..."
+                                                    candidates={candidates}
+                                                />
+                                                {conductorMatch && (
+                                                    <div className="mt-1.5 flex items-center justify-between bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded">
+                                                        <span className="text-[9px] font-bold text-emerald-400">{conductorMatch.name}</span>
+                                                        <span className="text-[9px] font-mono text-white">{formatNumber(conductorMatch.remainingGold)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : day.conductor ? (
+                                            <div>
+                                                <div className="text-sm font-bold text-white truncate flex items-center gap-1">
+                                                    {day.conductor.name}
+                                                    {day.defender?.id === day.conductor.id && <DefenderShield />}
+                                                    {!day.conductor.active && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" title="Inactive"></span>}
+                                                </div>
+                                                <div className="text-[9px] text-slate-400 font-mono mt-1">
+                                                    Need: <span className="text-amber-400">{formatNumber(day.conductor.remainingGold)}</span>
+                                                </div>
+                                            </div>
+                                        ) : ( <div className="text-xs text-slate-600 italic">-- Empty --</div> )}
+                                    </div>
+
+                                    {/* Passenger */}
+                                    <div className={`p-3 flex flex-col gap-1 relative overflow-hidden ${day.mode === 'Guardian' ? 'bg-gradient-to-b from-transparent to-sky-900/5' : ''}`}>
+                                        <span className={`text-[8px] font-bold uppercase tracking-widest mb-1 ${day.mode === 'Guardian' ? 'text-sky-400' : 'text-purple-500'}`}>
+                                            {day.mode === 'Guardian' ? t('train.guardian') : t('train.vip')}
+                                        </span>
+                                        
+                                        {isEditing ? (
+                                            <div className="mt-1">
+                                                <PlayerSearchInput 
+                                                    value={editForm.vipName} 
+                                                    onChange={(v) => setEditForm(prev => ({...prev, vipName: v}))}
+                                                    placeholder="Search VIP..."
+                                                    candidates={candidates}
+                                                />
+                                                {vipMatch && (
+                                                    <div className="mt-1.5 flex items-center justify-between bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded">
+                                                        <span className="text-[9px] font-bold text-emerald-400">{vipMatch.name}</span>
+                                                        <span className="text-[9px] font-mono text-white">{formatNumber(vipMatch.remainingGold)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : day.vip ? (
+                                            <div>
+                                                <div className="text-sm font-bold text-white truncate flex items-center gap-1">
+                                                    {day.vip.name}
+                                                    {day.defender?.id === day.vip.id && <DefenderShield />}
+                                                    {!day.vip.active && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" title="Inactive"></span>}
+                                                </div>
+                                                <div className="text-[9px] text-slate-400 font-mono mt-1">
+                                                    Need: <span className="text-amber-400">{formatNumber(day.vip.remainingGold)}</span>
+                                                </div>
+                                            </div>
+                                        ) : ( <div className="text-xs text-slate-600 italic">-- Empty --</div> )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                     }) : (
                          <div className="p-8 text-center text-slate-500 border border-dashed border-slate-800 rounded-xl">
                              Insufficient candidates to generate schedule (Need 2+)
                          </div>
