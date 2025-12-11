@@ -25,20 +25,27 @@ const TrainManager: React.FC = () => {
   const [candidates, setCandidates] = useState<EnrichedPlayer[]>([]);
   const [schedule, setSchedule] = useState<TrainDay[]>([]);
   const [loading, setLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [searchQuery, setSearchQuery] = useState('');
   
+  // Initial Load + Polling
   useEffect(() => {
       fetchAndAnalyze();
+      const interval = setInterval(fetchAndAnalyze, 10000); // Poll every 10s
+      return () => clearInterval(interval);
   }, []);
 
   const fetchAndAnalyze = async () => {
-      setLoading(true);
+      // Don't set global loading on poll to avoid UI flicker
+      if (candidates.length === 0) setLoading(true);
+      
       try {
-          const res = await MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: true });
+          // CRITICAL: Set activeOnly to FALSE to ensure we see everyone (like iko99)
+          const res = await MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false });
           
           // Enrich players with cost data
           const enriched: EnrichedPlayer[] = res.items.map(p => {
               const cost = calculateT10RemainingCost(p);
-              // Simple Score: Gold is heavily weighted as it's the main bottleneck. 
               return {
                   ...p,
                   remainingGold: cost.gold,
@@ -48,16 +55,28 @@ const TrainManager: React.FC = () => {
               };
           });
 
-          // Filter out those who are already maxed (Cost < 1M roughly)
-          // Sort by lowest cost first
-          const sorted = enriched
-              .filter(p => p.remainingGold > 0) 
-              .sort((a, b) => a.totalCostScore - b.totalCostScore);
+          // Sort by lowest cost first, BUT put completed (0 gold) at the bottom
+          const sorted = enriched.sort((a, b) => {
+              // If both have 0 gold (Completed), sort by power descending (Strongest completed on top of completed list)
+              if (a.remainingGold === 0 && b.remainingGold === 0) {
+                  return b.firstSquadPower - a.firstSquadPower;
+              }
+              // If A is completed (0), move to bottom
+              if (a.remainingGold === 0) return 1;
+              // If B is completed (0), move to bottom
+              if (b.remainingGold === 0) return -1;
+              
+              // Otherwise, standard ascending sort (Closest first)
+              return a.totalCostScore - b.totalCostScore;
+          });
 
           setCandidates(sorted);
+          setLastUpdated(new Date());
           
-          // Generate Schedule immediately
-          generateSchedule(sorted);
+          // Generate Schedule using top valid candidates (Gold > 0)
+          // We only schedule people who actually need resources
+          const validForSchedule = sorted.filter(p => p.remainingGold > 0);
+          generateSchedule(validForSchedule);
       } catch(e) {
           console.error("Failed to fetch players", e);
       } finally {
@@ -115,6 +134,7 @@ const TrainManager: React.FC = () => {
   };
 
   const formatNumber = (num: number) => {
+      if (num === 0) return "DONE";
       if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
       if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
       if (num >= 1000) return (num / 1000).toFixed(0) + 'k';
@@ -126,6 +146,10 @@ const TrainManager: React.FC = () => {
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
           DEF
       </span>
+  );
+
+  const filteredCandidates = candidates.filter(c => 
+     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -141,7 +165,7 @@ const TrainManager: React.FC = () => {
                 {/* Nerdy Code Description */}
                 <div className="font-mono text-[10px] leading-relaxed text-slate-400 bg-black/40 p-3 rounded border border-white/5 mt-3 shadow-inner font-medium">
                   <span className="text-purple-400">const</span> <span className="text-blue-400">trainLogic</span> <span className="text-white">=</span> <span className="text-yellow-400">()</span> <span className="text-purple-400">=&gt;</span> <span className="text-yellow-400">{`{`}</span><br/>
-                  &nbsp;&nbsp;<span className="text-slate-500">// 1. Sort by Gold Cost (ASC)</span><br/>
+                  &nbsp;&nbsp;<span className="text-slate-500">// 1. Sort by Gold Cost (ASC), Maxed Last</span><br/>
                   &nbsp;&nbsp;<span className="text-purple-400">const</span> <span className="text-white">queue</span> <span className="text-white">=</span> <span className="text-white">players.</span><span className="text-blue-400">sortBy</span><span className="text-yellow-400">(</span><span className="text-green-400">'gold'</span><span className="text-yellow-400">)</span><span className="text-white">;</span><br/>
                   &nbsp;&nbsp;<span className="text-slate-500">// 2. Top 6 Candidates (3 Pairs)</span><br/>
                   &nbsp;&nbsp;<span className="text-purple-400">const</span> <span className="text-white">schedule</span> <span className="text-white">=</span> <span className="text-white">days.</span><span className="text-blue-400">map</span><span className="text-yellow-400">(</span><span className="text-white">day</span> <span className="text-purple-400">=&gt;</span> <span className="text-yellow-400">{`{`}</span><br/>
@@ -154,6 +178,7 @@ const TrainManager: React.FC = () => {
             <div className="text-right whitespace-nowrap hidden sm:block">
                 <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Logic Engine</div>
                 <div className="text-xs font-mono text-sky-500">3 Pairs / 7 Days / Auto-Swap</div>
+                <div className="text-[9px] font-mono text-slate-600 mt-2">Last Sync: {lastUpdated.toLocaleTimeString()}</div>
             </div>
         </div>
 
@@ -161,9 +186,22 @@ const TrainManager: React.FC = () => {
             
             {/* Left: Priority Queue Table */}
             <div className="bg-[#0f172a] border border-slate-700 rounded-xl overflow-hidden flex flex-col h-[600px]">
-                <div className="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
-                    <h3 className="text-sm font-bold text-sky-500 uppercase tracking-widest">{t('train.candidates')}</h3>
-                    <div className="text-[10px] text-slate-500 font-mono">{candidates.length} Candidates</div>
+                <div className="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center gap-2">
+                    <div className="flex flex-col">
+                        <h3 className="text-sm font-bold text-sky-500 uppercase tracking-widest">{t('train.candidates')}</h3>
+                        <div className="text-[10px] text-slate-500 font-mono">{candidates.length} Found</div>
+                    </div>
+                    {/* Search Bar */}
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            placeholder={t('train.search')} 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:border-sky-500 outline-none w-32 sm:w-48 font-mono"
+                        />
+                        <svg className="w-3 h-3 text-slate-500 absolute right-2 top-1.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </div>
                 </div>
                 
                 <div className="overflow-y-auto custom-scrollbar flex-1">
@@ -177,17 +215,22 @@ const TrainManager: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800 text-sm">
-                            {candidates.map((p, idx) => (
-                                <tr key={p.id} className="hover:bg-white/5 transition-colors">
+                            {filteredCandidates.map((p, idx) => (
+                                <tr key={p.id} className={`hover:bg-white/5 transition-colors ${p.remainingGold === 0 ? 'opacity-40' : ''}`}>
                                     <td className="px-4 py-3 text-slate-500 font-mono text-xs">{idx + 1}</td>
                                     <td className="px-4 py-3">
                                         <div className="font-bold text-white flex items-center gap-2">
                                             {p.name}
+                                            {!p.active && (
+                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" title={t('admin.inactive')}></span>
+                                            )}
                                             <span className="text-[9px] font-mono text-sky-500">{(p.firstSquadPower/1000000).toFixed(1)}M</span>
                                         </div>
-                                        <div className="text-[9px] text-slate-500 uppercase">{p.language}</div>
+                                        <div className="flex gap-2 text-[9px]">
+                                            <span className="text-slate-500 uppercase">{p.language}</span>
+                                            {!p.active && <span className="text-rose-500 uppercase font-bold tracking-wider">{t('admin.inactive')}</span>}
+                                        </div>
                                     </td>
-                                    {/* T10 Advancement Column (Morale Removed) */}
                                     <td className="px-4 py-3 text-center">
                                         <div className="flex justify-center gap-1 text-[9px] font-mono">
                                             <span className="bg-sky-900/40 text-sky-400 px-1 rounded" title="Protection">{p.t10Protection || 0}</span>
@@ -196,11 +239,18 @@ const TrainManager: React.FC = () => {
                                             <span className="bg-amber-900/40 text-amber-400 px-1 rounded" title="Defense">{p.t10Def || 0}</span>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-right font-mono font-bold text-amber-500">
+                                    <td className={`px-4 py-3 text-right font-mono font-bold ${p.remainingGold === 0 ? 'text-emerald-500' : 'text-amber-500'}`}>
                                         {formatNumber(p.remainingGold)}
                                     </td>
                                 </tr>
                             ))}
+                            {filteredCandidates.length === 0 && (
+                                <tr>
+                                    <td colSpan={4} className="p-8 text-center text-slate-500 text-xs uppercase tracking-widest">
+                                        No candidates found
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -216,7 +266,7 @@ const TrainManager: React.FC = () => {
                  </div>
 
                  <div className="overflow-y-auto custom-scrollbar flex-1 space-y-4 pr-2">
-                     {schedule.map((day, idx) => (
+                     {schedule.length > 0 ? schedule.map((day, idx) => (
                          <div key={idx} className="bg-[#0f172a] border border-slate-700 rounded-xl overflow-hidden relative group">
                              {/* Mode Indicator Bar */}
                              <div className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-b ${day.mode === 'VIP' ? 'from-amber-500 to-amber-700' : 'from-sky-500 to-indigo-500'}`}></div>
@@ -237,9 +287,10 @@ const TrainManager: React.FC = () => {
                                      <span className="text-[8px] font-bold text-amber-500 uppercase tracking-widest mb-1">{t('train.conductor')}</span>
                                      {day.conductor ? (
                                          <div>
-                                             <div className="text-sm font-bold text-white truncate flex items-center">
+                                             <div className="text-sm font-bold text-white truncate flex items-center gap-1">
                                                 {day.conductor.name}
                                                 {day.defender?.id === day.conductor.id && <DefenderShield />}
+                                                {!day.conductor.active && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" title="Inactive"></span>}
                                              </div>
                                              <div className="text-[9px] text-slate-400 font-mono mt-1">
                                                  Need: <span className="text-amber-400">{formatNumber(day.conductor.remainingGold)}</span>
@@ -255,9 +306,10 @@ const TrainManager: React.FC = () => {
                                      </span>
                                      {day.vip ? (
                                          <div>
-                                             <div className="text-sm font-bold text-white truncate flex items-center">
+                                             <div className="text-sm font-bold text-white truncate flex items-center gap-1">
                                                 {day.vip.name}
                                                 {day.defender?.id === day.vip.id && <DefenderShield />}
+                                                {!day.vip.active && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" title="Inactive"></span>}
                                              </div>
                                              <div className="text-[9px] text-slate-400 font-mono mt-1">
                                                  Need: <span className="text-amber-400">{formatNumber(day.vip.remainingGold)}</span>
@@ -267,7 +319,11 @@ const TrainManager: React.FC = () => {
                                  </div>
                              </div>
                          </div>
-                     ))}
+                     )) : (
+                         <div className="p-8 text-center text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                             Insufficient candidates to generate schedule (Need 2+)
+                         </div>
+                     )}
                  </div>
             </div>
         </div>

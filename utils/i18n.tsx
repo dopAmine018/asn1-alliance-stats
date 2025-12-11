@@ -21,11 +21,11 @@ type TranslationKey =
   | 'sort.newest' | 'sort.oldest' | 'sort.highest_power' | 'sort.lowest_power'
   | 'sort.highest_total_hero_power' | 'sort.lowest_total_hero_power' | 'sort.t10_closest'
   | 'admin.login.title' | 'admin.login.btn' | 'admin.dashboard' | 'admin.password' | 'admin.db' | 'admin.vs' | 'admin.train' | 'admin.filter'
-  | 'admin.active_only' | 'admin.active_only' | 'admin.all_records' | 'admin.status' | 'admin.identity' | 'admin.control' | 'admin.terminate' | 'admin.save' | 'admin.cancel' | 'admin.edit' | 'admin.del'
+  | 'admin.active_only' | 'admin.active_only' | 'admin.all_records' | 'admin.status' | 'admin.identity' | 'admin.control' | 'admin.terminate' | 'admin.save' | 'admin.cancel' | 'admin.edit' | 'admin.del' | 'admin.inactive'
   | 'vs.select' | 'vs.create_btn' | 'vs.extract' | 'vs.modal_title' | 'vs.modal_placeholder' | 'vs.abort' | 'vs.launch' 
   | 'vs.agent' | 'vs.sum' | 'vs.add_agent_ph' | 'vs.inject' | 'vs.awaiting'
   | 'train.title' | 'train.desc' | 'train.generate' | 'train.candidates' | 'train.schedule' | 'train.conductor' | 'train.vip' | 'train.remaining_cost' | 'train.week'
-  | 'train.mode_vip' | 'train.mode_guardian' | 'train.defender' | 'train.guardian'
+  | 'train.mode_vip' | 'train.mode_guardian' | 'train.defender' | 'train.guardian' | 'train.search'
   | 'day.mon' | 'day.tue' | 'day.wed' | 'day.thu' | 'day.fri' | 'day.sat' | 'day.sun'
   | 'credit.architect';
 
@@ -125,6 +125,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'admin.cancel': 'Cancel',
     'admin.edit': 'Edit',
     'admin.del': 'Del',
+    'admin.inactive': 'Inactive',
     'vs.select': 'Select Duel',
     'vs.create_btn': '+ Duel',
     'vs.extract': 'Extract Data',
@@ -150,6 +151,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'train.mode_guardian': 'Guardian Angel',
     'train.defender': 'Defender',
     'train.guardian': 'Guardian',
+    'train.search': 'Find Candidate...',
     'day.mon': 'Monday',
     'day.tue': 'Tuesday',
     'day.wed': 'Wednesday',
@@ -254,6 +256,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'admin.cancel': 'إلغاء',
     'admin.edit': 'تعديل',
     'admin.del': 'حذف',
+    'admin.inactive': 'خامل',
     'vs.select': 'تحديد',
     'vs.create_btn': '+ تحدي',
     'vs.extract': 'استخراج',
@@ -279,6 +282,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'train.mode_guardian': 'نمط الحارس',
     'train.defender': 'مدافع',
     'train.guardian': 'الحارس',
+    'train.search': 'البحث عن مرشح...',
     'day.mon': 'الإثنين',
     'day.tue': 'الثلاثاء',
     'day.wed': 'الأربعاء',
@@ -383,6 +387,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'admin.cancel': 'İptal',
     'admin.edit': 'Düzenle',
     'admin.del': 'Sil',
+    'admin.inactive': 'Pasif',
     'vs.select': 'Seç',
     'vs.create_btn': '+ Düello',
     'vs.extract': 'Çıkar',
@@ -408,6 +413,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'train.mode_guardian': 'Koruyucu Melek',
     'train.defender': 'Savunmacı',
     'train.guardian': 'Koruyucu',
+    'train.search': 'Aday Ara...',
     'day.mon': 'Pazartesi',
     'day.tue': 'Salı',
     'day.wed': 'Çarşamba',
@@ -512,6 +518,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'admin.cancel': 'Batal',
     'admin.edit': 'Ubah',
     'admin.del': 'Hapus',
+    'admin.inactive': 'Tidak Aktif',
     'vs.select': 'Pilih',
     'vs.create_btn': '+ Duel',
     'vs.extract': 'Ekstrak',
@@ -537,6 +544,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'train.mode_guardian': 'Malaikat Pelindung',
     'train.defender': 'Pembela',
     'train.guardian': 'Wali',
+    'train.search': 'Cari Kandidat...',
     'day.mon': 'Senin',
     'day.tue': 'Selasa',
     'day.wed': 'Rabu',
