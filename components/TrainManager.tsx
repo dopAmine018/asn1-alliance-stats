@@ -72,6 +72,9 @@ const TrainManager: React.FC = () => {
   const [editingDayIdx, setEditingDayIdx] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<{ conductorName: string, vipName: string }>({ conductorName: '', vipName: '' });
 
+  // Fix for repeated toast notifications
+  const hasRestoredRef = useRef(false);
+
   // Initial Load + Polling
   useEffect(() => {
       fetchAndAnalyze();
@@ -79,22 +82,14 @@ const TrainManager: React.FC = () => {
       return () => clearInterval(interval);
   }, []);
 
-  // Sync Manual Schedule with fresh stats & Persistence
+  // --- EFFECT 1: Sync Manual Schedule with fresh stats (Backend -> UI) ---
+  // This runs ONLY when 'candidates' updates (every 10s), NOT when schedule changes.
   useEffect(() => {
-      if (isManualMode && schedule.length > 0) {
-          // Save to local storage
-          localStorage.setItem('asn1_manual_schedule', JSON.stringify({
-              timestamp: Date.now(),
-              schedule: schedule.map(d => ({
-                  ...d,
-                  conductorId: d.conductor?.id,
-                  vipId: d.vip?.id
-              }))
-          }));
-
-          // Update stats if candidates available
-          if (candidates.length > 0) {
-            setSchedule(prevSchedule => prevSchedule.map(day => {
+      if (isManualMode && candidates.length > 0) {
+          setSchedule(prevSchedule => {
+              // Map over the existing schedule and inject the latest stats from 'candidates'
+              // This preserves the 'Who' but updates the 'Status'
+              return prevSchedule.map(day => {
                 const newConductor = day.conductor ? candidates.find(c => c.id === day.conductor!.id) || day.conductor : null;
                 const newVip = day.vip ? candidates.find(c => c.id === day.vip!.id) || day.vip : null;
                 
@@ -124,10 +119,25 @@ const TrainManager: React.FC = () => {
                     defender,
                     mode
                 };
-            }));
-          }
+            });
+          });
       }
-  }, [schedule, isManualMode, candidates]);
+  }, [candidates, isManualMode]); // Removed 'schedule' to prevent infinite loop
+
+  // --- EFFECT 2: Persistence (UI -> LocalStorage) ---
+  // This runs whenever the schedule changes (e.g. after edit or sync)
+  useEffect(() => {
+      if (isManualMode && schedule.length > 0) {
+          localStorage.setItem('asn1_manual_schedule', JSON.stringify({
+              timestamp: Date.now(),
+              schedule: schedule.map(d => ({
+                  ...d,
+                  conductorId: d.conductor?.id,
+                  vipId: d.vip?.id
+              }))
+          }));
+      }
+  }, [schedule, isManualMode]);
 
   const fetchAndAnalyze = async () => {
       if (candidates.length === 0) setLoading(true);
@@ -146,6 +156,7 @@ const TrainManager: React.FC = () => {
               };
           });
 
+          // Sort: Maxed players (0 gold) go to bottom. Others sort by Gold ASC (closest to finish)
           const sorted = enriched.sort((a, b) => {
               if (a.remainingGold === 0 && b.remainingGold === 0) {
                   return b.firstSquadPower - a.firstSquadPower;
@@ -163,7 +174,6 @@ const TrainManager: React.FC = () => {
               if (saved) {
                   try {
                       const parsed = JSON.parse(saved);
-                      // Check if saved schedule is recent (optional, currently ignoring time)
                       // Reconstruct schedule using IDs
                       const restoredSchedule: TrainDay[] = parsed.schedule.map((d: any) => {
                           const conductor = sorted.find(p => p.id === d.conductorId) || null;
@@ -188,7 +198,13 @@ const TrainManager: React.FC = () => {
                       
                       setSchedule(restoredSchedule);
                       setIsManualMode(true);
-                      addToast('info', 'Restored saved schedule');
+                      
+                      // Fix: Only show toast ONCE
+                      if (!hasRestoredRef.current) {
+                          addToast('info', 'Restored saved schedule');
+                          hasRestoredRef.current = true;
+                      }
+                      
                       return; // Skip auto generation
                   } catch (e) {
                       console.error("Failed to restore schedule", e);
@@ -374,6 +390,32 @@ const TrainManager: React.FC = () => {
       return num.toString();
   };
   
+  const handlePostSchedule = () => {
+      if (schedule.length === 0) return;
+
+      const formatPwr = (p: EnrichedPlayer | null) => p ? `${(p.firstSquadPower/1000000).toFixed(1)}M` : 'N/A';
+      
+      let text = `🚆 *ASN1 Train Schedule*\n-----------------------\n`;
+      
+      schedule.forEach((day) => {
+          const dayTitle = t(`day.${day.dayName}` as any);
+          const conductor = day.conductor?.name || 'Empty';
+          const vip = day.vip?.name || 'Empty';
+          const modeIcon = day.mode === 'VIP' ? '💎' : '🛡️';
+          
+          text += `📅 *${dayTitle}*\n`;
+          text += `👑 Conductor: ${conductor} (${formatPwr(day.conductor)})\n`;
+          text += `${modeIcon} ${day.mode === 'VIP' ? 'Passenger' : 'Guardian'}: ${vip} (${formatPwr(day.vip)})\n`;
+          text += `-----------------------\n`;
+      });
+      
+      text += `\nGenerated by ASN1 Command`;
+      
+      navigator.clipboard.writeText(text).then(() => {
+          addToast('success', t('train.copied'));
+      });
+  };
+  
   const DefenderShield = () => (
       <span className="inline-flex items-center gap-1 bg-blue-900/40 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ml-2 animate-pulse">
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
@@ -496,9 +538,13 @@ const TrainManager: React.FC = () => {
                  <div className="flex justify-between items-center mb-2">
                     <h3 className="text-sm font-bold text-emerald-500 uppercase tracking-widest">{t('train.schedule')}</h3>
                     <div className="flex gap-2">
+                        <button onClick={handlePostSchedule} className="flex items-center gap-1.5 text-[10px] bg-slate-800 text-sky-400 hover:text-white uppercase font-bold border border-slate-700 px-3 py-1 rounded hover:bg-sky-600 transition-colors">
+                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                             {t('train.post')}
+                        </button>
                         {isManualMode && (
                             <button onClick={resetToAuto} className="text-[10px] text-amber-500 hover:text-white uppercase font-bold border border-amber-500/50 px-3 py-1 rounded hover:bg-amber-600 transition-colors animate-pulse">
-                                Reset to Auto
+                                Reset Auto
                             </button>
                         )}
                         <button onClick={fetchAndAnalyze} className="text-[10px] text-slate-400 hover:text-white uppercase font-bold border border-slate-700 px-3 py-1 rounded hover:bg-slate-800 transition-colors">

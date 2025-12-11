@@ -25,7 +25,7 @@ type TranslationKey =
   | 'vs.select' | 'vs.create_btn' | 'vs.extract' | 'vs.modal_title' | 'vs.modal_placeholder' | 'vs.abort' | 'vs.launch' 
   | 'vs.agent' | 'vs.sum' | 'vs.add_agent_ph' | 'vs.inject' | 'vs.awaiting'
   | 'train.title' | 'train.desc' | 'train.generate' | 'train.candidates' | 'train.schedule' | 'train.conductor' | 'train.vip' | 'train.remaining_cost' | 'train.week'
-  | 'train.mode_vip' | 'train.mode_guardian' | 'train.defender' | 'train.guardian' | 'train.search'
+  | 'train.mode_vip' | 'train.mode_guardian' | 'train.defender' | 'train.guardian' | 'train.search' | 'train.post' | 'train.copied'
   | 'day.mon' | 'day.tue' | 'day.wed' | 'day.thu' | 'day.fri' | 'day.sat' | 'day.sun'
   | 'credit.architect';
 
@@ -152,6 +152,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'train.defender': 'Defender',
     'train.guardian': 'Guardian',
     'train.search': 'Find Candidate...',
+    'train.post': 'Post Schedule',
+    'train.copied': 'Schedule Copied to Clipboard!',
     'day.mon': 'Monday',
     'day.tue': 'Tuesday',
     'day.wed': 'Wednesday',
@@ -283,6 +285,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'train.defender': 'مدافع',
     'train.guardian': 'الحارس',
     'train.search': 'البحث عن مرشح...',
+    'train.post': 'نسخ الجدول',
+    'train.copied': 'تم نسخ الجدول!',
     'day.mon': 'الإثنين',
     'day.tue': 'الثلاثاء',
     'day.wed': 'الأربعاء',
@@ -414,6 +418,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'train.defender': 'Savunmacı',
     'train.guardian': 'Koruyucu',
     'train.search': 'Aday Ara...',
+    'train.post': 'Programı Kopyala',
+    'train.copied': 'Kopyalandı!',
     'day.mon': 'Pazartesi',
     'day.tue': 'Salı',
     'day.wed': 'Çarşamba',
@@ -545,6 +551,8 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'train.defender': 'Pembela',
     'train.guardian': 'Wali',
     'train.search': 'Cari Kandidat...',
+    'train.post': 'Salin Jadwal',
+    'train.copied': 'Disalin!',
     'day.mon': 'Senin',
     'day.tue': 'Selasa',
     'day.wed': 'Rabu',
