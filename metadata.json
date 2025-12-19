@@ -1,5 +1,5 @@
 {
   "name": "ASN1 Alliance Stats",
-  "description": "Tactical player statistics tracker with T10 projection, schedules, and secure admin control.",
+  "description": "A full-featured player statistics tracker with public submission and secured admin management.",
   "requestFramePermissions": []
 }
