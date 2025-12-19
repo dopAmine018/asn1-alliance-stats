@@ -104,6 +104,7 @@ export interface T10Levels {
     t10Hp: number;
     t10Atk: number;
     t10Def: number;
+    t10Elite?: number; // Added
     barracksLevel?: number;
     techLevel?: number;
 }
@@ -119,6 +120,7 @@ export const calculateT10RemainingCost = (p: T10Levels) => {
     const hp = Number(p.t10Hp) || 0;
     const atk = Number(p.t10Atk) || 0;
     const def = Number(p.t10Def) || 0;
+    const elite = Number(p.t10Elite) || 0;
 
     let gold = 0;
     let valor = 0;
@@ -143,7 +145,7 @@ export const calculateT10RemainingCost = (p: T10Levels) => {
     foodIron += sumRemaining(def, T10_COSTS.boost3.foodIron);
 
     // Final Unlock
-    if (prot < 10 || hp < 10 || atk < 10 || def < 10) {
+    if (elite < 10) {
         gold += T10_COSTS.unlock.gold;
         valor += T10_COSTS.unlock.valor;
         foodIron += T10_COSTS.unlock.foodIron;

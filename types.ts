@@ -24,6 +24,7 @@ export interface Player {
   t10Hp: number;
   t10Atk: number;
   t10Def: number;
+  t10Elite: number; // Added: 0 or 10 (MAX)
   
   techLevel: number;
   barracksLevel: number;

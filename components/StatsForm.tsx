@@ -10,7 +10,7 @@ import { calculateT10RemainingCost } from '../utils/gameLogic';
 const defaultFormData = {
   name: '', firstSquadPower: '', secondSquadPower: '', thirdSquadPower: '', fourthSquadPower: '', totalHeroPower: '',
   heroPercent: '0', duelPercent: '0', unitsPercent: '0',
-  t10Morale: '0', t10Protection: '0', t10Hp: '0', t10Atk: '0', t10Def: '0',
+  t10Morale: '0', t10Protection: '0', t10Hp: '0', t10Atk: '0', t10Def: '0', t10Elite: '0',
   techLevel: '', barracksLevel: '', tankCenterLevel: '', airCenterLevel: '', missileCenterLevel: '',
 };
 
@@ -37,33 +37,41 @@ const FormInput = ({ label, name, val, change, req, locked, type="text", loading
   </div>
 );
 
-const TechNode = ({ id, label, value, onChange }: any) => (
-    <div className="relative group bg-[#0f172a] rounded-xl border border-sky-500/30 p-1 w-full max-w-[140px] hover:border-sky-400 hover:shadow-[0_0_15px_rgba(14,165,233,0.2)] transition-all z-10">
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-             <div className="w-8 h-8 rounded-full bg-slate-900 border border-sky-500/50 flex items-center justify-center text-sky-400 shadow-lg">
-                 {id === 't10Protection' ? (
-                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                 ) : id === 't10Hp' ? (
-                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                 ) : id === 't10Atk' ? (
-                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                 ) : (
-                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                 )}
-             </div>
+const TechNode = ({ id, label, value, onChange, binary }: any) => {
+    const options = binary 
+        ? [{ value: 0, label: '0' }, { value: 10, label: 'MAX' }]
+        : Array.from({length:11},(_,x)=>({value:x,label:x===10?'MAX':String(x)}));
+
+    return (
+        <div className={`relative group bg-[#0f172a] rounded-xl border p-1 w-full max-w-[140px] hover:shadow-[0_0_15px_rgba(14,165,233,0.2)] transition-all z-10 ${binary ? 'border-purple-500/50 hover:border-purple-400' : 'border-sky-500/30 hover:border-sky-400'}`}>
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                 <div className={`w-8 h-8 rounded-full bg-slate-900 border flex items-center justify-center shadow-lg ${binary ? 'border-purple-500 text-purple-400' : 'border-sky-500/50 text-sky-400'}`}>
+                     {id === 't10Protection' ? (
+                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                     ) : id === 't10Hp' ? (
+                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                     ) : id === 't10Atk' ? (
+                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                     ) : id === 't10Elite' ? (
+                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                     ) : (
+                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                     )}
+                 </div>
+            </div>
+            <div className="pt-6 pb-2 px-1 text-center">
+                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-2 truncate">{label}</label>
+                <CustomDropdown 
+                    value={value} 
+                    onChange={onChange} 
+                    options={options} 
+                    disableSearch 
+                    className="text-xs" 
+                />
+            </div>
         </div>
-        <div className="pt-6 pb-2 px-1 text-center">
-            <label className="block text-[8px] font-bold text-slate-400 uppercase mb-2 truncate">{label}</label>
-            <CustomDropdown 
-                value={value} 
-                onChange={onChange} 
-                options={Array.from({length:11},(_,x)=>({value:x,label:x===10?'MAX':String(x)}))} 
-                disableSearch 
-                className="text-xs" 
-            />
-        </div>
-    </div>
-);
+    );
+};
 
 // --- Main Component ---
 
@@ -77,7 +85,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
   const [suggestions, setSuggestions] = useState<Player[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchTimeout = useRef<any>(null);
-  const isSelectingSuggestion = useRef(false);
+  const isSelectingsuggestion = useRef(false);
 
   const [formData, setFormData] = useState({ language: 'english' as Language, ...defaultFormData });
 
@@ -125,27 +133,27 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
           thirdSquadPower: norm(match.thirdSquadPower), fourthSquadPower: norm(match.fourthSquadPower),
           totalHeroPower: norm(match.totalHeroPower),
           heroPercent: String(match.heroPercent), duelPercent: String(match.duelPercent), unitsPercent: String(match.unitsPercent),
-          t10Morale: String(match.t10Morale), t10Protection: String(match.t10Protection), t10Hp: String(match.t10Hp), t10Atk: String(match.t10Atk), t10Def: String(match.t10Def),
+          t10Morale: String(match.t10Morale), t10Protection: String(match.t10Protection), t10Hp: String(match.t10Hp), t10Atk: String(match.t10Atk), t10Def: String(match.t10Def), t10Elite: String(match.t10Elite || 0),
           techLevel: String(match.techLevel || ''), barracksLevel: String(match.barracksLevel || ''),
           tankCenterLevel: String(match.tankCenterLevel || ''), airCenterLevel: String(match.airCenterLevel || ''), missileCenterLevel: String(match.missileCenterLevel || ''),
       }));
   };
 
   const handleSuggestionClick = (player: Player) => {
-      isSelectingSuggestion.current = true;
+      isSelectingsuggestion.current = true;
       populateWithPlayer(player);
       setShowSuggestions(false);
       // Reset ref after a brief moment to allow blur to pass safely if needed
-      setTimeout(() => { isSelectingSuggestion.current = false; }, 200);
+      setTimeout(() => { isSelectingsuggestion.current = false; }, 200);
   };
 
   const handleNameBlur = async () => {
       // If we are currently clicking a suggestion, do not trigger the blur fetch
-      if (isSelectingSuggestion.current) return;
+      if (isSelectingsuggestion.current) return;
       
       // Delay slightly to check if a suggestion was clicked (redundant safety)
       setTimeout(async () => {
-          if (isSelectingSuggestion.current) return;
+          if (isSelectingsuggestion.current) return;
           setShowSuggestions(false); // Hide menu on blur
 
           if(!formData.name || formData.name.length < 3) return;
@@ -167,11 +175,12 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
         t10Hp: Number(formData.t10Hp),
         t10Atk: Number(formData.t10Atk),
         t10Def: Number(formData.t10Def),
+        t10Elite: Number(formData.t10Elite),
         // Pass building levels for calculation
         barracksLevel: Number(formData.barracksLevel),
         techLevel: Number(formData.techLevel)
     });
-  }, [formData.t10Protection, formData.t10Hp, formData.t10Atk, formData.t10Def, formData.barracksLevel, formData.techLevel]);
+  }, [formData.t10Protection, formData.t10Hp, formData.t10Atk, formData.t10Def, formData.t10Elite, formData.barracksLevel, formData.techLevel]);
 
   const formatResource = (num: number) => {
       if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
@@ -193,7 +202,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
             thirdSquadPower: norm(formData.thirdSquadPower), fourthSquadPower: norm(formData.fourthSquadPower),
             totalHeroPower: norm(formData.totalHeroPower),
             heroPercent: Number(formData.heroPercent), duelPercent: Number(formData.duelPercent), unitsPercent: Number(formData.unitsPercent),
-            t10Morale: Number(formData.t10Morale), t10Protection: Number(formData.t10Protection), t10Hp: Number(formData.t10Hp), t10Atk: Number(formData.t10Atk), t10Def: Number(formData.t10Def),
+            t10Morale: Number(formData.t10Morale), t10Protection: Number(formData.t10Protection), t10Hp: Number(formData.t10Hp), t10Atk: Number(formData.t10Atk), t10Def: Number(formData.t10Def), t10Elite: Number(formData.t10Elite),
             techLevel: Number(formData.techLevel), barracksLevel: Number(formData.barracksLevel),
             tankCenterLevel: Number(formData.tankCenterLevel), airCenterLevel: Number(formData.airCenterLevel), missileCenterLevel: Number(formData.missileCenterLevel)
         };
@@ -334,6 +343,18 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                                  <TechNode id="t10Hp" label={t('t10.hp')} value={formData.t10Hp} onChange={handleDropdown('t10Hp')} />
                                  <TechNode id="t10Atk" label={t('t10.atk')} value={formData.t10Atk} onChange={handleDropdown('t10Atk')} />
                                  <TechNode id="t10Def" label={t('t10.def')} value={formData.t10Def} onChange={handleDropdown('t10Def')} />
+                             </div>
+
+                             {/* Level 3: Final Unlock Connector */}
+                             <div className="w-[80%] sm:w-[320px] h-4 border-b border-x border-sky-500/30 rounded-b-xl relative -mt-0.5">
+                                 {/* Middle Drop Line */}
+                                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-4 w-px bg-sky-500/30"></div>
+                             </div>
+                             <div className="h-4 w-px bg-sky-500/30"></div>
+                             
+                             {/* Final Unlock Node */}
+                             <div className="relative z-20">
+                                 <TechNode id="t10Elite" label="Elite Units" value={formData.t10Elite} onChange={handleDropdown('t10Elite')} binary />
                              </div>
                          </div>
 

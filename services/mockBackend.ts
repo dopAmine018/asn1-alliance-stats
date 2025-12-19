@@ -34,12 +34,7 @@ const rawKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('REACT_APP_SUPABASE_AN
 const supabaseUrl = rawUrl?.trim() || 'https://placeholder.supabase.co';
 const supabaseKey = rawKey?.trim() || 'placeholder';
 
-if (supabaseUrl === 'https://placeholder.supabase.co') {
-  console.warn("Supabase credentials missing. App will fail to fetch data.");
-}
-
-// Initialize Supabase Client (100% Online Mode)
-// CONFIG: Disable auth persistence to prevent 'Failed to fetch' in sandboxed iframes
+// Initialize Supabase Client
 const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     persistSession: false,
@@ -49,6 +44,18 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
 });
 
 // --- Helpers ---
+
+const formatError = (err: any): string => {
+  if (!err) return "Unknown database error";
+  if (typeof err === 'string') return err;
+  if (err.message) return err.message;
+  if (err.details) return err.details;
+  try {
+    return JSON.stringify(err);
+  } catch (e) {
+    return "Database transaction failed";
+  }
+};
 
 const mapPlayerFromDb = (row: any): Player => ({
   id: row.id,
@@ -70,6 +77,7 @@ const mapPlayerFromDb = (row: any): Player => ({
   t10Hp: row.t10_hp,
   t10Atk: row.t10_atk,
   t10Def: row.t10_def,
+  t10Elite: row.t10_elite || 0,
   techLevel: row.tech_level,
   barracksLevel: row.barracks_level,
   tankCenterLevel: row.tank_center_level,
@@ -96,6 +104,7 @@ const mapPlayerToDb = (p: Partial<Player>) => {
   if (p.t10Hp !== undefined) out.t10_hp = p.t10Hp;
   if (p.t10Atk !== undefined) out.t10_atk = p.t10Atk;
   if (p.t10Def !== undefined) out.t10_def = p.t10Def;
+  if (p.t10Elite !== undefined) out.t10_elite = p.t10Elite;
   if (p.techLevel !== undefined) out.tech_level = p.techLevel;
   if (p.barracksLevel !== undefined) out.barracks_level = p.barracksLevel;
   if (p.tankCenterLevel !== undefined) out.tank_center_level = p.tankCenterLevel;
@@ -107,19 +116,6 @@ const mapPlayerToDb = (p: Partial<Player>) => {
   return out;
 };
 
-// Retry helper for flaky connections
-const fetchWithRetry = async (fn: () => Promise<any>, retries = 3): Promise<any> => {
-  try {
-    return await fn();
-  } catch (error) {
-    if (retries > 0) {
-      await new Promise(res => setTimeout(res, 500)); // wait 500ms
-      return fetchWithRetry(fn, retries - 1);
-    }
-    throw error;
-  }
-};
-
 // --- API Implementation ---
 
 export const MockApi = {
@@ -128,78 +124,38 @@ export const MockApi = {
   },
 
   getPlayers: async (filter: PlayerFilter): Promise<{ items: Player[]; total: number }> => {
-    return fetchWithRetry(async () => {
-        let query = supabase.from('players').select('*', { count: 'exact' });
-
-        if (filter.activeOnly) query = query.eq('active', true);
-        if (filter.language !== 'all') query = query.eq('language', filter.language);
-        if (filter.search) query = query.ilike('name_normalized', `%${filter.search}%`);
-
-        if (filter.sort === 'power_desc') query = query.order('first_squad_power', { ascending: false });
-        else if (filter.sort === 'power_asc') query = query.order('first_squad_power', { ascending: true });
-        else if (filter.sort === 'total_hero_power_desc') query = query.order('total_hero_power', { ascending: false });
-        else if (filter.sort === 'total_hero_power_asc') query = query.order('total_hero_power', { ascending: true });
-        else if (filter.sort === 'time_asc') query = query.order('updated_at', { ascending: true });
-        // Default to updated_at desc for normal view OR for T10 sort (which happens client-side)
-        else query = query.order('updated_at', { ascending: false });
-
-        // IMPORTANT: Increase limit to 10k to prevent truncation in exports
-        query = query.range(0, 9999);
-
-        const { data, count, error } = await query;
-        if (error) throw error;
-        
-        return { items: (data || []).map(mapPlayerFromDb), total: count || 0 };
-    });
+      let query = supabase.from('players').select('*', { count: 'exact' });
+      if (filter.activeOnly) query = query.eq('active', true);
+      if (filter.language !== 'all') query = query.eq('language', filter.language);
+      if (filter.search) query = query.ilike('name_normalized', `%${filter.search}%`);
+      if (filter.sort === 'power_desc') query = query.order('first_squad_power', { ascending: false });
+      else if (filter.sort === 'power_asc') query = query.order('first_squad_power', { ascending: true });
+      else if (filter.sort === 'total_hero_power_desc') query = query.order('total_hero_power', { ascending: false });
+      else if (filter.sort === 'time_asc') query = query.order('updated_at', { ascending: true });
+      else query = query.order('updated_at', { ascending: false });
+      query = query.range(0, 9999);
+      const { data, count, error } = await query;
+      if (error) throw new Error(formatError(error));
+      return { items: (data || []).map(mapPlayerFromDb), total: count || 0 };
   },
 
   upsertPlayer: async (playerData: Partial<Player>): Promise<ApiResponse<Player>> => {
-    const nameNormalized = playerData.name?.trim().toLowerCase().replace(/\s+/g, ' ') || '';
-    
-    // 1. Manually check for ANY existing player with this name (ignoring language/id for now)
-    // This ensures that "M7saif" (IND) and "M7saif" (ARA) are treated as the SAME person.
-    const { data: existingMatch } = await supabase
-        .from('players')
-        .select('id')
-        .eq('name_normalized', nameNormalized)
-        .maybeSingle();
-
-    const payload = mapPlayerToDb({ ...playerData, nameNormalized });
-    
-    try {
-        if (!payload.language || !payload.name_normalized) {
-            throw new Error("Missing required identity fields (Language or Name)");
-        }
-        
-        let result;
-        
-        if (existingMatch) {
-            // Update existing record using ID found by name match
-            result = await supabase
-                .from('players')
-                .update(payload)
-                .eq('id', existingMatch.id)
-                .select()
-                .single();
-        } else {
-            // Insert new record
-            result = await supabase
-                .from('players')
-                .insert(payload)
-                .select()
-                .single();
-        }
-
-        if (result.error) throw result.error;
-        return { success: true, data: mapPlayerFromDb(result.data) };
-    } catch (e: any) {
-        console.error("Upsert Failed Details:", e);
-        // Handle "missing column" error gracefully
-        if (e.message && e.message.includes('column') && e.message.includes('does not exist')) {
-             return { success: false, error: "Database schema mismatch. Please update tables." };
-        }
-        return { success: false, error: e.message || JSON.stringify(e) || "Failed to save" };
-    }
+      const nameNormalized = playerData.name?.trim().toLowerCase().replace(/\s+/g, ' ') || '';
+      const { data: existingMatch } = await supabase.from('players').select('id').eq('name_normalized', nameNormalized).maybeSingle();
+      const payload = mapPlayerToDb({ ...playerData, nameNormalized });
+      try {
+          if (!payload.language || !payload.name_normalized) throw new Error("Missing identity");
+          let result;
+          if (existingMatch) {
+              result = await supabase.from('players').update(payload).eq('id', existingMatch.id).select().single();
+          } else {
+              result = await supabase.from('players').insert(payload).select().single();
+          }
+          if (result.error) throw result.error;
+          return { success: true, data: mapPlayerFromDb(result.data) };
+      } catch (e: any) {
+          return { success: false, error: formatError(e) };
+      }
   },
 
   login: async (username: string, password: string): Promise<ApiResponse<AuthResponse>> => {
@@ -207,8 +163,7 @@ export const MockApi = {
       email: username === 'admin' ? 'admin@admin.com' : username,
       password: password,
     });
-    
-    if (error) return { success: false, error: error.message };
+    if (error) return { success: false, error: formatError(error) };
     return { success: true, data: { token: data.session?.access_token || '', user: { username } } };
   },
 
@@ -220,114 +175,114 @@ export const MockApi = {
   adminUpdatePlayer: async (id: string, updates: Partial<Player>): Promise<ApiResponse<Player>> => {
     const payload = mapPlayerToDb(updates);
     const { data, error } = await supabase.from('players').update(payload).eq('id', id).select().single();
-    if (error) return { success: false, error: error.message };
+    if (error) return { success: false, error: formatError(error) };
     return { success: true, data: mapPlayerFromDb(data) };
   },
 
   adminDeletePlayer: async (id: string): Promise<ApiResponse<void>> => {
     const { error } = await supabase.from('players').delete().eq('id', id);
-    if (error) return { success: false, error: error.message };
+    if (error) return { success: false, error: formatError(error) };
     return { success: true };
+  },
+
+  getSettings: async (): Promise<Record<string, any>> => {
+    try {
+      const { data, error } = await supabase.from('alliance_settings').select('*');
+      if (error) {
+          if (error.code === '42P01') return {};
+          throw error;
+      }
+      const settings: Record<string, any> = {};
+      (data || []).forEach(row => {
+        const k = row.setting_name;
+        if (k) settings[k] = row.value;
+      });
+      return settings;
+    } catch (e) {
+      console.warn("Settings fetch failed", e);
+      return {};
+    }
+  },
+
+  updateSetting: async (key: string, value: any): Promise<void> => {
+    const { error } = await supabase.from('alliance_settings').upsert({ 
+      setting_name: key, 
+      value: value, 
+      updated_at: new Date().toISOString() 
+    }, { onConflict: 'setting_name' });
+    
+    if (error) {
+        console.error("Supabase Settings Error Details:", error);
+        throw new Error(formatError(error));
+    }
   }
 };
 
 export const VsApi = {
   getWeeks: async (): Promise<VsWeek[]> => {
-    try {
-        const { data, error } = await supabase.from('vs_weeks').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
-        return (data || []).map((w: any) => ({ id: w.id, name: w.name, createdAt: w.created_at }));
-    } catch (e) {
-        console.error("Get Weeks Failed", e);
-        return [];
-    }
+      const { data, error } = await supabase.from('vs_weeks').select('*').order('created_at', { ascending: false });
+      if (error) return [];
+      return (data || []).map((w: any) => ({ id: w.id, name: w.name, createdAt: w.created_at }));
   },
-
   createWeek: async (name: string): Promise<VsWeek> => {
     const { data, error } = await supabase.from('vs_weeks').insert({ name }).select().single();
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(formatError(error));
     return { id: data.id, name: data.name, createdAt: data.created_at };
   },
-
   getRecords: async (weekId: string): Promise<VsRecord[]> => {
-    try {
-        // Increase range for VS records too
-        const { data, error } = await supabase.from('vs_records').select('*').eq('week_id', weekId).range(0, 9999);
-        if (error) throw error;
-        return (data || []).map((r: any) => ({
-          id: r.id, weekId: r.week_id, playerName: r.player_name,
-          mon: r.mon, tue: r.tue, wed: r.wed, thu: r.thu, fri: r.fri, sat: r.sat, total: r.total
-        }));
-    } catch (e) {
-        console.error("Get Records Failed", e);
-        return [];
-    }
+      const { data, error } = await supabase.from('vs_records').select('*').eq('week_id', weekId).range(0, 9999);
+      if (error) return [];
+      return (data || []).map((r: any) => ({
+        id: r.id, weekId: r.week_id, playerName: r.player_name,
+        mon: r.mon, tue: r.tue, wed: r.wed, thu: r.thu, fri: r.fri, sat: r.sat, total: r.total
+      }));
   },
-
   addPlayerToWeek: async (weekId: string, playerName: string): Promise<VsRecord> => {
-    const { data, error } = await supabase.from('vs_records').insert({
-      week_id: weekId, player_name: playerName
-    }).select().single();
-    
-    if (error) throw new Error(error.message);
-    
-    return {
-      id: data.id, weekId: data.week_id, playerName: data.player_name,
-      mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0, total: 0
-    };
+    const { data, error } = await supabase.from('vs_records').insert({ week_id: weekId, player_name: playerName }).select().single();
+    if (error) throw new Error(formatError(error));
+    return { id: data.id, weekId: data.week_id, playerName: data.player_name, mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0, total: 0 };
   },
-
   updateRecord: async (record: VsRecord): Promise<void> => {
     const total = (record.mon || 0) + (record.tue || 0) + (record.wed || 0) + (record.thu || 0) + (record.fri || 0) + (record.sat || 0);
-    const { error } = await supabase.from('vs_records').update({
-      mon: record.mon, tue: record.tue, wed: record.wed, thu: record.thu, fri: record.fri, sat: record.sat, total
-    }).eq('id', record.id);
-    if (error) console.error("Error updating record:", error);
+    const { error } = await supabase.from('vs_records').update({ mon: record.mon, tue: record.tue, wed: record.wed, thu: record.thu, fri: record.fri, sat: record.sat, total }).eq('id', record.id);
+    if (error) console.error(formatError(error));
   }
 };
 
 export const TrainApi = {
     getSchedule: async (): Promise<any | null> => {
-        try {
-            // Fetch the most recent schedule entry
-            const { data, error } = await supabase
-                .from('train_schedule')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-            
-            if (error) throw error;
-            return data?.schedule_data || null;
-        } catch(e: any) {
-            // Gracefully handle missing table to avoid [object Object] console errors
-            if (e.code === '42P01') {
-                 console.warn("Table 'train_schedule' does not exist. Skipping fetch. Please run SQL migration.");
-                 return null;
-            }
-            // Fix [object Object] by stringifying if message is missing
-            const errorMsg = e.message || JSON.stringify(e);
-            console.error("Failed to fetch train schedule:", errorMsg);
-            return null;
-        }
+        const { data, error } = await supabase.from('train_schedule').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle();
+        return data?.schedule_data || null;
     },
-
     saveSchedule: async (scheduleData: any): Promise<void> => {
-        try {
-            // Insert a new record (snapshot approach)
-            const { error } = await supabase
-                .from('train_schedule')
-                .insert({ schedule_data: scheduleData });
-            
-            if (error) throw error;
-        } catch(e: any) {
-            if (e.code === '42P01') {
-                 console.warn("Table 'train_schedule' does not exist. Save skipped.");
-                 throw new Error("Database missing train_schedule table.");
-            }
-            const errorMsg = e.message || JSON.stringify(e);
-            console.error("Failed to save train schedule:", errorMsg);
-            throw e;
-        }
+        const { error } = await supabase.from('train_schedule').insert({ schedule_data: scheduleData });
+        if (error) throw new Error(formatError(error));
+    }
+};
+
+export interface DesertStormData { teamAMain: string[]; teamASubs: string[]; teamBMain: string[]; teamBSubs: string[]; }
+export interface DesertStormRegistration { id: string; playerId: string; preference: '14:00' | '23:00' | 'ANY'; createdAt: string; }
+
+export const DesertStormApi = {
+    getTeams: async (): Promise<DesertStormData | null> => {
+        const { data } = await supabase.from('desert_storm_teams').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle();
+        return data?.team_data || null;
+    },
+    saveTeams: async (data: DesertStormData) => {
+        const { error } = await supabase.from('desert_storm_teams').insert({ team_data: data });
+        if (error) throw new Error(formatError(error));
+    },
+    register: async (playerId: string, preference: string) => {
+         await supabase.from('desert_storm_registrations').delete().eq('player_id', playerId);
+         const { error } = await supabase.from('desert_storm_registrations').insert({ player_id: playerId, preference });
+         if (error) throw new Error(formatError(error));
+    },
+    getRegistrations: async (): Promise<DesertStormRegistration[]> => {
+        const { data } = await supabase.from('desert_storm_registrations').select('*');
+        return (data || []).map((r: any) => ({ id: r.id, playerId: r.player_id, preference: r.preference, createdAt: r.created_at }));
+    },
+    clearRegistrations: async () => {
+        const { error } = await supabase.from('desert_storm_registrations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (error) throw new Error(formatError(error));
     }
 };

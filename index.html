@@ -3,7 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ASN1 Alliance Command</title>
+    <title>ASN1 Alliance Command | Elite War Strategy Database</title>
+    <meta name="description" content="Secure stats tracking, T10 resource projection, and tactical train scheduling for the ASN1 Alliance. Login to update your dossier." />
+    
+    <!-- Open Graph / Discord / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://asn1-command.app/" />
+    <meta property="og:title" content="ASN1 Alliance Command" />
+    <meta property="og:description" content="Manage your war profile. Track T10 progress. View tactical schedules." />
+    <meta property="og:image" content="https://ui-avatars.com/api/?name=ASN1&background=0284c7&color=fff&size=512" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="ASN1 Alliance Command" />
+    <meta property="twitter:description" content="Elite tracking for elite players. Join the leaderboard." />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <script>
@@ -19,6 +33,7 @@
               'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
               'shine': 'shine 2s linear infinite',
               'float': 'float 6s ease-in-out infinite',
+              'scan-y': 'scanY 3s linear infinite',
             },
             keyframes: {
               shine: {
@@ -28,6 +43,11 @@
               float: {
                 '0%, 100%': { transform: 'translateY(0)' },
                 '50%': { transform: 'translateY(-10px)' },
+              },
+              scanY: {
+                '0%': { top: '0%' },
+                '50%': { top: '100%' },
+                '100%': { top: '0%' },
               }
             }
           }
@@ -85,6 +105,10 @@
           -webkit-text-fill-color: white !important;
           transition: background-color 5000s ease-in-out 0s;
       }
+      
+      /* Custom Scroll for Tables */
+      .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
     </style>
   <script type="importmap">
 {
@@ -94,7 +118,8 @@
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
     "react/": "https://aistudiocdn.com/react@^19.2.1/",
     "react-dom": "https://aistudiocdn.com/react-dom@^19.2.1",
-    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.2"
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.2",
+    "html2canvas": "https://jspm.dev/html2canvas"
   }
 }
 </script>

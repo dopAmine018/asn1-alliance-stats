@@ -5,6 +5,7 @@ import { Player, PlayerFilter } from '../types';
 import { useLanguage } from '../utils/i18n';
 import VsTracker from './VsTracker';
 import TrainManager from './TrainManager';
+import DesertStormManager from './DesertStormManager';
 import { CustomDropdown } from './CustomDropdown';
 import { useToast } from './Toast';
 
@@ -16,18 +17,52 @@ const AdminDashboard: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   
-  const [activeTab, setActiveTab] = useState<'db' | 'vs' | 'train'>('db');
+  const [activeTab, setActiveTab] = useState<'db' | 'vs' | 'train' | 'storm' | 'settings'>('db');
   
   const [players, setPlayers] = useState<Player[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<PlayerFilter>({ language: 'all', search: '', sort: 'time_desc', activeOnly: false });
   
+  // Settings State
+  const [settings, setSettings] = useState<Record<string, any>>({
+    show_train_schedule: true,
+    show_desert_storm: true
+  });
+
   // Edit State
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [editForm, setEditForm] = useState<Record<string, any>>({});
 
-  useEffect(() => { if (token && activeTab === 'db') fetchPlayers(); }, [token, filter, activeTab]);
+  useEffect(() => { 
+    if (token) {
+        if (activeTab === 'db') fetchPlayers();
+        if (activeTab === 'settings') fetchSettings();
+    }
+  }, [token, filter, activeTab]);
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+        const data = await MockApi.getSettings();
+        setSettings(prev => ({ ...prev, ...data }));
+    } catch (e) {
+        console.error("Settings load failed", e);
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const handleUpdateSetting = async (key: string, value: any) => {
+    try {
+      await MockApi.updateSetting(key, value);
+      setSettings(prev => ({ ...prev, [key]: value }));
+      addToast('success', `Setting updated: ${key}`);
+    } catch (e: any) {
+      console.error(e);
+      addToast('error', `Failed to update setting: ${e.message || 'Database error'}`);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => { 
       e.preventDefault(); 
@@ -75,7 +110,6 @@ const AdminDashboard: React.FC = () => {
   
   const formatPower = (val: number | undefined) => { if (!val) return '-'; return (val / 1000000).toLocaleString(undefined, { maximumFractionDigits: 2 }) + 'M'; };
 
-  // --- Edit Logic ---
   const startEdit = (player: Player) => {
     setEditingPlayer(player);
     setEditForm({
@@ -94,38 +128,32 @@ const AdminDashboard: React.FC = () => {
 
   const saveEdit = async () => {
     if (!editingPlayer) return;
-    
     try {
       const normalizePower = (val: any) => (Number(val) || 0) * 1000000;
-      
       const payload: Partial<Player> = {
         name: editForm.name,
         language: editForm.language,
         active: editForm.active,
-        
         firstSquadPower: normalizePower(editForm.firstSquadPower),
         secondSquadPower: normalizePower(editForm.secondSquadPower),
         thirdSquadPower: normalizePower(editForm.thirdSquadPower),
         fourthSquadPower: normalizePower(editForm.fourthSquadPower),
         totalHeroPower: normalizePower(editForm.totalHeroPower),
-        
         heroPercent: Number(editForm.heroPercent),
         duelPercent: Number(editForm.duelPercent),
         unitsPercent: Number(editForm.unitsPercent),
-        
         t10Morale: Number(editForm.t10Morale),
         t10Protection: Number(editForm.t10Protection),
         t10Hp: Number(editForm.t10Hp),
         t10Atk: Number(editForm.t10Atk),
         t10Def: Number(editForm.t10Def),
-        
+        t10Elite: Number(editForm.t10Elite),
         techLevel: Number(editForm.techLevel),
         barracksLevel: Number(editForm.barracksLevel),
         tankCenterLevel: Number(editForm.tankCenterLevel),
         airCenterLevel: Number(editForm.airCenterLevel),
         missileCenterLevel: Number(editForm.missileCenterLevel),
       };
-
       const res = await MockApi.adminUpdatePlayer(editingPlayer.id, payload);
       if(res.success) {
           addToast('success', 'Player updated');
@@ -139,7 +167,6 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // --- Components ---
   const EditInput = ({ label, field, type="text", step }: any) => (
     <div className="flex flex-col gap-1">
       <label className="text-[10px] uppercase font-bold text-slate-500">{label}</label>
@@ -153,8 +180,10 @@ const AdminDashboard: React.FC = () => {
     </div>
   );
 
-  const EditDropdown = ({ label, field, max }: any) => {
-     const options = Array.from({length: max}, (_, i) => ({ value: i + 1, label: String(i + 1) }));
+  const EditDropdown = ({ label, field, max, binary }: any) => {
+     const options = binary 
+        ? [{ value: 0, label: '0' }, { value: 10, label: 'MAX' }]
+        : Array.from({length: max}, (_, i) => ({ value: i + 1, label: String(i + 1) }));
      return (
        <div className="flex flex-col gap-1">
           <label className="text-[10px] uppercase font-bold text-slate-500">{label}</label>
@@ -169,6 +198,49 @@ const AdminDashboard: React.FC = () => {
        </div>
      );
   };
+
+  const SettingsView = () => (
+    <div className="bg-[#0f172a] rounded-xl border border-slate-700 p-8 space-y-8 animate-in fade-in zoom-in-95">
+      <h3 className="text-xl font-header font-bold text-white uppercase tracking-widest border-b border-slate-700 pb-4">Alliance Portal Settings</h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Toggle Train Schedule */}
+        <div className="p-6 bg-slate-900/50 rounded-xl border border-slate-800 flex items-center justify-between group hover:border-amber-500/50 transition-all">
+          <div>
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-1">Train Schedule</h4>
+            <p className="text-[10px] text-slate-500 font-mono">Show or hide the Train Logistics card on the home screen.</p>
+          </div>
+          <button 
+            onClick={() => handleUpdateSetting('show_train_schedule', !settings.show_train_schedule)}
+            className={`w-12 h-6 rounded-full relative transition-colors ${settings.show_train_schedule ? 'bg-amber-600' : 'bg-slate-700'}`}
+          >
+            <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.show_train_schedule ? 'translate-x-6' : ''}`} />
+          </button>
+        </div>
+
+        {/* Toggle Desert Storm */}
+        <div className="p-6 bg-slate-900/50 rounded-xl border border-slate-800 flex items-center justify-between group hover:border-purple-500/50 transition-all">
+          <div>
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-1">Desert Storm</h4>
+            <p className="text-[10px] text-slate-500 font-mono">Show or hide the Desert Storm card on the home screen.</p>
+          </div>
+          <button 
+            onClick={() => handleUpdateSetting('show_desert_storm', !settings.show_desert_storm)}
+            className={`w-12 h-6 rounded-full relative transition-colors ${settings.show_desert_storm ? 'bg-purple-600' : 'bg-slate-700'}`}
+          >
+            <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${settings.show_desert_storm ? 'translate-x-6' : ''}`} />
+          </button>
+        </div>
+      </div>
+
+      <div className="p-4 bg-sky-900/10 border border-sky-500/20 rounded-lg">
+        <p className="text-[10px] text-sky-400 font-mono flex items-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          Changes applied here will affect the public command terminal immediately.
+        </p>
+      </div>
+    </div>
+  );
 
   if (!token) {
     return (
@@ -203,18 +275,24 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-700">
-      <div className="bg-[#0f172a]/80 backdrop-blur-xl p-2 rounded-xl border border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4 sticky top-24 z-40 shadow-2xl">
-        <div className="flex items-center gap-2 p-1 bg-slate-900/50 rounded-lg w-full sm:w-auto overflow-x-auto">
+      <div className="bg-[#0f172a]/80 backdrop-blur-xl p-2 rounded-xl border border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4 sticky top-24 z-40 shadow-2xl overflow-x-auto">
+        <div className="flex items-center gap-2 p-1 bg-slate-900/50 rounded-lg w-full sm:w-auto">
              <button onClick={() => setActiveTab('db')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeTab === 'db' ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/25' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}>{t('admin.db')}</button>
              <button onClick={() => setActiveTab('vs')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeTab === 'vs' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}>{t('admin.vs')}</button>
              <button onClick={() => setActiveTab('train')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeTab === 'train' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/25' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}>{t('admin.train')}</button>
+             <button onClick={() => setActiveTab('storm')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeTab === 'storm' ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/25' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}>Storm</button>
+             <button onClick={() => setActiveTab('settings')} className={`flex-1 sm:flex-none px-6 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-300 ${activeTab === 'settings' ? 'bg-slate-600 text-white shadow-lg' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}>
+               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+             </button>
         </div>
         <button onClick={handleLogout} className="text-xs font-bold text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 px-4 py-2 rounded-lg hover:bg-rose-500/10 transition-all uppercase tracking-wider w-full sm:w-auto">{t('admin.terminate')}</button>
       </div>
 
       <div className="min-h-[600px]">
       {activeTab === 'vs' ? ( <VsTracker /> ) : 
-       activeTab === 'train' ? ( <TrainManager /> ) : (
+       activeTab === 'train' ? ( <TrainManager /> ) :
+       activeTab === 'storm' ? ( <DesertStormManager /> ) : 
+       activeTab === 'settings' ? ( <SettingsView /> ) : (
           <div className="bg-[#0f172a] rounded-xl border border-slate-700/50 flex flex-col shadow-xl">
                 <div className="p-4 border-b border-slate-700/50 flex flex-col sm:flex-row gap-4 bg-slate-900/50">
                      <div className="relative w-full sm:w-64">
@@ -304,7 +382,6 @@ const AdminDashboard: React.FC = () => {
 
               {/* Body */}
               <div className="p-6 overflow-y-auto custom-scrollbar space-y-8">
-                  {/* Section 1: Identity & Power */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-4 bg-slate-900/30 p-4 rounded-xl border border-slate-800">
                           <h4 className="text-xs font-bold text-sky-500 uppercase tracking-widest border-b border-slate-800 pb-2">Identity & Powers (M)</h4>
@@ -333,11 +410,11 @@ const AdminDashboard: React.FC = () => {
                               <EditDropdown label="HP" field="t10Hp" max={10} />
                               <EditDropdown label="Atk" field="t10Atk" max={10} />
                               <EditDropdown label="Def" field="t10Def" max={10} />
+                              <EditDropdown label="Elite" field="t10Elite" max={10} binary />
                            </div>
                       </div>
                   </div>
 
-                  {/* Section 2: Buildings */}
                   <div className="bg-slate-900/30 p-4 rounded-xl border border-slate-800">
                       <h4 className="text-xs font-bold text-sky-500 uppercase tracking-widest border-b border-slate-800 pb-2 mb-4">Building Levels</h4>
                       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
