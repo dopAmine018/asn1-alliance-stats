@@ -1,25 +1,14 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ASN1 Alliance Command | Elite War Strategy Database</title>
-    <meta name="description" content="Secure stats tracking, T10 resource projection, and tactical train scheduling for the ASN1 Alliance. Login to update your dossier." />
+    <title>ASN1 Alliance Command | Tactical War Strategy</title>
+    <meta name="description" content="Secure stats tracking, T10 resource projection, and tactical train scheduling for the ASN1 Alliance." />
     
-    <!-- Open Graph / Discord / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://asn1-command.app/" />
-    <meta property="og:title" content="ASN1 Alliance Command" />
-    <meta property="og:description" content="Manage your war profile. Track T10 progress. View tactical schedules." />
-    <meta property="og:image" content="https://ui-avatars.com/api/?name=ASN1&background=0284c7&color=fff&size=512" />
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:title" content="ASN1 Alliance Command" />
-    <meta property="twitter:description" content="Elite tracking for elite players. Join the leaderboard." />
-
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         theme: {
@@ -34,6 +23,7 @@
               'shine': 'shine 2s linear infinite',
               'float': 'float 6s ease-in-out infinite',
               'scan-y': 'scanY 3s linear infinite',
+              'marquee': 'marquee 30s linear infinite',
             },
             keyframes: {
               shine: {
@@ -48,6 +38,10 @@
                 '0%': { top: '0%' },
                 '50%': { top: '100%' },
                 '100%': { top: '0%' },
+              },
+              marquee: {
+                '0%': { transform: 'translateX(0)' },
+                '100%': { transform: 'translateX(-50%)' },
               }
             }
           }
@@ -58,76 +52,65 @@
       body { 
         font-family: 'Inter', sans-serif; 
         background-color: #000205;
+        color: #e2e8f0;
         overflow-x: hidden;
       }
       
-      /* Premium Scrollbar */
-      ::-webkit-scrollbar { width: 6px; height: 6px; }
-      ::-webkit-scrollbar-track { background: #020617; }
-      ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-      ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
-      
-      /* Background Mesh */
       .bg-grid-pattern {
         background-image: 
           linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
           linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
-        background-size: 40px 40px;
+        background-size: 60px 60px;
         mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
       }
 
-      /* Glass Utilities */
-      .glass-card {
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-      }
-      
-      .glass-panel-heavy {
-        background: rgba(2, 6, 23, 0.85);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(56, 189, 248, 0.1);
+      .animate-marquee {
+        display: inline-block;
+        padding-left: 100%;
+        animation: marquee 30s linear infinite;
       }
 
-      /* Click Animation Helper */
-      .click-scale:active {
-        transform: scale(0.96);
-      }
+      ::-webkit-scrollbar { width: 5px; height: 5px; }
+      ::-webkit-scrollbar-track { background: #020617; }
+      ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
       
-      /* Input Autofill Fix */
-      input:-webkit-autofill,
-      input:-webkit-autofill:hover, 
-      input:-webkit-autofill:focus, 
-      input:-webkit-autofill:active{
-          -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
-          -webkit-text-fill-color: white !important;
-          transition: background-color 5000s ease-in-out 0s;
-      }
-      
-      /* Custom Scroll for Tables */
       .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-      .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+      
+      .glass-card {
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+      }
+
+      .tap-highlight-transparent {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .click-scale:active { transform: scale(0.97); transition: transform 0.1s; }
+      
+      input[type=number]::-webkit-inner-spin-button, 
+      input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; margin: 0; 
+      }
     </style>
-  <script type="importmap">
+    <script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.1",
     "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.1/client",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
     "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.1",
     "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.2",
-    "html2canvas": "https://jspm.dev/html2canvas"
+    "html2canvas": "https://jspm.dev/html2canvas",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3"
   }
 }
 </script>
-</head>
-  <body class="text-slate-200 antialiased min-h-screen selection:bg-amber-500/30 selection:text-amber-100">
+  </head>
+  <body class="antialiased min-h-screen selection:bg-sky-500/30 selection:text-sky-100">
     <div class="fixed inset-0 bg-grid-pattern z-[-1] pointer-events-none"></div>
-    <div class="fixed top-0 left-0 w-full h-[500px] bg-sky-600/10 rounded-full blur-[120px] -translate-y-1/2 z-[-2]"></div>
-    
+    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-sky-600/5 rounded-full blur-[150px] z-[-2]"></div>
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
   </body>

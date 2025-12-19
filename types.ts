@@ -3,8 +3,8 @@ export type Language = 'english' | 'arabic' | 'turkish' | 'indonesian';
 
 export interface Player {
   id: string;
-  createdAt: string; // ISO Date string
-  updatedAt: string; // ISO Date string
+  createdAt: string; 
+  updatedAt: string; 
   language: Language;
   name: string;
   nameNormalized: string;
@@ -24,7 +24,7 @@ export interface Player {
   t10Hp: number;
   t10Atk: number;
   t10Def: number;
-  t10Elite: number; // Added: 0 or 10 (MAX)
+  t10Elite: number; // 0 or 10 (MAX)
   
   techLevel: number;
   barracksLevel: number;
@@ -33,6 +33,14 @@ export interface Player {
   missileCenterLevel: number;
   
   active: boolean;
+}
+
+export interface Announcement {
+  id: string;
+  content: string;
+  type: 'info' | 'warning' | 'critical';
+  active: boolean;
+  createdAt: string;
 }
 
 export type SortOption = 'time_desc' | 'time_asc' | 'power_desc' | 'power_asc' | 'total_hero_power_desc' | 'total_hero_power_asc' | 't10_closest';
@@ -56,11 +64,9 @@ export interface AuthResponse {
   user: { username: string };
 }
 
-// --- VS Tracker Types ---
-
 export interface VsWeek {
   id: string;
-  name: string; // e.g. "Week 1: ASN1 vs CFAM"
+  name: string; 
   createdAt: string;
 }
 
