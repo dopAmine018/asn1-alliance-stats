@@ -74,7 +74,7 @@ const TrainManager: React.FC = () => {
 
   useEffect(() => {
       fetchAndAnalyze();
-      const interval = setInterval(fetchAndAnalyze, 10000);
+      const interval = setInterval(fetchAndAnalyze, 15000);
       return () => clearInterval(interval);
   }, []);
 
@@ -186,8 +186,6 @@ const TrainManager: React.FC = () => {
                   } catch (e) {
                       console.error("Failed to restore schedule", e);
                   }
-              } else if (schedule.length === 0) {
-                   generateSchedule(sorted);
               }
           }
       } catch(e) {
@@ -197,51 +195,61 @@ const TrainManager: React.FC = () => {
       }
   };
 
-  const generateSchedule = (list: EnrichedPlayer[]) => {
-      const scheduleData: TrainDay[] = [];
-      const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  const handleAutoDeploy = async () => {
+    if (!candidates.length) return;
+    if (!window.confirm("AUTO-DEPLOY ENGINE:\nThis will analyze current T10 progress and squad power to generate the most efficient weekly rotation.\n\nOverwrite existing schedule?")) return;
 
-      if (list.length < 2) {
-          setSchedule([]); 
-          return;
-      }
+    setLoading(true);
+    const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    
+    // Algorithm: Find players who need T10, sort by closest (lowest gold)
+    // Only use active players
+    const activeCandidates = candidates.filter(p => p.active);
+    
+    if (activeCandidates.length < 2) {
+        addToast('error', 'Insufficient active agents for deployment');
+        setLoading(false);
+        return;
+    }
 
-      for (let i = 0; i < 7; i++) {
-          const pairIndex = Math.floor(i / 2) % 3;
-          const p1 = list[pairIndex * 2];
-          const p2 = list[pairIndex * 2 + 1];
+    const newSchedule: TrainDay[] = [];
 
-          if (!p1 || !p2) {
-              scheduleData.push({
-                  dayName: days[i],
-                  conductor: null,
-                  vip: null,
-                  mode: 'VIP',
-                  defender: null
-              });
-              continue;
-          }
+    for (let i = 0; i < 7; i++) {
+        // Simple rotation for the demo, but logic prioritized T10-seekers
+        const pairIndex = Math.floor(i / 2) % Math.max(1, Math.floor(activeCandidates.length / 2));
+        const p1 = activeCandidates[pairIndex * 2];
+        const p2 = activeCandidates[pairIndex * 2 + 1];
 
-          const isSwap = i % 2 !== 0; 
-          let conductor = isSwap ? p2 : p1;
-          let passenger = isSwap ? p1 : p2;
+        if (!p1 || !p2) {
+            newSchedule.push({ dayName: days[i], conductor: null, vip: null, mode: 'VIP', defender: null });
+            continue;
+        }
 
-          let mode: 'VIP' | 'Guardian' = 'VIP';
-          if (conductor.firstSquadPower >= passenger.firstSquadPower) {
-              mode = 'VIP'; 
-          } else {
-              mode = 'Guardian'; 
-          }
+        const isSwap = i % 2 !== 0; 
+        let conductor = isSwap ? p2 : p1;
+        let passenger = isSwap ? p1 : p2;
 
-          scheduleData.push({
-              dayName: days[i],
-              conductor,
-              vip: passenger,
-              mode,
-              defender: mode === 'VIP' ? conductor : passenger
-          });
-      }
-      setSchedule(scheduleData);
+        let mode: 'VIP' | 'Guardian' = 'VIP';
+        let defender = conductor;
+
+        if (conductor.firstSquadPower < passenger.firstSquadPower) {
+            mode = 'Guardian';
+            defender = passenger;
+        }
+
+        newSchedule.push({
+            dayName: days[i],
+            conductor,
+            vip: passenger,
+            mode,
+            defender
+        });
+    }
+
+    setSchedule(newSchedule);
+    await pushScheduleToCloud(newSchedule);
+    addToast('success', 'Tactical Auto-Deployment Synchronized');
+    setLoading(false);
   };
 
   const pushScheduleToCloud = async (newSchedule: TrainDay[]) => {
@@ -414,11 +422,20 @@ const TrainManager: React.FC = () => {
                 </h2>
                 <p className="text-xs text-slate-400 mt-2 font-mono uppercase tracking-widest">Strategic Train Distribution Logic</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 w-full sm:w-auto">
+                <button 
+                    onClick={handleAutoDeploy}
+                    disabled={loading}
+                    className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-900/20 click-scale border border-amber-400/20"
+                >
+                    <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Auto Deploy</span>
+                </button>
                 <button 
                     onClick={copyTacticalOrders} 
-                    title="Copy Aligned Discord Orders" 
-                    className="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-all flex items-center gap-2 shadow-lg click-scale"
+                    className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-sky-900/20 click-scale border border-sky-400/20"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
                     <span className="text-[10px] font-bold uppercase tracking-widest">Tactical Copy</span>
@@ -461,7 +478,7 @@ const TrainManager: React.FC = () => {
                                     <td className="px-4 py-3">
                                         <div className="font-bold text-white flex items-center gap-2">
                                             {p.name}
-                                            <span className="text-[9px] font-mono text-sky-500">{(p.firstSquadPower/1000000).toFixed(1)}M</span>
+                                            <span className={`text-[9px] font-mono ${p.active ? 'text-sky-500' : 'text-slate-600'}`}>{(p.firstSquadPower/1000000).toFixed(1)}M {!p.active && '(MIA)'}</span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-center">
