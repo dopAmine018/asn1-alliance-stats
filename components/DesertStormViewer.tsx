@@ -33,6 +33,10 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
     const [searchCandidates, setSearchCandidates] = useState<Player[]>([]);
     const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
 
+    // Feature Detection for Export
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const canShare = !!navigator.share;
+
     useEffect(() => {
         fetchTeams();
     }, []);
@@ -97,10 +101,10 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
         return (total / 1000000000).toFixed(2) + 'B';
     };
 
-    const handleExport = async () => {
+    const handleExportAction = async (action: 'copy' | 'download' | 'share') => {
         if (!exportRef.current) return;
         try {
-            addToast('info', 'Generating Image...');
+            addToast('info', 'Rendering Tactical Image...');
             
             const canvas = await html2canvas(exportRef.current, { 
                 backgroundColor: '#020617', 
@@ -112,35 +116,35 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
             canvas.toBlob(async (blob: Blob | null) => {
                 if (!blob) throw new Error("Capture failed");
 
-                const file = new File([blob], "ASN1_Roster.png", { type: "image/png" });
-
-                // Try Web Share first (Mobile Best Practice)
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                if (action === 'copy') {
                     try {
+                        const item = new ClipboardItem({ 'image/png': blob });
+                        await navigator.clipboard.write([item]);
+                        addToast('success', 'Roster copied to clipboard');
+                    } catch (err) {
+                        addToast('error', 'Clipboard access denied');
+                    }
+                } else if (action === 'share') {
+                    const file = new File([blob], "ASN1_Roster.png", { type: "image/png" });
+                    if (navigator.share) {
                         await navigator.share({
                             files: [file],
                             title: 'Desert Storm Roster',
                             text: 'Latest orders for ASN1 Alliance.'
                         });
                         addToast('success', 'Shared successfully');
-                        return;
-                    } catch (e) {
-                        // If share failed/cancelled, fall through to download
-                        console.log("Share failed or was cancelled");
                     }
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `ASN1_Roster_${new Date().toISOString().split('T')[0]}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    addToast('success', 'Image saved to downloads');
                 }
-
-                // Fallback: Direct Download (Works on Desktop and most Mobile)
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `ASN1_Roster_${new Date().toLocaleDateString().replace(/\//g, '-')}.png`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                addToast('success', 'Image Saved to device');
-                
             }, 'image/png');
         } catch(e) { 
             addToast('error', 'Export error'); 
@@ -187,9 +191,37 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                              JOIN EVENT
                         </button>
                     )}
-                    <button onClick={handleExport} className="flex-1 sm:flex-none bg-slate-800 hover:bg-slate-700 text-sky-400 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-700 transition-colors">
-                        IMG
-                    </button>
+                    
+                    {/* Device-Specific Export Controls */}
+                    <div className="flex rounded-xl overflow-hidden border border-slate-700">
+                        {(!isMobile || !canShare) ? (
+                            <button 
+                                onClick={() => handleExportAction('copy')} 
+                                className="bg-slate-800 hover:bg-slate-700 text-sky-400 px-3 py-3 text-[10px] font-black uppercase tracking-widest border-r border-slate-700 transition-colors flex items-center gap-2"
+                                title="Copy to clipboard"
+                            >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                                COPY
+                            </button>
+                        ) : (
+                            <button 
+                                onClick={() => handleExportAction('share')} 
+                                className="bg-slate-800 hover:bg-slate-700 text-sky-400 px-3 py-3 text-[10px] font-black uppercase tracking-widest border-r border-slate-700 transition-colors flex items-center gap-2"
+                                title="Share native"
+                            >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                                SHARE
+                            </button>
+                        )}
+                        <button 
+                            onClick={() => handleExportAction('download')} 
+                            className="bg-slate-800 hover:bg-slate-700 text-sky-400 px-3 py-3 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-2"
+                            title="Download PNG"
+                        >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M16 10l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            DL
+                        </button>
+                    </div>
                 </div>
             </div>
 
