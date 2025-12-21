@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Player, PlayerFilter } from '../types';
 import { MockApi } from '../services/mockBackend';
 import PlayerCard from './PlayerCard';
@@ -19,7 +19,6 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const exportRef = useRef<HTMLDivElement>(null);
   
   const [filter, setFilter] = useState<PlayerFilter>({ language: 'all', search: '', sort: 'time_desc', activeOnly: false });
 
@@ -90,40 +89,10 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
 
     try {
       await navigator.clipboard.writeText(report);
-      addToast('success', 'Tactical Report Copied (Discord Ready)');
+      addToast('success', 'Tactical Intel Copied');
     } catch (err) {
-      addToast('error', 'Clipboard access denied');
+      addToast('error', 'Clipboard denied');
     }
-  };
-
-  const exportAsCSV = () => {
-    if (!players.length) return;
-    const headers = ["Rank", "Name", "Region", "Squad 1 (M)", "Squad 2 (M)", "Total Hero Power (M)", "Hero %", "Duel %", "Units %", "T10 Progress", "Last Updated"];
-    const rows = players.map((p, i) => [
-        i + 1,
-        p.name,
-        p.language,
-        (p.firstSquadPower / 1000000).toFixed(1),
-        ((p.secondSquadPower || 0) / 1000000).toFixed(1),
-        (p.totalHeroPower / 1000000).toFixed(1),
-        p.heroPercent,
-        p.duelPercent,
-        p.unitsPercent,
-        `${100 - Math.round(calculateT10RemainingCost(p).gold / 35000000000 * 100)}%`,
-        new Date(p.updatedAt).toLocaleDateString()
-    ]);
-
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `ASN1_Leaderboard_${new Date().getTime()}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    addToast('success', 'CSV Intelligence Extracted');
   };
 
   const languageOptions = [ { value: 'all', label: 'ALL_REGIONS' }, { value: 'english', label: 'ENGLISH' }, { value: 'arabic', label: 'ARABIC' }, { value: 'turkish', label: 'TURKISH' }, { value: 'indonesian', label: 'INDONESIAN' } ];
@@ -139,24 +108,22 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-4">
             <div className="flex items-center gap-4">
-                <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 border border-white/5 hover:border-sky-500 hover:text-sky-500 transition-all shadow-lg">
+                <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 border border-white/5 hover:border-sky-500 transition-all">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                 </button>
                 <div>
-                    <h3 className="text-xl font-header font-bold text-white uppercase tracking-[0.2em] flex items-center gap-3">
-                        {t('viewer.leaderboard')}
-                    </h3>
+                    <h3 className="text-xl font-header font-bold text-white uppercase tracking-[0.2em]">{t('viewer.leaderboard')}</h3>
                     <p className="text-[9px] font-mono text-slate-500 tracking-widest mt-0.5 uppercase">Global Alliance Deployment</p>
                 </div>
             </div>
             <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-slate-900/50 rounded-xl border border-white/5">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span className="text-[10px] font-mono text-slate-400 font-bold tracking-[0.3em]">ENCRYPTED_FEED_ACTIVE</span>
+                <span className="text-[10px] font-mono text-slate-400 font-bold tracking-[0.3em]">INTEL_FEED_ACTIVE</span>
             </div>
       </div>
 
       <div className="bg-[#020617]/50 backdrop-blur-md border border-white/5 p-2 rounded-2xl grid grid-cols-1 md:grid-cols-12 gap-2 shadow-2xl">
-        <div className="md:col-span-3 relative group">
+        <div className="md:col-span-4 relative group">
              <div className="absolute inset-y-0 start-0 ps-4 flex items-center pointer-events-none">
                 <svg className="h-3.5 w-3.5 text-slate-500 group-focus-within:text-sky-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
              </div>
@@ -176,26 +143,18 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
              <CustomDropdown value={filter.sort} onChange={(val) => setFilter(prev => ({ ...prev, sort: val as any }))} options={sortOptions} />
         </div>
         
-        <div className="md:col-span-3 flex gap-2">
+        <div className="md:col-span-2">
             <button 
                 onClick={copyTacticalReport}
-                title="Copy Tactical Report"
-                className="flex-1 bg-sky-600/10 hover:bg-sky-600 text-sky-400 hover:text-white border border-sky-500/20 rounded-xl flex items-center justify-center transition-all click-scale shadow-lg py-3"
+                className="w-full h-full bg-sky-600 hover:bg-sky-500 text-white border border-sky-400/20 rounded-xl flex items-center justify-center transition-all click-scale shadow-lg py-3"
             >
-               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
-               <span className="text-[10px] font-bold uppercase tracking-widest">Copy Report</span>
-            </button>
-            <button 
-                onClick={exportAsCSV}
-                title="Download CSV"
-                className="flex-1 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/20 rounded-xl flex items-center justify-center transition-all click-scale shadow-lg py-3"
-            >
-               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m3 2h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+               <span className="text-[10px] font-bold uppercase tracking-widest">Tactical Copy</span>
             </button>
         </div>
       </div>
 
-      <div ref={exportRef} className="pb-20">
+      <div className="pb-20">
         {loading && players.length === 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                {[1,2,3,4,5,6].map(i => <div key={i} className="h-64 rounded-2xl bg-[#0a0f1e] animate-pulse border border-white/5"></div>)}
@@ -208,11 +167,7 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
           </div>
         ) : (
           <div className="py-32 rounded-3xl border-2 border-dashed border-white/5 flex flex-col items-center justify-center text-center bg-slate-900/20">
-              <div className="w-20 h-20 rounded-3xl bg-slate-900 flex items-center justify-center mb-6 text-slate-700 shadow-2xl border border-white/5">
-                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 9.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              </div>
-              <p className="text-slate-500 font-header text-sm uppercase tracking-[0.3em] font-bold">{errorMsg ? "TERMINAL_OFFLINE" : "NO_PLAYERS_FOUND"}</p>
-              {errorMsg && <p className="text-rose-500 text-[10px] mt-4 font-mono font-bold">{errorMsg.toUpperCase()}</p>}
+              <p className="text-slate-500 font-header text-sm uppercase tracking-[0.3em] font-bold">NO_PLAYERS_FOUND</p>
           </div>
         )}
       </div>

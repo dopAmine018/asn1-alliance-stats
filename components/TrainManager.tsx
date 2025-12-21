@@ -5,8 +5,6 @@ import { MockApi, TrainApi } from '../services/mockBackend';
 import { calculateT10RemainingCost } from '../utils/gameLogic';
 import { useLanguage } from '../utils/i18n';
 import { useToast } from './Toast';
-// @ts-ignore
-import html2canvas from 'html2canvas';
 
 interface EnrichedPlayer extends Player {
     remainingGold: number;
@@ -73,11 +71,6 @@ const TrainManager: React.FC = () => {
   const [editForm, setEditForm] = useState<{ conductorName: string, vipName: string }>({ conductorName: '', vipName: '' });
 
   const hasRestoredRef = useRef(false);
-  const exportRef = useRef<HTMLDivElement>(null);
-
-  // Device context
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  const canShare = !!navigator.share;
 
   useEffect(() => {
       fetchAndAnalyze();
@@ -387,7 +380,7 @@ const TrainManager: React.FC = () => {
 
       try {
           await navigator.clipboard.writeText(report);
-          addToast('success', 'Tactical Orders Copied (Discord Aligned)');
+          addToast('success', 'Tactical Orders Copied');
       } catch (err) {
           addToast('error', 'Clipboard denied');
       }
@@ -399,51 +392,6 @@ const TrainManager: React.FC = () => {
       if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
       if (num >= 1000) return (num / 1000).toFixed(0) + 'k';
       return num.toString();
-  };
-  
-  const handleExportAction = async (action: 'download' | 'share') => {
-      if (schedule.length === 0 || !exportRef.current) return;
-      
-      try {
-          addToast('info', 'Generating High-Res Schedule...');
-          
-          const canvas = await html2canvas(exportRef.current, {
-              backgroundColor: '#020617',
-              scale: 2,
-              logging: false,
-              useCORS: true
-          });
-          
-          canvas.toBlob(async (blob: Blob | null) => {
-              if (!blob) throw new Error("Capture failed");
-
-              if (action === 'share') {
-                  const file = new File([blob], "Train_Schedule.png", { type: "image/png" });
-                  if (navigator.share) {
-                      await navigator.share({
-                          files: [file],
-                          title: 'Weekly Train Schedule',
-                          text: 'Weekly train orders for ASN1.'
-                      });
-                      addToast('success', 'Shared successfully');
-                  }
-              } else {
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = `Train_Schedule_${new Date().toISOString().split('T')[0]}.png`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  URL.revokeObjectURL(url);
-                  addToast('success', 'Image saved to device');
-              }
-          }, 'image/png');
-          
-      } catch(e) {
-          addToast('error', 'Capture error');
-          console.error(e);
-      }
   };
   
   const DefenderShield = () => (
@@ -459,54 +407,6 @@ const TrainManager: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
-        <div style={{ position: 'fixed', left: '-5000px', top: '0', width: '800px', zIndex: -1 }}>
-            <div ref={exportRef} className="bg-[#020617] p-10 w-[800px] text-white">
-                <div className="flex items-center gap-6 mb-10 border-b border-slate-800 pb-10">
-                    <div className="w-16 h-16 bg-sky-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                         <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    </div>
-                    <div>
-                        <h1 className="text-4xl font-black uppercase tracking-[0.3em] text-white">ASN1 Train Orders</h1>
-                        <p className="text-sm text-sky-500 font-mono tracking-widest uppercase mt-2">Strategic Command Center // Verified Transmission</p>
-                    </div>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-6">
-                    {schedule.map((day, idx) => (
-                        <div key={idx} className="flex items-center bg-[#0f172a] border border-slate-700 rounded-2xl p-6 shadow-xl">
-                            <div className="w-48 border-r border-slate-700 mr-8">
-                                <h3 className="text-2xl font-bold text-slate-300 uppercase">{t(`day.${day.dayName}` as any)}</h3>
-                                <div className="mt-2">
-                                    <span className={`text-[12px] font-black px-3 py-1 rounded-lg ${day.mode === 'VIP' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-sky-500/20 text-sky-500 border border-sky-500/30'}`}>
-                                        {day.mode === 'VIP' ? 'VIP MODE' : 'GUARDIAN MODE'}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="flex-1 grid grid-cols-2 gap-10">
-                                <div>
-                                    <div className="text-[10px] text-slate-500 uppercase font-black mb-2 tracking-widest">CONDUCTOR</div>
-                                    <div className="text-2xl font-bold text-white flex items-center gap-3">
-                                        {day.conductor?.name || 'TBD'}
-                                        {day.defender?.id === day.conductor?.id && <span className="text-[10px] bg-sky-600 text-white px-2 py-0.5 rounded font-black">DEF</span>}
-                                    </div>
-                                    <div className="text-xs text-slate-500 font-mono mt-1">{(day.conductor?.firstSquadPower ? (day.conductor.firstSquadPower/1000000).toFixed(1) : 0)}M Squad Power</div>
-                                </div>
-                                <div>
-                                    <div className="text-[10px] text-slate-500 uppercase font-black mb-2 tracking-widest">{day.mode === 'VIP' ? 'PASSENGER' : 'GUARDIAN'}</div>
-                                    <div className="text-2xl font-bold text-white flex items-center gap-3">
-                                        {day.vip?.name || 'TBD'}
-                                        {day.defender?.id === day.vip?.id && <span className="text-[10px] bg-sky-600 text-white px-2 py-0.5 rounded font-black">DEF</span>}
-                                    </div>
-                                    <div className="text-xs text-slate-500 font-mono mt-1">{(day.vip?.firstSquadPower ? (day.vip.firstSquadPower/1000000).toFixed(1) : 0)}M Squad Power</div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-
         <div className="bg-gradient-to-r from-amber-500/10 to-transparent border-l-4 border-amber-500 p-6 rounded-r-xl flex flex-col sm:flex-row justify-between items-start gap-4">
             <div className="w-full">
                 <h2 className="text-xl font-header font-bold text-white uppercase tracking-widest flex items-center gap-3">
@@ -518,20 +418,11 @@ const TrainManager: React.FC = () => {
                 <button 
                     onClick={copyTacticalOrders} 
                     title="Copy Aligned Discord Orders" 
-                    className="px-6 py-2.5 rounded-xl bg-slate-800 border border-white/5 text-slate-400 hover:text-white transition-all flex items-center gap-2"
+                    className="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-all flex items-center gap-2 shadow-lg click-scale"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
                     <span className="text-[10px] font-bold uppercase tracking-widest">Tactical Copy</span>
                 </button>
-                <div className="flex rounded-xl overflow-hidden border border-slate-700">
-                    <button 
-                        onClick={() => handleExportAction(canShare && isMobile ? 'share' : 'download')} 
-                        className="bg-slate-800 hover:bg-slate-700 text-sky-400 p-3 transition-colors"
-                        title={canShare && isMobile ? 'Share Image' : 'Download Image'}
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M16 10l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    </button>
-                </div>
             </div>
         </div>
 

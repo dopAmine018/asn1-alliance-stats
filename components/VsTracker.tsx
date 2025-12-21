@@ -6,7 +6,6 @@ import { CustomDropdown } from './CustomDropdown';
 import { useLanguage } from '../utils/i18n';
 import { useToast } from './Toast';
 
-// Fix: Completed the truncated VsTracker component and added default export
 const VsTracker: React.FC = () => {
   const { t } = useLanguage();
   const { addToast } = useToast();
@@ -15,7 +14,6 @@ const VsTracker: React.FC = () => {
   const [records, setRecords] = useState<VsRecord[]>([]);
   const [newWeekName, setNewWeekName] = useState('');
   const [showNewWeekModal, setShowNewWeekModal] = useState(false);
-  const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [newPlayerName, setNewPlayerName] = useState('');
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -24,7 +22,7 @@ const VsTracker: React.FC = () => {
   useEffect(() => { 
     if (selectedWeekId) { 
         loadRecords(selectedWeekId); 
-        const interval = setInterval(() => { loadRecords(selectedWeekId); }, 3000);
+        const interval = setInterval(() => { loadRecords(selectedWeekId); }, 5000);
         return () => clearInterval(interval);
     } else { 
         setRecords([]); 
@@ -32,7 +30,7 @@ const VsTracker: React.FC = () => {
   }, [selectedWeekId]);
 
   const loadWeeks = async () => { const data = await VsApi.getWeeks(); data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); setWeeks(data); if (data.length > 0 && !selectedWeekId) { setSelectedWeekId(data[0].id); } };
-  const loadAllPlayers = async () => { const res = await MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false }); setAllPlayers(res.items); };
+  const loadAllPlayers = async () => { await MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false }); };
   const loadRecords = async (weekId: string) => { const data = await VsApi.getRecords(weekId); setRecords(data); };
   
   const handleCreateWeek = async () => { 
@@ -88,31 +86,10 @@ const VsTracker: React.FC = () => {
 
     try {
       await navigator.clipboard.writeText(report);
-      addToast('success', 'VS Standings Copied');
+      addToast('success', 'Tactical Standings Copied');
     } catch (err) {
       addToast('error', 'Clipboard denied');
     }
-  };
-
-  const exportAsCSV = () => {
-    if (!records.length) return;
-    const weekName = weeks.find(w => w.id === selectedWeekId)?.name || 'Week';
-    const headers = ["Agent", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Total"];
-    const rows = records.sort((a,b) => b.total - a.total).map(r => [
-        r.playerName, r.mon, r.tue, r.wed, r.thu, r.fri, r.sat, r.total
-    ]);
-
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `ASN1_VS_${weekName.replace(/\s+/g, '_')}_${new Date().getTime()}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    addToast('success', 'VS Dataset Downloaded');
   };
 
   const weekOptions = weeks.map(w => ({ value: w.id, label: w.name }));
@@ -121,13 +98,6 @@ const VsTracker: React.FC = () => {
   return (
     <div className="space-y-6">
         <div className="bg-[#0f172a] border border-slate-700/50 p-4 rounded-xl flex flex-col sm:flex-row justify-between gap-4 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-1.5 z-10">
-               <span className="flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-               </span>
-            </div>
-
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto relative z-30">
                 <div className="w-full sm:w-64">
                      <CustomDropdown value={selectedWeekId} onChange={(val) => setSelectedWeekId(String(val))} options={weekOptions} placeholder={t('vs.select')} />
@@ -139,18 +109,10 @@ const VsTracker: React.FC = () => {
                 <div className="flex gap-2">
                     <button 
                         onClick={copyStandings} 
-                        title="Copy Tactical Standings" 
-                        className="px-6 py-2.5 rounded-xl bg-sky-600/10 border border-sky-500/20 text-sky-400 hover:bg-sky-600 hover:text-white transition-all flex items-center gap-2"
+                        className="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-all flex items-center gap-2 shadow-lg click-scale"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Copy Standings</span>
-                    </button>
-                    <button 
-                        onClick={exportAsCSV} 
-                        title="Download CSV" 
-                        className="px-3 py-2.5 rounded-xl bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m3 2h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Tactical Copy</span>
                     </button>
                 </div>
             )}

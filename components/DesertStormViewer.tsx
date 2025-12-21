@@ -1,10 +1,8 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DesertStormApi, MockApi } from '../services/mockBackend';
 import { Player } from '../types';
 import { useLanguage } from '../utils/i18n';
-// @ts-ignore
-import html2canvas from 'html2canvas';
 import { useToast } from './Toast';
 
 interface HydratedTeam {
@@ -25,16 +23,12 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
     const { addToast } = useToast();
     const [data, setData] = useState<HydratedTeam>({ teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] });
     const [loading, setLoading] = useState(true);
-    const exportRef = useRef<HTMLDivElement>(null);
     
     const [showRegister, setShowRegister] = useState(false);
     const [regName, setRegName] = useState('');
     const [regTime, setRegTime] = useState<'14:00' | '23:00' | 'ANY'>('ANY');
     const [searchCandidates, setSearchCandidates] = useState<Player[]>([]);
     const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const canShare = !!navigator.share;
 
     useEffect(() => {
         fetchTeams();
@@ -98,48 +92,9 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
 
         try {
             await navigator.clipboard.writeText(report);
-            addToast('success', 'Tactical Roster Copied (Discord Ready)');
+            addToast('success', 'Tactical Roster Copied');
         } catch (err) {
             addToast('error', 'Clipboard denied');
-        }
-    };
-
-    const handleExportAction = async (action: 'download' | 'share') => {
-        if (!exportRef.current) return;
-        try {
-            addToast('info', 'Generating High-Res Intelligence...');
-            const canvas = await html2canvas(exportRef.current, { 
-                backgroundColor: '#020617', 
-                scale: 2,
-                logging: false,
-                useCORS: true
-            });
-
-            canvas.toBlob(async (blob: Blob | null) => {
-                if (!blob) throw new Error("Capture failed");
-
-                if (action === 'share') {
-                    const file = new File([blob], "ASN1_Roster.png", { type: "image/png" });
-                    if (navigator.share) {
-                        await navigator.share({
-                            files: [file],
-                            title: 'Desert Storm Roster',
-                            text: 'ASN1 Alliance Orders'
-                        });
-                        addToast('success', 'Shared');
-                    }
-                } else {
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `ASN1_Roster_${new Date().getTime()}.png`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-                    addToast('success', 'Downloaded');
-                }
-            }, 'image/png');
-        } catch(e) { 
-            addToast('error', 'Export failed'); 
         }
     };
 
@@ -216,22 +171,11 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                     
                     <button 
                         onClick={copyTacticalRoster} 
-                        title="Copy Aligned Tactical Roster" 
-                        className="px-6 py-3 rounded-xl bg-slate-800 border border-white/5 text-slate-400 hover:text-white transition-all flex items-center gap-2"
+                        className="px-6 py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-all flex items-center gap-2 shadow-lg click-scale"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
                         <span className="text-[10px] font-bold uppercase tracking-widest">Tactical Copy</span>
                     </button>
-                    
-                    <div className="flex rounded-xl overflow-hidden border border-slate-700">
-                        <button 
-                            onClick={() => handleExportAction(canShare && isMobile ? 'share' : 'download')} 
-                            className="bg-slate-800 hover:bg-slate-700 text-sky-400 p-3 transition-colors"
-                            title={canShare && isMobile ? 'Share Image' : 'Download Image'}
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M16 10l-4 4m0 0l-4-4m4 4V4" /></svg>
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -280,31 +224,6 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                             <PlayerList players={data.teamBMain} title="Squad 1 (Main Offensive)" color="border-sky-500/20" />
                             <PlayerList players={data.teamBSubs} title="Squad 1 (Reserves)" color="border-slate-800" />
                          </div>
-                    </div>
-
-                    <div style={{ position: 'fixed', left: '-5000px', top: '0', width: '800px', zIndex: -1 }}>
-                        <div ref={exportRef} className="bg-[#020617] p-12 w-[800px] text-white">
-                            <div className="text-center mb-10 border-b border-slate-800 pb-10">
-                                <h1 className="text-5xl font-header font-black tracking-[0.4em] text-white">DESERT STORM</h1>
-                                <p className="text-sm text-slate-500 font-mono mt-4 uppercase tracking-[0.2em]">ASN1 ALLIANCE STRATEGIC ROSTER</p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-16">
-                                <div>
-                                    <h2 className="text-4xl font-black italic border-b-4 border-amber-500 pb-3 flex justify-between items-end">
-                                        TEAM A <span className="text-xl font-mono not-italic text-amber-500">{getTotalPower([...data.teamAMain, ...data.teamASubs])}</span>
-                                    </h2>
-                                    <div className="mt-8"><PlayerList players={data.teamAMain} title="MAIN OFFENSIVE" color="border-amber-500/30" /></div>
-                                    <PlayerList players={data.teamASubs} title="RESERVE SQUAD" color="border-amber-900/20" />
-                                </div>
-                                <div>
-                                    <h2 className="text-4xl font-black italic border-b-4 border-sky-500 pb-3 flex justify-between items-end">
-                                        TEAM B <span className="text-xl font-mono not-italic text-sky-500">{getTotalPower([...data.teamBMain, ...data.teamBSubs])}</span>
-                                    </h2>
-                                    <div className="mt-8"><PlayerList players={data.teamBMain} title="MAIN OFFENSIVE" color="border-sky-500/30" /></div>
-                                    <PlayerList players={data.teamBSubs} title="RESERVE SQUAD" color="border-sky-900/20" />
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             )}
