@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { DesertStormApi, MockApi } from '../services/mockBackend';
 import { Player } from '../types';
@@ -73,7 +72,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
 
     const submitRegistration = async () => {
         if (!selectedPlayer) {
-            addToast('error', 'Please select your operative profile');
+            addToast('error', 'Please select your player profile');
             return;
         }
         try {
@@ -231,9 +230,9 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                         </div>
                         
                         <div className="p-6 overflow-y-auto space-y-8 flex-1">
-                            {/* Operative Search */}
+                            {/* Player Search */}
                             <div className="space-y-3">
-                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest">Identify Operative Profile</label>
+                                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest">Identify Player Profile</label>
                                 <div className="relative">
                                     <input 
                                         className="w-full bg-slate-950 border border-slate-700 rounded-xl px-5 py-4 text-white focus:border-sky-500 outline-none transition-all placeholder-slate-600 shadow-inner"
@@ -275,7 +274,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                     </div>
                                 ) : regName.length >= 3 && (
                                     <div className="p-8 border border-dashed border-slate-800 rounded-xl text-center bg-slate-900/20">
-                                        <p className="text-xs text-slate-500 mb-4 font-mono uppercase italic">Operative dossier not found in active database.</p>
+                                        <p className="text-xs text-slate-500 mb-4 font-mono uppercase italic">Player profile not found in active database.</p>
                                         <button 
                                             onClick={() => { setShowRegister(false); onCreateProfile?.(); }}
                                             className="w-full py-3 rounded-lg border border-sky-500/30 text-sky-400 font-bold text-[10px] uppercase tracking-[0.2em] hover:bg-sky-500 hover:text-white transition-all"

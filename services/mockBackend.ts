@@ -1,60 +1,31 @@
-
 import { createClient } from '@supabase/supabase-js';
-import { Player, PlayerFilter, ApiResponse, AuthResponse, VsWeek, VsRecord } from '../types';
+import { Player, PlayerFilter, ApiResponse, AuthResponse, VsWeek, VsRecord, Announcement } from '../types';
 
-// --- Configuration ---
-
-// User Provided Credentials
 const PROVIDED_URL = "https://fgrzuylyxfogejwmeakn.supabase.co";
 const PROVIDED_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZncnp1eWx5eGZvZ2Vqd21lYWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxMjYxMjQsImV4cCI6MjA4MDcwMjEyNH0.-8XkyWwjZIkC3OPrRfNs8vmnRtauee0H2xFz_A0doy8";
 
-// Safe helper to access environment variables
 const getEnv = (key: string): string => {
   try {
     // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-      // @ts-ignore
-      return import.meta.env[key];
-    }
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) return import.meta.env[key];
   } catch (e) {}
-
   try {
-    if (typeof process !== 'undefined' && process.env && process.env[key]) {
-      return process.env[key];
-    }
+    if (typeof process !== 'undefined' && process.env && process.env[key]) return process.env[key];
   } catch (e) {}
-
   return '';
 };
 
-// Prioritize Env Vars, fallback to Provided Keys
-const rawUrl = getEnv('VITE_SUPABASE_URL') || getEnv('REACT_APP_SUPABASE_URL') || PROVIDED_URL;
-const rawKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('REACT_APP_SUPABASE_ANON_KEY') || PROVIDED_KEY;
+const supabaseUrl = getEnv('VITE_SUPABASE_URL') || getEnv('REACT_APP_SUPABASE_URL') || PROVIDED_URL;
+const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('REACT_APP_SUPABASE_ANON_KEY') || PROVIDED_KEY;
 
-const supabaseUrl = rawUrl?.trim() || 'https://placeholder.supabase.co';
-const supabaseKey = rawKey?.trim() || 'placeholder';
-
-// Initialize Supabase Client
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-    detectSessionInUrl: false
-  }
+const supabase = createClient(supabaseUrl.trim(), supabaseKey.trim(), {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
 });
-
-// --- Helpers ---
 
 const formatError = (err: any): string => {
   if (!err) return "Unknown database error";
   if (typeof err === 'string') return err;
-  if (err.message) return err.message;
-  if (err.details) return err.details;
-  try {
-    return JSON.stringify(err);
-  } catch (e) {
-    return "Database transaction failed";
-  }
+  return err.message || err.details || "Database transaction failed";
 };
 
 const mapPlayerFromDb = (row: any): Player => ({
@@ -111,17 +82,12 @@ const mapPlayerToDb = (p: Partial<Player>) => {
   if (p.airCenterLevel !== undefined) out.air_center_level = p.airCenterLevel;
   if (p.missileCenterLevel !== undefined) out.missile_center_level = p.missileCenterLevel;
   if (p.active !== undefined) out.active = p.active;
-  
   out.updated_at = new Date().toISOString();
   return out;
 };
 
-// --- API Implementation ---
-
 export const MockApi = {
-  initialize: () => {
-    console.log("App initialized in Online Mode (Supabase)");
-  },
+  initialize: () => console.log("App initialized in Tactical Mode (Supabase)"),
 
   getPlayers: async (filter: PlayerFilter): Promise<{ items: Player[]; total: number }> => {
       let query = supabase.from('players').select('*', { count: 'exact' });
@@ -133,8 +99,7 @@ export const MockApi = {
       else if (filter.sort === 'total_hero_power_desc') query = query.order('total_hero_power', { ascending: false });
       else if (filter.sort === 'time_asc') query = query.order('updated_at', { ascending: true });
       else query = query.order('updated_at', { ascending: false });
-      query = query.range(0, 9999);
-      const { data, count, error } = await query;
+      const { data, count, error } = await query.range(0, 9999);
       if (error) throw new Error(formatError(error));
       return { items: (data || []).map(mapPlayerFromDb), total: count || 0 };
   },
@@ -144,13 +109,9 @@ export const MockApi = {
       const { data: existingMatch } = await supabase.from('players').select('id').eq('name_normalized', nameNormalized).maybeSingle();
       const payload = mapPlayerToDb({ ...playerData, nameNormalized });
       try {
-          if (!payload.language || !payload.name_normalized) throw new Error("Missing identity");
           let result;
-          if (existingMatch) {
-              result = await supabase.from('players').update(payload).eq('id', existingMatch.id).select().single();
-          } else {
-              result = await supabase.from('players').insert(payload).select().single();
-          }
+          if (existingMatch) result = await supabase.from('players').update(payload).eq('id', existingMatch.id).select().single();
+          else result = await supabase.from('players').insert(payload).select().single();
           if (result.error) throw result.error;
           return { success: true, data: mapPlayerFromDb(result.data) };
       } catch (e: any) {
@@ -161,7 +122,7 @@ export const MockApi = {
   login: async (username: string, password: string): Promise<ApiResponse<AuthResponse>> => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email: username === 'admin' ? 'admin@admin.com' : username,
-      password: password,
+      password,
     });
     if (error) return { success: false, error: formatError(error) };
     return { success: true, data: { token: data.session?.access_token || '', user: { username } } };
@@ -188,33 +149,31 @@ export const MockApi = {
   getSettings: async (): Promise<Record<string, any>> => {
     try {
       const { data, error } = await supabase.from('alliance_settings').select('*');
-      if (error) {
-          if (error.code === '42P01') return {};
-          throw error;
-      }
+      if (error) return {};
       const settings: Record<string, any> = {};
-      (data || []).forEach(row => {
-        const k = row.setting_name;
-        if (k) settings[k] = row.value;
-      });
+      (data || []).forEach(row => { settings[row.setting_name] = row.value; });
       return settings;
-    } catch (e) {
-      console.warn("Settings fetch failed", e);
-      return {};
-    }
+    } catch (e) { return {}; }
   },
 
   updateSetting: async (key: string, value: any): Promise<void> => {
     const { error } = await supabase.from('alliance_settings').upsert({ 
-      setting_name: key, 
-      value: value, 
-      updated_at: new Date().toISOString() 
+      setting_name: key, value, updated_at: new Date().toISOString() 
     }, { onConflict: 'setting_name' });
-    
-    if (error) {
-        console.error("Supabase Settings Error Details:", error);
-        throw new Error(formatError(error));
-    }
+    if (error) throw new Error(formatError(error));
+  },
+
+  getAnnouncements: async (): Promise<Announcement[]> => {
+    const { data } = await supabase.from('announcements').select('*').eq('active', true).order('created_at', { ascending: false });
+    return (data || []).map((a: any) => ({
+      id: a.id, content: a.content, type: a.type, active: a.active, createdAt: a.created_at
+    }));
+  },
+
+  updateAnnouncement: async (content: string, type: 'info'|'warning'|'critical'): Promise<void> => {
+    await supabase.from('announcements').update({ active: false }).neq('id', 'placeholder');
+    const { error } = await supabase.from('announcements').insert({ content, type, active: true });
+    if (error) throw new Error(formatError(error));
   }
 };
 
@@ -245,13 +204,12 @@ export const VsApi = {
   updateRecord: async (record: VsRecord): Promise<void> => {
     const total = (record.mon || 0) + (record.tue || 0) + (record.wed || 0) + (record.thu || 0) + (record.fri || 0) + (record.sat || 0);
     const { error } = await supabase.from('vs_records').update({ mon: record.mon, tue: record.tue, wed: record.wed, thu: record.thu, fri: record.fri, sat: record.sat, total }).eq('id', record.id);
-    if (error) console.error(formatError(error));
   }
 };
 
 export const TrainApi = {
     getSchedule: async (): Promise<any | null> => {
-        const { data, error } = await supabase.from('train_schedule').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle();
+        const { data } = await supabase.from('train_schedule').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle();
         return data?.schedule_data || null;
     },
     saveSchedule: async (scheduleData: any): Promise<void> => {
