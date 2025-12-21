@@ -8,7 +8,7 @@ import { calculateT10RemainingCost } from '../utils/gameLogic';
 
 const defaultFormData = {
   name: '', firstSquadPower: '', secondSquadPower: '', thirdSquadPower: '', fourthSquadPower: '', totalHeroPower: '',
-  heroPercent: '0', duelPercent: '0', unitsPercent: '0',
+  heroPercent: '', duelPercent: '', unitsPercent: '',
   t10Morale: '1', t10Protection: '0', t10Hp: '0', t10Atk: '0', t10Def: '0', t10Elite: '0',
   techLevel: '', barracksLevel: '', tankCenterLevel: '', airCenterLevel: '', missileCenterLevel: '',
 };
@@ -156,12 +156,13 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
         // Validation: Ensure everything is filled
         const requiredFields = [
             formData.name, formData.firstSquadPower, formData.secondSquadPower, formData.thirdSquadPower, 
-            formData.fourthSquadPower, formData.totalHeroPower, formData.barracksLevel, formData.techLevel,
+            formData.fourthSquadPower, formData.totalHeroPower, formData.heroPercent, formData.duelPercent, 
+            formData.unitsPercent, formData.barracksLevel, formData.techLevel,
             formData.tankCenterLevel, formData.airCenterLevel, formData.missileCenterLevel
         ];
 
-        if (requiredFields.some(field => !field || field.trim() === '')) {
-            throw new Error("All intelligence fields are mandatory for HQ synchronization.");
+        if (requiredFields.some(field => field === undefined || field === null || String(field).trim() === '')) {
+            throw new Error("All fields are mandatory for HQ synchronization.");
         }
         
         const res = await MockApi.upsertPlayer({
@@ -258,7 +259,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
 
             <section className="space-y-6">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest border-l-2 border-indigo-500 pl-3">{t('section.tech')}</h3>
-                <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 shadow-lg space-y-8 text-center transition-all hover:border-indigo-500/20">
+                <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 shadow-lg space-y-8 transition-all hover:border-indigo-500/20">
                     <div className="flex flex-col items-center relative mb-8">
                          <TechNode id="t10Protection" label={t('t10.protection')} value={formData.t10Protection} onChange={(v: any) => setFormData(p => ({...p, t10Protection: String(v)}))} />
                          <div className="h-6 w-px bg-sky-500/30"></div>
@@ -269,6 +270,12 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                          </div>
                          <div className="h-6 w-px bg-sky-500/30"></div>
                          <TechNode id="t10Elite" label="Elite Units" value={formData.t10Elite} onChange={(v: any) => setFormData(p => ({...p, t10Elite: String(v)}))} binary />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/5">
+                        <FormInput label={t('stat.hero')} name="heroPercent" val={formData.heroPercent} change={(e: any) => setFormData(p => ({...p, heroPercent: e.target.value}))} type="number" suffix="%" req={true} />
+                        <FormInput label={t('stat.duel')} name="duelPercent" val={formData.duelPercent} change={(e: any) => setFormData(p => ({...p, duelPercent: e.target.value}))} type="number" suffix="%" req={true} />
+                        <FormInput label={t('stat.units')} name="unitsPercent" val={formData.unitsPercent} change={(e: any) => setFormData(p => ({...p, unitsPercent: e.target.value}))} type="number" suffix="%" req={true} />
                     </div>
 
                     <div className="max-w-xs mx-auto text-left space-y-2">
