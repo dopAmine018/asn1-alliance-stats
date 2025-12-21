@@ -59,6 +59,12 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
         }
     };
 
+    const getLocalTime = (gmt3Hour: number) => {
+        const date = new Date();
+        date.setUTCHours(gmt3Hour - 3, 0, 0, 0);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    };
+
     const handleSearch = async (val: string) => {
         setRegName(val);
         setSelectedPlayer(null);
@@ -94,59 +100,96 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
     const handleExport = async () => {
         if (!exportRef.current) return;
         try {
-            addToast('info', 'Generating Image...');
-            const canvas = await html2canvas(exportRef.current, { backgroundColor: '#020617', scale: 2 });
-            canvas.toBlob((blob: any) => {
-                if(blob) {
-                    navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-                        .then(() => addToast('success', 'Copied to clipboard'))
-                        .catch(() => addToast('error', 'Clipboard denied'));
-                }
+            addToast('info', 'Processing High-Res Image...');
+            
+            const canvas = await html2canvas(exportRef.current, { 
+                backgroundColor: '#020617', 
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                allowTaint: true
             });
-        } catch(e) { addToast('error', 'Export failed'); }
+
+            canvas.toBlob(async (blob: Blob | null) => {
+                if (!blob) throw new Error("Image generation failed");
+
+                const file = new File([blob], "ASN1_DesertStorm_Roster.png", { type: "image/png" });
+
+                // Idea: Use navigator.share if available (Best for phones)
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Desert Storm Roster',
+                            text: 'Latest tactical deployment orders for ASN1 Alliance.'
+                        });
+                        addToast('success', 'Shared successfully');
+                        return;
+                    } catch (shareErr) {
+                        // User might have cancelled, fall back to download
+                        console.log("Share cancelled or failed, falling back to download");
+                    }
+                }
+
+                // Fallback: Automatic Download
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `ASN1_Roster_${new Date().toISOString().split('T')[0]}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                addToast('success', 'Image Downloaded');
+                
+            }, 'image/png');
+        } catch(e) { 
+            addToast('error', 'Export failed'); 
+            console.error(e);
+        }
     };
 
     const PlayerList = ({ players, title, color }: { players: Player[], title: string, color: string }) => (
         <div className="mb-6">
             <div className={`flex justify-between items-center mb-2 border-b ${color} pb-1`}>
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{title}</span>
-                <span className="text-[9px] font-mono text-slate-500 font-bold">{players.length}</span>
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{title}</span>
+                <span className="text-[9px] font-mono text-slate-600 font-bold">{players.length}</span>
             </div>
             <div className="space-y-1">
                 {players.length > 0 ? players.map((p, i) => (
-                    <div key={p.id} className="flex justify-between items-center bg-slate-900/40 border border-white/5 p-2 rounded hover:border-slate-700 transition-colors">
+                    <div key={p.id} className="flex justify-between items-center bg-black/20 border border-white/5 p-2 rounded shadow-sm">
                         <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-[8px] font-mono text-slate-600 font-bold">{i + 1}</span>
+                            <span className="text-[8px] font-mono text-slate-700 font-bold">{i + 1}</span>
                             <span className="text-xs font-bold text-slate-200 truncate">{p.name}</span>
                         </div>
                         <span className="text-[10px] font-mono text-sky-500 ml-2">{(p.firstSquadPower/1000000).toFixed(1)}M</span>
                     </div>
-                )) : <div className="text-[10px] text-slate-600 italic py-2 text-center bg-black/20 rounded">PENDING</div>}
+                )) : <div className="text-[10px] text-slate-700 italic py-2 text-center bg-black/10 rounded">TBD</div>}
             </div>
         </div>
     );
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-6xl mx-auto px-4 lg:px-0">
-            {/* Header / Actions */}
-            <div className="flex flex-col sm:flex-row items-center justify-between mb-8 border-b border-white/10 pb-6 gap-4">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-4xl mx-auto">
+            {/* Action Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-8 border-b border-white/5 pb-6 gap-4 px-4">
                 <div className="flex items-center gap-4 w-full">
-                    <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 border border-white/5 hover:border-sky-500 hover:text-sky-500 transition-all">
+                    <button onClick={onBack} className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 border border-white/5 hover:border-sky-500 transition-all">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                     </button>
                     <div>
                         <h2 className="text-xl font-header font-black text-white uppercase tracking-wider">DESERT STORM</h2>
-                        <p className="text-[10px] text-slate-500 font-mono tracking-widest uppercase">Weekly Tactical Deployment</p>
+                        <p className="text-[10px] text-slate-500 font-mono tracking-widest uppercase">Weekly Desert Storm Deployment</p>
                     </div>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
                     {allowRegistration && (
-                        <button onClick={() => setShowRegister(true)} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all click-scale shadow-lg shadow-emerald-900/20">
-                             JOIN
+                        <button onClick={() => setShowRegister(true)} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-900/10">
+                             JOIN EVENT
                         </button>
                     )}
-                    <button onClick={handleExport} className="flex-1 sm:flex-none bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all click-scale">
-                        IMAGE
+                    <button onClick={handleExport} className="flex-1 sm:flex-none bg-slate-800 hover:bg-slate-700 text-sky-400 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-700 transition-colors">
+                        IMG
                     </button>
                 </div>
             </div>
@@ -157,100 +200,103 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                     <p className="font-mono text-[10px] uppercase tracking-widest">Accessing Intel...</p>
                 </div>
             ) : (
-                <>
-                    {/* Visual Interface for Phone (Responsive) */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-12">
-                        {/* Team A Phone UI */}
-                        <div className="bg-[#0f172a]/40 border border-amber-500/20 rounded-2xl p-5 shadow-2xl">
-                             <div className="flex justify-between items-end mb-6 border-b-2 border-amber-500 pb-2">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-amber-500">☀</span>
-                                        <span className="text-[9px] text-slate-500 font-bold uppercase">14:00 GMT+3</span>
-                                    </div>
-                                    <h3 className="text-2xl font-header font-black text-white">TEAM A</h3>
+                <div className="px-4 space-y-6 pb-20">
+                    
+                    {/* Team A Vertical Block */}
+                    <div className="bg-[#0f172a] rounded-2xl border border-amber-500/30 overflow-hidden shadow-2xl">
+                         <div className="p-5 bg-gradient-to-r from-amber-500/10 to-transparent flex justify-between items-center border-b border-amber-500/20">
+                            <div>
+                                <h3 className="text-2xl font-header font-black text-white">TEAM A</h3>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-[10px] font-mono font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">14:00 GMT+3</span>
+                                    <span className="text-[10px] font-mono font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded uppercase">Your Time: {getLocalTime(14)}</span>
                                 </div>
-                                <div className="text-right">
-                                    <div className="text-[8px] text-amber-500 font-black uppercase">POWER</div>
-                                    <div className="text-xl font-mono font-black text-white">{getTotalPower([...data.teamAMain, ...data.teamASubs])}</div>
-                                </div>
-                             </div>
-                             <PlayerList players={data.teamAMain} title="Primary Offensive" color="border-amber-500/30" />
-                             <PlayerList players={data.teamASubs} title="Reserves" color="border-amber-900/20" />
-                        </div>
-
-                        {/* Team B Phone UI */}
-                        <div className="bg-[#0f172a]/40 border border-sky-500/20 rounded-2xl p-5 shadow-2xl">
-                             <div className="flex justify-between items-end mb-6 border-b-2 border-sky-500 pb-2">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-sky-500">☾</span>
-                                        <span className="text-[9px] text-slate-500 font-bold uppercase">23:00 GMT+3</span>
-                                    </div>
-                                    <h3 className="text-2xl font-header font-black text-white">TEAM B</h3>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-[8px] text-sky-500 font-black uppercase">POWER</div>
-                                    <div className="text-xl font-mono font-black text-white">{getTotalPower([...data.teamBMain, ...data.teamBSubs])}</div>
-                                </div>
-                             </div>
-                             <PlayerList players={data.teamBMain} title="Primary Offensive" color="border-sky-500/30" />
-                             <PlayerList players={data.teamBSubs} title="Reserves" color="border-sky-900/20" />
-                        </div>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[8px] font-black text-amber-500 uppercase tracking-widest">NET POWER</p>
+                                <p className="text-xl font-mono font-black text-white">{getTotalPower([...data.teamAMain, ...data.teamASubs])}</p>
+                            </div>
+                         </div>
+                         <div className="p-5">
+                            <PlayerList players={data.teamAMain} title="Squad 1 (Main Offensive)" color="border-amber-500/20" />
+                            <PlayerList players={data.teamASubs} title="Squad 1 (Reserves)" color="border-slate-800" />
+                         </div>
                     </div>
 
-                    {/* Hidden Container for Export (Keeps fixed width for good image aspect ratio) */}
-                    <div style={{ position: 'absolute', left: -9999, top: 0 }}>
-                        <div ref={exportRef} className="bg-[#020617] p-10 w-[1000px] border border-slate-800 text-white rounded-xl">
-                            <div className="flex justify-center mb-8">
-                                <h1 className="text-3xl font-header font-black tracking-[0.4em] text-white">DESERT STORM ORDERS</h1>
+                    {/* Team B Vertical Block */}
+                    <div className="bg-[#0f172a] rounded-2xl border border-sky-500/30 overflow-hidden shadow-2xl">
+                         <div className="p-5 bg-gradient-to-r from-sky-500/10 to-transparent flex justify-between items-center border-b border-sky-500/20">
+                            <div>
+                                <h3 className="text-2xl font-header font-black text-white">TEAM B</h3>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-[10px] font-mono font-bold text-sky-500 bg-sky-500/10 px-2 py-0.5 rounded">23:00 GMT+3</span>
+                                    <span className="text-[10px] font-mono font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded uppercase">Your Time: {getLocalTime(23)}</span>
+                                </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-10">
-                                <div className="space-y-6">
-                                    <h2 className="text-4xl font-black italic border-b-4 border-amber-500 pb-2 flex justify-between items-end">
+                            <div className="text-right">
+                                <p className="text-[8px] font-black text-sky-500 uppercase tracking-widest">NET POWER</p>
+                                <p className="text-xl font-mono font-black text-white">{getTotalPower([...data.teamBMain, ...data.teamBSubs])}</p>
+                            </div>
+                         </div>
+                         <div className="p-5">
+                            <PlayerList players={data.teamBMain} title="Squad 1 (Main Offensive)" color="border-sky-500/20" />
+                            <PlayerList players={data.teamBSubs} title="Squad 1 (Reserves)" color="border-slate-800" />
+                         </div>
+                    </div>
+
+                    {/* Hidden Export Container - Fixed width for consistent image render */}
+                    <div style={{ position: 'fixed', left: '-2000px', top: '0', width: '800px', zIndex: -1 }}>
+                        <div ref={exportRef} className="bg-[#020617] p-10 w-[800px] text-white">
+                            <div className="text-center mb-8 border-b border-slate-800 pb-8">
+                                <h1 className="text-4xl font-header font-black tracking-[0.3em] text-white">DESERT STORM ROSTER</h1>
+                                <p className="text-xs text-slate-500 font-mono mt-3">ASN1 ALLIANCE STRATEGIC COMMAND // TRANSMISSION SECURED</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-12">
+                                <div>
+                                    <h2 className="text-3xl font-black italic border-b-4 border-amber-500 pb-2 flex justify-between items-end">
                                         TEAM A <span className="text-xl font-mono not-italic text-amber-500">{getTotalPower([...data.teamAMain, ...data.teamASubs])}</span>
                                     </h2>
-                                    <PlayerList players={data.teamAMain} title="PRIMARY SQUAD" color="border-amber-500/30" />
-                                    <PlayerList players={data.teamASubs} title="RESERVES" color="border-amber-900/20" />
+                                    <div className="mt-6"><PlayerList players={data.teamAMain} title="MAIN OFFENSIVE" color="border-amber-500/30" /></div>
+                                    <PlayerList players={data.teamASubs} title="RESERVE SQUAD" color="border-amber-900/20" />
                                 </div>
-                                <div className="space-y-6">
-                                    <h2 className="text-4xl font-black italic border-b-4 border-sky-500 pb-2 flex justify-between items-end">
+                                <div>
+                                    <h2 className="text-3xl font-black italic border-b-4 border-sky-500 pb-2 flex justify-between items-end">
                                         TEAM B <span className="text-xl font-mono not-italic text-sky-500">{getTotalPower([...data.teamBMain, ...data.teamBSubs])}</span>
                                     </h2>
-                                    <PlayerList players={data.teamBMain} title="PRIMARY SQUAD" color="border-sky-500/30" />
-                                    <PlayerList players={data.teamBSubs} title="RESERVES" color="border-sky-900/20" />
+                                    <div className="mt-6"><PlayerList players={data.teamBMain} title="MAIN OFFENSIVE" color="border-sky-500/30" /></div>
+                                    <PlayerList players={data.teamBSubs} title="RESERVE SQUAD" color="border-sky-900/20" />
                                 </div>
                             </div>
-                            <div className="mt-10 pt-4 border-t border-slate-800 text-center text-xs text-slate-500 font-mono uppercase tracking-widest">
-                                ASN1 Alliance Strategic Command // Secured Transmission
+                            <div className="mt-12 pt-6 border-t border-slate-800 text-center">
+                                <span className="text-[10px] text-slate-600 font-mono tracking-widest uppercase italic">Generated by ASN1 Tactical Interface</span>
                             </div>
                         </div>
                     </div>
-                </>
+                </div>
             )}
 
             {/* Registration Modal */}
             {showRegister && (
                 <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
-                    <div className="bg-[#0b1121] w-full max-w-md rounded-2xl border border-white/5 shadow-2xl flex flex-col relative">
-                        <div className="p-6 border-b border-white/5 flex justify-between items-center">
-                            <h3 className="text-base font-header font-black text-white uppercase tracking-widest">Apply for Entry</h3>
+                    <div className="bg-[#0b1121] w-full max-w-md rounded-2xl border border-white/5 shadow-2xl overflow-hidden animate-in zoom-in-95">
+                        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-slate-900/50">
+                            <h3 className="text-sm font-header font-black text-white uppercase tracking-widest">Apply for Slot</h3>
                             <button onClick={() => setShowRegister(false)} className="text-slate-500 hover:text-white transition-colors">✕</button>
                         </div>
                         
                         <div className="p-6 space-y-8">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Identify Profile</label>
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Identify Your Profile</label>
                                 <input 
                                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-sky-500 outline-none transition-all placeholder-slate-700 text-sm"
                                     value={regName}
                                     onChange={(e) => handleSearch(e.target.value)}
-                                    placeholder="Enter your name..."
+                                    placeholder="Enter commander name..."
                                 />
                                 {selectedPlayer ? (
-                                    <div className="bg-sky-500/10 border border-sky-500/30 p-3 rounded-xl flex justify-between items-center mt-2">
+                                    <div className="bg-sky-500/10 border border-sky-500/30 p-3 rounded-xl flex justify-between items-center">
                                         <span className="text-sm font-bold text-white uppercase">{selectedPlayer.name}</span>
-                                        <button onClick={() => setSelectedPlayer(null)} className="text-[9px] font-bold text-slate-500">CLEAR</button>
+                                        <button onClick={() => setSelectedPlayer(null)} className="text-[9px] font-black text-slate-500 hover:text-rose-500 uppercase">Clear</button>
                                     </div>
                                 ) : searchCandidates.length > 0 && (
                                     <div className="bg-slate-950 border border-slate-800 rounded-xl mt-1 divide-y divide-slate-800 max-h-40 overflow-y-auto">
@@ -264,25 +310,34 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                 )}
                             </div>
 
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Time Slot</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {['14:00', '23:00', 'ANY'].map(t => (
-                                        <button key={t} onClick={() => setRegTime(t as any)} className={`py-3 rounded-lg border text-[10px] font-bold transition-all ${regTime === t ? 'bg-sky-600 border-sky-400 text-white' : 'bg-slate-950 border-slate-800 text-slate-500'}`}>
-                                            {t === 'ANY' ? 'EITHER' : t}
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Select Deployment Time</label>
+                                <div className="grid grid-cols-1 gap-2">
+                                    {[
+                                        { val: '14:00', label: `TEAM A (${getLocalTime(14)} LOCAL)` },
+                                        { val: '23:00', label: `TEAM B (${getLocalTime(23)} LOCAL)` },
+                                        { val: 'ANY', label: 'EITHER TIME (ANY)' }
+                                    ].map(opt => (
+                                        <button 
+                                            key={opt.val} 
+                                            onClick={() => setRegTime(opt.val as any)} 
+                                            className={`w-full py-4 px-4 rounded-xl border text-[10px] font-black transition-all flex justify-between items-center ${regTime === opt.val ? 'bg-sky-600 border-sky-400 text-white shadow-lg' : 'bg-slate-950 border-slate-800 text-slate-500'}`}
+                                        >
+                                            {opt.label}
+                                            {regTime === opt.val && <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
                                         </button>
                                     ))}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="p-6 bg-slate-900/50 border-t border-white/5 rounded-b-2xl">
+                        <div className="p-6 bg-slate-900/50 border-t border-white/5">
                             <button 
                                 onClick={submitRegistration} 
                                 disabled={!selectedPlayer}
-                                className={`w-full py-4 rounded-xl font-header font-black uppercase tracking-widest text-xs transition-all ${selectedPlayer ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-900/20' : 'bg-slate-800 text-slate-500 opacity-50'}`}
+                                className={`w-full py-4 rounded-xl font-header font-black uppercase tracking-widest text-xs transition-all ${selectedPlayer ? 'bg-sky-600 text-white shadow-lg' : 'bg-slate-800 text-slate-500 opacity-50 cursor-not-allowed'}`}
                             >
-                                Transmit Application
+                                Submit Application
                             </button>
                         </div>
                     </div>
