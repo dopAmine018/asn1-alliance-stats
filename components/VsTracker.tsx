@@ -86,7 +86,7 @@ const VsTracker: React.FC = () => {
 
     try {
       await navigator.clipboard.writeText(report);
-      addToast('success', 'Tactical Standings Copied');
+      addToast('success', 'Tactical Intel Copied');
     } catch (err) {
       addToast('error', 'Clipboard denied');
     }
