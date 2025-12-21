@@ -403,7 +403,7 @@ const TrainManager: React.FC = () => {
       if (schedule.length === 0 || !exportRef.current) return;
       
       try {
-          addToast('info', 'Processing High-Res Image...');
+          addToast('info', 'Generating Image...');
           
           const canvas = await html2canvas(exportRef.current, {
               backgroundColor: '#020617',
@@ -413,21 +413,22 @@ const TrainManager: React.FC = () => {
           });
           
           canvas.toBlob(async (blob: Blob | null) => {
-              if (!blob) throw new Error("Canvas blob error");
+              if (!blob) throw new Error("Capture failed");
 
-              const file = new File([blob], "ASN1_Train_Schedule.png", { type: "image/png" });
+              const file = new File([blob], "Train_Schedule.png", { type: "image/png" });
 
+              // Share native if possible
               if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                   try {
                       await navigator.share({
                           files: [file],
-                          title: 'Weekly Train Schedule',
-                          text: 'Weekly train schedule orders for ASN1 Alliance.'
+                          title: 'Train Schedule',
+                          text: 'Weekly train orders for ASN1.'
                       });
                       addToast('success', 'Shared successfully');
                       return;
                   } catch (e) {
-                      console.log("Share skipped/cancelled");
+                      console.log("Share failed or was cancelled");
                   }
               }
 
@@ -440,11 +441,11 @@ const TrainManager: React.FC = () => {
               link.click();
               document.body.removeChild(link);
               URL.revokeObjectURL(url);
-              addToast('success', 'Image Downloaded');
+              addToast('success', 'Image Saved');
           }, 'image/png');
           
       } catch(e) {
-          addToast('error', 'Image generation failed.');
+          addToast('error', 'Capture error');
           console.error(e);
       }
   };
@@ -463,54 +464,59 @@ const TrainManager: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
         
-        {/* Hidden Export Container - Positioned off-screen but visible for html2canvas */}
-        <div style={{ position: 'fixed', left: '-2000px', top: '0', width: '800px', zIndex: -1 }}>
-            <div ref={exportRef} className="bg-[#020617] p-8 w-[800px] text-white">
-                <div className="flex items-center gap-4 mb-8 border-b border-slate-800 pb-6">
-                    <div className="w-12 h-12 bg-sky-600 rounded-lg flex items-center justify-center text-white">
-                         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        {/* Hidden Export Container - Positioned off-screen with fixed width for consistent capture */}
+        <div style={{ position: 'fixed', left: '-5000px', top: '0', width: '800px', zIndex: -1 }}>
+            <div ref={exportRef} className="bg-[#020617] p-10 w-[800px] text-white">
+                <div className="flex items-center gap-6 mb-10 border-b border-slate-800 pb-10">
+                    <div className="w-16 h-16 bg-sky-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                         <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </div>
                     <div>
-                        <h1 className="text-3xl font-black uppercase tracking-widest text-white">Train Orders</h1>
-                        <p className="text-sm text-sky-500 font-mono tracking-widest uppercase">ASN1 Alliance Command // Secure Transmission</p>
+                        <h1 className="text-4xl font-black uppercase tracking-[0.3em] text-white">ASN1 Train Orders</h1>
+                        <p className="text-sm text-sky-500 font-mono tracking-widest uppercase mt-2">Strategic Command Center // Verified Transmission</p>
                     </div>
                 </div>
                 
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-6">
                     {schedule.map((day, idx) => (
-                        <div key={idx} className="flex items-center bg-[#0f172a] border border-slate-700 rounded-lg p-5">
-                            <div className="w-40 border-r border-slate-700 mr-6">
-                                <h3 className="text-xl font-bold text-slate-300 uppercase">{t(`day.${day.dayName}` as any)}</h3>
-                                <span className={`text-[11px] font-black px-2 py-0.5 rounded ${day.mode === 'VIP' ? 'bg-amber-500/20 text-amber-500' : 'bg-sky-500/20 text-sky-500'}`}>
-                                    {day.mode === 'VIP' ? 'VIP MODE' : 'GUARDIAN MODE'}
-                                </span>
+                        <div key={idx} className="flex items-center bg-[#0f172a] border border-slate-700 rounded-2xl p-6 shadow-xl">
+                            <div className="w-48 border-r border-slate-700 mr-8">
+                                <h3 className="text-2xl font-bold text-slate-300 uppercase">{t(`day.${day.dayName}` as any)}</h3>
+                                <div className="mt-2">
+                                    <span className={`text-[12px] font-black px-3 py-1 rounded-lg ${day.mode === 'VIP' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-sky-500/20 text-sky-500 border border-sky-500/30'}`}>
+                                        {day.mode === 'VIP' ? 'VIP MODE' : 'GUARDIAN MODE'}
+                                    </span>
+                                </div>
                             </div>
 
-                            <div className="flex-1 grid grid-cols-2 gap-8">
+                            <div className="flex-1 grid grid-cols-2 gap-10">
                                 <div>
-                                    <div className="text-[10px] text-slate-500 uppercase font-black mb-1">CONDUCTOR</div>
-                                    <div className="text-xl font-bold text-white flex items-center gap-2">
+                                    <div className="text-[10px] text-slate-500 uppercase font-black mb-2 tracking-widest">CONDUCTOR</div>
+                                    <div className="text-2xl font-bold text-white flex items-center gap-3">
                                         {day.conductor?.name || 'TBD'}
-                                        {day.defender?.id === day.conductor?.id && <span className="text-[10px] bg-blue-600 text-white px-1.5 rounded">DEF</span>}
+                                        {day.defender?.id === day.conductor?.id && <span className="text-[10px] bg-sky-600 text-white px-2 py-0.5 rounded font-black">DEF</span>}
                                     </div>
-                                    <div className="text-xs text-slate-500 font-mono">{(day.conductor?.firstSquadPower ? (day.conductor.firstSquadPower/1000000).toFixed(1) : 0)}M Squad 1</div>
+                                    <div className="text-xs text-slate-500 font-mono mt-1">{(day.conductor?.firstSquadPower ? (day.conductor.firstSquadPower/1000000).toFixed(1) : 0)}M Squad Power</div>
                                 </div>
                                 <div>
-                                    <div className="text-[10px] text-slate-500 uppercase font-black mb-1">{day.mode === 'VIP' ? 'PASSENGER' : 'GUARDIAN'}</div>
-                                    <div className="text-xl font-bold text-white flex items-center gap-2">
+                                    <div className="text-[10px] text-slate-500 uppercase font-black mb-2 tracking-widest">{day.mode === 'VIP' ? 'PASSENGER' : 'GUARDIAN'}</div>
+                                    <div className="text-2xl font-bold text-white flex items-center gap-3">
                                         {day.vip?.name || 'TBD'}
-                                        {day.defender?.id === day.vip?.id && <span className="text-[10px] bg-blue-600 text-white px-1.5 rounded">DEF</span>}
+                                        {day.defender?.id === day.vip?.id && <span className="text-[10px] bg-sky-600 text-white px-2 py-0.5 rounded font-black">DEF</span>}
                                     </div>
-                                    <div className="text-xs text-slate-500 font-mono">{(day.vip?.firstSquadPower ? (day.vip.firstSquadPower/1000000).toFixed(1) : 0)}M Squad 1</div>
+                                    <div className="text-xs text-slate-500 font-mono mt-1">{(day.vip?.firstSquadPower ? (day.vip.firstSquadPower/1000000).toFixed(1) : 0)}M Squad Power</div>
                                 </div>
                             </div>
                         </div>
                     ))}
                 </div>
+                <div className="mt-12 text-center text-[10px] text-slate-700 font-mono uppercase tracking-[0.5em]">
+                    End of Transmission
+                </div>
             </div>
         </div>
 
-        {/* Normal Header */}
+        {/* Normal UI continues... */}
         <div className="bg-gradient-to-r from-amber-500/10 to-transparent border-l-4 border-amber-500 p-6 rounded-r-xl flex flex-col sm:flex-row justify-between items-start gap-4">
             <div className="w-full">
                 <h2 className="text-xl font-header font-bold text-white uppercase tracking-widest flex items-center gap-3">
@@ -525,6 +531,7 @@ const TrainManager: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Candidate List */}
             <div className="bg-[#0f172a] border border-slate-700 rounded-xl overflow-hidden flex flex-col h-[600px]">
                 <div className="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center gap-2">
                     <div className="flex flex-col">
@@ -579,6 +586,7 @@ const TrainManager: React.FC = () => {
                 </div>
             </div>
 
+            {/* Schedule Interface */}
             <div className="flex flex-col h-[600px] gap-4">
                  <div className="flex justify-between items-center mb-2">
                     <h3 className="text-sm font-bold text-emerald-500 uppercase tracking-widest">{t('train.schedule')}</h3>

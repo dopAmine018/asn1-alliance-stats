@@ -100,51 +100,50 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
     const handleExport = async () => {
         if (!exportRef.current) return;
         try {
-            addToast('info', 'Processing High-Res Image...');
+            addToast('info', 'Generating Image...');
             
             const canvas = await html2canvas(exportRef.current, { 
                 backgroundColor: '#020617', 
                 scale: 2,
                 logging: false,
-                useCORS: true,
-                allowTaint: true
+                useCORS: true
             });
 
             canvas.toBlob(async (blob: Blob | null) => {
-                if (!blob) throw new Error("Image generation failed");
+                if (!blob) throw new Error("Capture failed");
 
-                const file = new File([blob], "ASN1_DesertStorm_Roster.png", { type: "image/png" });
+                const file = new File([blob], "ASN1_Roster.png", { type: "image/png" });
 
-                // Idea: Use navigator.share if available (Best for phones)
+                // Try Web Share first (Mobile Best Practice)
                 if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                     try {
                         await navigator.share({
                             files: [file],
                             title: 'Desert Storm Roster',
-                            text: 'Latest tactical deployment orders for ASN1 Alliance.'
+                            text: 'Latest orders for ASN1 Alliance.'
                         });
                         addToast('success', 'Shared successfully');
                         return;
-                    } catch (shareErr) {
-                        // User might have cancelled, fall back to download
-                        console.log("Share cancelled or failed, falling back to download");
+                    } catch (e) {
+                        // If share failed/cancelled, fall through to download
+                        console.log("Share failed or was cancelled");
                     }
                 }
 
-                // Fallback: Automatic Download
+                // Fallback: Direct Download (Works on Desktop and most Mobile)
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `ASN1_Roster_${new Date().toISOString().split('T')[0]}.png`;
+                link.download = `ASN1_Roster_${new Date().toLocaleDateString().replace(/\//g, '-')}.png`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
-                addToast('success', 'Image Downloaded');
+                addToast('success', 'Image Saved to device');
                 
             }, 'image/png');
         } catch(e) { 
-            addToast('error', 'Export failed'); 
+            addToast('error', 'Export error'); 
             console.error(e);
         }
     };
@@ -244,31 +243,31 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                          </div>
                     </div>
 
-                    {/* Hidden Export Container - Fixed width for consistent image render */}
-                    <div style={{ position: 'fixed', left: '-2000px', top: '0', width: '800px', zIndex: -1 }}>
-                        <div ref={exportRef} className="bg-[#020617] p-10 w-[800px] text-white">
-                            <div className="text-center mb-8 border-b border-slate-800 pb-8">
-                                <h1 className="text-4xl font-header font-black tracking-[0.3em] text-white">DESERT STORM ROSTER</h1>
-                                <p className="text-xs text-slate-500 font-mono mt-3">ASN1 ALLIANCE STRATEGIC COMMAND // TRANSMISSION SECURED</p>
+                    {/* Hidden Export Container - Positioned and fixed for proper capture */}
+                    <div style={{ position: 'fixed', left: '-5000px', top: '0', width: '800px', zIndex: -1 }}>
+                        <div ref={exportRef} className="bg-[#020617] p-12 w-[800px] text-white">
+                            <div className="text-center mb-10 border-b border-slate-800 pb-10">
+                                <h1 className="text-5xl font-header font-black tracking-[0.4em] text-white">DESERT STORM ROSTER</h1>
+                                <p className="text-sm text-slate-500 font-mono mt-4 uppercase tracking-[0.2em]">ASN1 ALLIANCE STRATEGIC COMMAND</p>
                             </div>
-                            <div className="grid grid-cols-2 gap-12">
+                            <div className="grid grid-cols-2 gap-16">
                                 <div>
-                                    <h2 className="text-3xl font-black italic border-b-4 border-amber-500 pb-2 flex justify-between items-end">
+                                    <h2 className="text-4xl font-black italic border-b-4 border-amber-500 pb-3 flex justify-between items-end">
                                         TEAM A <span className="text-xl font-mono not-italic text-amber-500">{getTotalPower([...data.teamAMain, ...data.teamASubs])}</span>
                                     </h2>
-                                    <div className="mt-6"><PlayerList players={data.teamAMain} title="MAIN OFFENSIVE" color="border-amber-500/30" /></div>
+                                    <div className="mt-8"><PlayerList players={data.teamAMain} title="MAIN OFFENSIVE" color="border-amber-500/30" /></div>
                                     <PlayerList players={data.teamASubs} title="RESERVE SQUAD" color="border-amber-900/20" />
                                 </div>
                                 <div>
-                                    <h2 className="text-3xl font-black italic border-b-4 border-sky-500 pb-2 flex justify-between items-end">
+                                    <h2 className="text-4xl font-black italic border-b-4 border-sky-500 pb-3 flex justify-between items-end">
                                         TEAM B <span className="text-xl font-mono not-italic text-sky-500">{getTotalPower([...data.teamBMain, ...data.teamBSubs])}</span>
                                     </h2>
-                                    <div className="mt-6"><PlayerList players={data.teamBMain} title="MAIN OFFENSIVE" color="border-sky-500/30" /></div>
+                                    <div className="mt-8"><PlayerList players={data.teamBMain} title="MAIN OFFENSIVE" color="border-sky-500/30" /></div>
                                     <PlayerList players={data.teamBSubs} title="RESERVE SQUAD" color="border-sky-900/20" />
                                 </div>
                             </div>
-                            <div className="mt-12 pt-6 border-t border-slate-800 text-center">
-                                <span className="text-[10px] text-slate-600 font-mono tracking-widest uppercase italic">Generated by ASN1 Tactical Interface</span>
+                            <div className="mt-16 pt-8 border-t border-slate-800 text-center">
+                                <span className="text-xs text-slate-600 font-mono tracking-widest uppercase italic">Transmission Verified // ASN1 Tactical Interface</span>
                             </div>
                         </div>
                     </div>
