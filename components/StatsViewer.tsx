@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { Player, PlayerFilter } from '../types';
 import { MockApi } from '../services/mockBackend';
 import PlayerCard from './PlayerCard';
 import { useLanguage } from '../utils/i18n';
 import { CustomDropdown } from './CustomDropdown';
 import { calculateT10RemainingCost } from '../utils/gameLogic';
+import { useToast } from './Toast';
 
 interface StatsViewerProps {
   refreshTrigger: number;
@@ -13,9 +15,11 @@ interface StatsViewerProps {
 
 const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => {
   const { t } = useLanguage();
+  const { addToast } = useToast();
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
   
   const [filter, setFilter] = useState<PlayerFilter>({ language: 'all', search: '', sort: 'time_desc', activeOnly: false });
 
@@ -66,94 +70,60 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
   }, [filter, refreshTrigger]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFilter(prev => ({ ...prev, search: e.target.value })); };
-  
-  const downloadFile = (content: string, fileName: string, mimeType: string) => {
-      const blob = new Blob([content], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", fileName);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-  };
 
-  const exportToExcel = () => {
+  const pad = (str: string, length: number) => str.length > length ? str.substring(0, length - 3) + '..' : str.padEnd(length, ' ');
+
+  const copyTacticalReport = async () => {
     if (!players.length) return;
-    
-    let xmlContent = `<?xml version="1.0"?>
-    <?mso-application progid="Excel.Sheet"?>
-    <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
-     xmlns:o="urn:schemas-microsoft-com:office:office"
-     xmlns:x="urn:schemas-microsoft-com:office:excel"
-     xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
-     xmlns:html="http://www.w3.org/TR/REC-html40">
-     <Worksheet ss:Name="ASN1_Intelligence">
-      <Table>
-       <Row>
-        <Cell><Data ss:Type="String">Player Name</Data></Cell>
-        <Cell><Data ss:Type="String">Squad 1 (M)</Data></Cell>
-        <Cell><Data ss:Type="String">Squad 2 (M)</Data></Cell>
-        <Cell><Data ss:Type="String">Squad 3 (M)</Data></Cell>
-        <Cell><Data ss:Type="String">Squad 4 (M)</Data></Cell>
-        <Cell><Data ss:Type="String">Hero Aggregate (M)</Data></Cell>
-        <Cell><Data ss:Type="String">Hero %</Data></Cell>
-        <Cell><Data ss:Type="String">Duel %</Data></Cell>
-        <Cell><Data ss:Type="String">Unit %</Data></Cell>
-        <Cell><Data ss:Type="String">T10 Morale</Data></Cell>
-        <Cell><Data ss:Type="String">T10 Prot</Data></Cell>
-        <Cell><Data ss:Type="String">T10 HP</Data></Cell>
-        <Cell><Data ss:Type="String">T10 Atk</Data></Cell>
-        <Cell><Data ss:Type="String">T10 Def</Data></Cell>
-        <Cell><Data ss:Type="String">Tech Center</Data></Cell>
-        <Cell><Data ss:Type="String">Barracks</Data></Cell>
-        <Cell><Data ss:Type="String">Tank</Data></Cell>
-        <Cell><Data ss:Type="String">Air</Data></Cell>
-        <Cell><Data ss:Type="String">Missile</Data></Cell>
-        <Cell><Data ss:Type="String">Updated</Data></Cell>
-       </Row>`;
+    const date = new Date().toLocaleDateString();
+    let report = `### 📋 ASN1 ALLIANCE INTEL REPORT [${date}]\n\`\`\`\n`;
+    report += `${pad("RK", 3)} ${pad("COMMANDER", 15)} ${pad("POWER", 8)} ${pad("T10%", 5)}\n`;
+    report += `${"-".repeat(3)} ${"-".repeat(15)} ${"-".repeat(8)} ${"-".repeat(5)}\n`;
 
-    players.forEach(p => {
-       const date = new Date(p.updatedAt).toLocaleDateString();
-       const sq1 = (p.firstSquadPower / 1000000).toFixed(2);
-       const sq2 = (p.secondSquadPower ? p.secondSquadPower / 1000000 : 0).toFixed(2);
-       const sq3 = (p.thirdSquadPower ? p.thirdSquadPower / 1000000 : 0).toFixed(2);
-       const sq4 = (p.fourthSquadPower ? p.fourthSquadPower / 1000000 : 0).toFixed(2);
-       const heroPwr = (p.totalHeroPower / 1000000).toFixed(2);
-       const safeName = p.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-       xmlContent += `
-       <Row>
-        <Cell><Data ss:Type="String">${safeName}</Data></Cell>
-        <Cell><Data ss:Type="Number">${sq1}</Data></Cell>
-        <Cell><Data ss:Type="Number">${sq2}</Data></Cell>
-        <Cell><Data ss:Type="Number">${sq3}</Data></Cell>
-        <Cell><Data ss:Type="Number">${sq4}</Data></Cell>
-        <Cell><Data ss:Type="Number">${heroPwr}</Data></Cell>
-        <Cell><Data ss:Type="Number">${p.heroPercent}</Data></Cell>
-        <Cell><Data ss:Type="Number">${p.duelPercent}</Data></Cell>
-        <Cell><Data ss:Type="Number">${p.unitsPercent}</Data></Cell>
-        <Cell><Data ss:Type="Number">${p.t10Morale || 0}</Data></Cell>
-        <Cell><Data ss:Type="Number">${p.t10Protection || 0}</Data></Cell>
-        <Cell><Data ss:Type="Number">${p.t10Hp || 0}</Data></Cell>
-        <Cell><Data ss:Type="Number">${p.t10Atk || 0}</Data></Cell>
-        <Cell><Data ss:Type="Number">${p.t10Def || 0}</Data></Cell>
-        <Cell><Data ss:Type="Number">${p.techLevel || 0}</Data></Cell>
-        <Cell><Data ss:Type="Number">${p.barracksLevel || 0}</Data></Cell>
-        <Cell><Data ss:Type="Number">${p.tankCenterLevel || 0}</Data></Cell>
-        <Cell><Data ss:Type="Number">${p.airCenterLevel || 0}</Data></Cell>
-        <Cell><Data ss:Type="Number">${p.missileCenterLevel || 0}</Data></Cell>
-        <Cell><Data ss:Type="String">${date}</Data></Cell>
-       </Row>`;
+    players.slice(0, 15).forEach((p, i) => {
+      const pwr = (p.firstSquadPower / 1000000).toFixed(1) + "M";
+      const t10 = (100 - Math.round(calculateT10RemainingCost(p).gold / 35000000000 * 100)) + "%";
+      report += `${pad((i + 1).toString(), 3)} ${pad(p.name.toUpperCase(), 15)} ${pad(pwr, 8)} ${pad(t10, 5)}\n`;
     });
 
-    xmlContent += `
-      </Table>
-     </Worksheet>
-    </Workbook>`;
+    report += `\`\`\`\n*Generated via ASN1 Command Center*`;
 
-    downloadFile(xmlContent, 'ASN1_Alliance_Stats.xls', 'application/vnd.ms-excel');
+    try {
+      await navigator.clipboard.writeText(report);
+      addToast('success', 'Tactical Report Copied (Discord Ready)');
+    } catch (err) {
+      addToast('error', 'Clipboard access denied');
+    }
+  };
+
+  const exportAsCSV = () => {
+    if (!players.length) return;
+    const headers = ["Rank", "Name", "Region", "Squad 1 (M)", "Squad 2 (M)", "Total Hero Power (M)", "Hero %", "Duel %", "Units %", "T10 Progress", "Last Updated"];
+    const rows = players.map((p, i) => [
+        i + 1,
+        p.name,
+        p.language,
+        (p.firstSquadPower / 1000000).toFixed(1),
+        ((p.secondSquadPower || 0) / 1000000).toFixed(1),
+        (p.totalHeroPower / 1000000).toFixed(1),
+        p.heroPercent,
+        p.duelPercent,
+        p.unitsPercent,
+        `${100 - Math.round(calculateT10RemainingCost(p).gold / 35000000000 * 100)}%`,
+        new Date(p.updatedAt).toLocaleDateString()
+    ]);
+
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `ASN1_Leaderboard_${new Date().getTime()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    addToast('success', 'CSV Intelligence Extracted');
   };
 
   const languageOptions = [ { value: 'all', label: 'ALL_REGIONS' }, { value: 'english', label: 'ENGLISH' }, { value: 'arabic', label: 'ARABIC' }, { value: 'turkish', label: 'TURKISH' }, { value: 'indonesian', label: 'INDONESIAN' } ];
@@ -186,7 +156,7 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
       </div>
 
       <div className="bg-[#020617]/50 backdrop-blur-md border border-white/5 p-2 rounded-2xl grid grid-cols-1 md:grid-cols-12 gap-2 shadow-2xl">
-        <div className="md:col-span-5 relative group">
+        <div className="md:col-span-3 relative group">
              <div className="absolute inset-y-0 start-0 ps-4 flex items-center pointer-events-none">
                 <svg className="h-3.5 w-3.5 text-slate-500 group-focus-within:text-sky-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
              </div>
@@ -206,35 +176,46 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
              <CustomDropdown value={filter.sort} onChange={(val) => setFilter(prev => ({ ...prev, sort: val as any }))} options={sortOptions} />
         </div>
         
-        <div className="md:col-span-1">
+        <div className="md:col-span-3 flex gap-2">
             <button 
-                onClick={exportToExcel}
-                className="w-full h-full bg-emerald-600/10 hover:bg-emerald-600 text-emerald-500 hover:text-white border border-emerald-500/20 rounded-xl flex items-center justify-center transition-all click-scale shadow-lg"
+                onClick={copyTacticalReport}
+                title="Copy Tactical Report"
+                className="flex-1 bg-sky-600/10 hover:bg-sky-600 text-sky-400 hover:text-white border border-sky-500/20 rounded-xl flex items-center justify-center transition-all click-scale shadow-lg py-3"
             >
-               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M16 10l-4 4m0 0l-4-4m4 4V4" /></svg>
+               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+               <span className="text-[10px] font-bold uppercase tracking-widest">Copy Report</span>
+            </button>
+            <button 
+                onClick={exportAsCSV}
+                title="Download CSV"
+                className="flex-1 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white border border-emerald-500/20 rounded-xl flex items-center justify-center transition-all click-scale shadow-lg py-3"
+            >
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m3 2h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
             </button>
         </div>
       </div>
 
-      {loading && players.length === 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-             {[1,2,3,4,5,6].map(i => <div key={i} className="h-64 rounded-2xl bg-[#0a0f1e] animate-pulse border border-white/5"></div>)}
-        </div>
-      ) : players.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20">
-          {players.map((p, index) => (
-            <PlayerCard key={p.id} player={p} rank={filter.sort === 'power_desc' ? index + 1 : undefined} />
-          ))}
-        </div>
-      ) : (
-        <div className="py-32 rounded-3xl border-2 border-dashed border-white/5 flex flex-col items-center justify-center text-center bg-slate-900/20">
-            <div className="w-20 h-20 rounded-3xl bg-slate-900 flex items-center justify-center mb-6 text-slate-700 shadow-2xl border border-white/5">
-                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 9.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
-            <p className="text-slate-500 font-header text-sm uppercase tracking-[0.3em] font-bold">{errorMsg ? "TERMINAL_OFFLINE" : "NO_PLAYERS_FOUND"}</p>
-            {errorMsg && <p className="text-rose-500 text-[10px] mt-4 font-mono font-bold">{errorMsg.toUpperCase()}</p>}
-        </div>
-      )}
+      <div ref={exportRef} className="pb-20">
+        {loading && players.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+               {[1,2,3,4,5,6].map(i => <div key={i} className="h-64 rounded-2xl bg-[#0a0f1e] animate-pulse border border-white/5"></div>)}
+          </div>
+        ) : players.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {players.map((p, index) => (
+              <PlayerCard key={p.id} player={p} rank={filter.sort === 'power_desc' ? index + 1 : undefined} />
+            ))}
+          </div>
+        ) : (
+          <div className="py-32 rounded-3xl border-2 border-dashed border-white/5 flex flex-col items-center justify-center text-center bg-slate-900/20">
+              <div className="w-20 h-20 rounded-3xl bg-slate-900 flex items-center justify-center mb-6 text-slate-700 shadow-2xl border border-white/5">
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 9.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <p className="text-slate-500 font-header text-sm uppercase tracking-[0.3em] font-bold">{errorMsg ? "TERMINAL_OFFLINE" : "NO_PLAYERS_FOUND"}</p>
+              {errorMsg && <p className="text-rose-500 text-[10px] mt-4 font-mono font-bold">{errorMsg.toUpperCase()}</p>}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

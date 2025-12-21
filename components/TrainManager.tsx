@@ -367,32 +367,30 @@ const TrainManager: React.FC = () => {
       fetchAndAnalyze();
   };
 
-  const resetToAuto = async () => {
-      generateSchedule(candidates);
-      setIsManualMode(false);
-      const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-      const autoSchedule: TrainDay[] = [];
-      if (candidates.length >= 2) {
-          for (let i = 0; i < 7; i++) {
-              const pairIndex = Math.floor(i / 2) % 3;
-              const p1 = candidates[pairIndex * 2];
-              const p2 = candidates[pairIndex * 2 + 1];
-              if (!p1 || !p2) continue;
-              const isSwap = i % 2 !== 0; 
-              let conductor = isSwap ? p2 : p1;
-              let passenger = isSwap ? p1 : p2;
-              let mode: 'VIP' | 'Guardian' = conductor.firstSquadPower >= passenger.firstSquadPower ? 'VIP' : 'Guardian';
-              autoSchedule.push({
-                  dayName: days[i],
-                  conductor,
-                  vip: passenger,
-                  mode,
-                  defender: mode === 'VIP' ? conductor : passenger
-              });
-          }
+  const pad = (str: string, length: number) => str.length > length ? str.substring(0, length - 3) + '..' : str.padEnd(length, ' ');
+
+  const copyTacticalOrders = async () => {
+      if (schedule.length === 0) return;
+      let report = `### 🚂 ASN1 WEEKLY TRAIN ORDERS\n\`\`\`\n`;
+      report += `${pad("DAY", 5)} | ${pad("CONDUCTOR", 15)} | ${pad("PASSENGER", 15)} | ${pad("DEF", 10)}\n`;
+      report += `${"-".repeat(5)}-|-${"-".repeat(15)}-|-${"-".repeat(15)}-|-${"-".repeat(10)}\n`;
+      
+      schedule.forEach(day => {
+          const dayName = day.dayName.toUpperCase().slice(0,3);
+          const conductor = day.conductor?.name || "TBD";
+          const passenger = day.vip?.name || "TBD";
+          const defender = day.defender?.name || "TBD";
+          report += `${pad(dayName, 5)} | ${pad(conductor.toUpperCase(), 15)} | ${pad(passenger.toUpperCase(), 15)} | ${pad(defender.toUpperCase(), 10)}\n`;
+      });
+      
+      report += `\`\`\`\n*Transmitted via ASN1 Logistics Hub*`;
+
+      try {
+          await navigator.clipboard.writeText(report);
+          addToast('success', 'Tactical Orders Copied (Discord Aligned)');
+      } catch (err) {
+          addToast('error', 'Clipboard denied');
       }
-      await pushScheduleToCloud(autoSchedule);
-      addToast('info', 'Reset to Auto & Synced');
   };
 
   const formatNumber = (num: number) => {
@@ -403,7 +401,7 @@ const TrainManager: React.FC = () => {
       return num.toString();
   };
   
-  const handleExportAction = async (action: 'copy' | 'download' | 'share') => {
+  const handleExportAction = async (action: 'download' | 'share') => {
       if (schedule.length === 0 || !exportRef.current) return;
       
       try {
@@ -419,15 +417,7 @@ const TrainManager: React.FC = () => {
           canvas.toBlob(async (blob: Blob | null) => {
               if (!blob) throw new Error("Capture failed");
 
-              if (action === 'copy') {
-                  try {
-                      const item = new ClipboardItem({ 'image/png': blob });
-                      await navigator.clipboard.write([item]);
-                      addToast('success', 'Schedule copied to clipboard');
-                  } catch (err) {
-                      addToast('error', 'Clipboard access denied');
-                  }
-              } else if (action === 'share') {
+              if (action === 'share') {
                   const file = new File([blob], "Train_Schedule.png", { type: "image/png" });
                   if (navigator.share) {
                       await navigator.share({
@@ -469,8 +459,6 @@ const TrainManager: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
-        
-        {/* Hidden Export Container - Positioned off-screen with fixed width for consistent capture */}
         <div style={{ position: 'fixed', left: '-5000px', top: '0', width: '800px', zIndex: -1 }}>
             <div ref={exportRef} className="bg-[#020617] p-10 w-[800px] text-white">
                 <div className="flex items-center gap-6 mb-10 border-b border-slate-800 pb-10">
@@ -516,13 +504,9 @@ const TrainManager: React.FC = () => {
                         </div>
                     ))}
                 </div>
-                <div className="mt-12 text-center text-[10px] text-slate-700 font-mono uppercase tracking-[0.5em]">
-                    End of Transmission
-                </div>
             </div>
         </div>
 
-        {/* Normal UI continues... */}
         <div className="bg-gradient-to-r from-amber-500/10 to-transparent border-l-4 border-amber-500 p-6 rounded-r-xl flex flex-col sm:flex-row justify-between items-start gap-4">
             <div className="w-full">
                 <h2 className="text-xl font-header font-bold text-white uppercase tracking-widest flex items-center gap-3">
@@ -530,14 +514,28 @@ const TrainManager: React.FC = () => {
                 </h2>
                 <p className="text-xs text-slate-400 mt-2 font-mono uppercase tracking-widest">Strategic Train Distribution Logic</p>
             </div>
-            <div className="text-right whitespace-nowrap hidden sm:block">
-                <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Logic Engine</div>
-                <div className="text-xs font-mono text-sky-500">3 Pairs / 7 Days / Auto-Swap</div>
+            <div className="flex gap-3">
+                <button 
+                    onClick={copyTacticalOrders} 
+                    title="Copy Aligned Discord Orders" 
+                    className="px-6 py-2.5 rounded-xl bg-slate-800 border border-white/5 text-slate-400 hover:text-white transition-all flex items-center gap-2"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Tactical Copy</span>
+                </button>
+                <div className="flex rounded-xl overflow-hidden border border-slate-700">
+                    <button 
+                        onClick={() => handleExportAction(canShare && isMobile ? 'share' : 'download')} 
+                        className="bg-slate-800 hover:bg-slate-700 text-sky-400 p-3 transition-colors"
+                        title={canShare && isMobile ? 'Share Image' : 'Download Image'}
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M16 10l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    </button>
+                </div>
             </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Candidate List */}
             <div className="bg-[#0f172a] border border-slate-700 rounded-xl overflow-hidden flex flex-col h-[600px]">
                 <div className="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center gap-2">
                     <div className="flex flex-col">
@@ -592,42 +590,12 @@ const TrainManager: React.FC = () => {
                 </div>
             </div>
 
-            {/* Schedule Interface */}
             <div className="flex flex-col h-[600px] gap-4">
                  <div className="flex justify-between items-center mb-2">
                     <h3 className="text-sm font-bold text-emerald-500 uppercase tracking-widest">{t('train.schedule')}</h3>
-                    <div className="flex gap-2">
-                        {/* Device-Specific Export Controls */}
-                        <div className="flex rounded-lg overflow-hidden border border-slate-700">
-                            {(!isMobile || !canShare) ? (
-                                <button 
-                                    onClick={() => handleExportAction('copy')} 
-                                    className="bg-slate-800 hover:bg-slate-700 text-sky-400 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest border-r border-slate-700 transition-colors flex items-center gap-1"
-                                >
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
-                                    COPY
-                                </button>
-                            ) : (
-                                <button 
-                                    onClick={() => handleExportAction('share')} 
-                                    className="bg-slate-800 hover:bg-slate-700 text-sky-400 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest border-r border-slate-700 transition-colors flex items-center gap-1"
-                                >
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                                    SHARE
-                                </button>
-                            )}
-                            <button 
-                                onClick={() => handleExportAction('download')} 
-                                className="bg-slate-800 hover:bg-slate-700 text-sky-400 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-colors flex items-center gap-1"
-                            >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M16 10l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                DL
-                            </button>
-                        </div>
-                        <button onClick={handleManualSync} className="text-[10px] text-slate-400 hover:text-white uppercase font-bold border border-slate-700 px-3 py-1.5 rounded transition-all">
-                            Sync
-                        </button>
-                    </div>
+                    <button onClick={handleManualSync} className="text-[10px] text-slate-400 hover:text-white uppercase font-bold border border-slate-700 px-3 py-1.5 rounded transition-all">
+                        Force Sync
+                    </button>
                  </div>
 
                  <div className="overflow-y-auto custom-scrollbar flex-1 space-y-4 pr-2">
