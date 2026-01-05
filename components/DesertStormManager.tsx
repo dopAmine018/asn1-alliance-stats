@@ -68,18 +68,32 @@ const DesertStormManager: React.FC = () => {
 
     const addToTeam = (playerId: string, listKey: keyof TeamState) => {
         const newTeams = { ...teams };
+        
         // Remove from everywhere first to prevent duplicates
         (Object.keys(newTeams) as Array<keyof TeamState>).forEach(k => {
             newTeams[k] = newTeams[k].filter(id => id !== playerId);
         });
 
-        const limit = listKey.includes('Main') ? 20 : 10;
-        if (newTeams[listKey].length >= limit) {
-            addToast('error', `Squad Full (${limit})`);
+        let finalKey = listKey;
+
+        // TACTICAL OVERFLOW LOGIC:
+        // If user targets A-Main and it's full, redirect to A-Subs.
+        // If user targets B-Main and it's full, redirect to B-Subs.
+        if (listKey === 'teamAMain' && newTeams.teamAMain.length >= 20) {
+            finalKey = 'teamASubs';
+            addToast('info', 'Main Team A Full - Assigned to Reserves');
+        } else if (listKey === 'teamBMain' && newTeams.teamBMain.length >= 20) {
+            finalKey = 'teamBSubs';
+            addToast('info', 'Main Team B Full - Assigned to Reserves');
+        }
+
+        const limit = finalKey.includes('Main') ? 20 : 10;
+        if (newTeams[finalKey].length >= limit) {
+            addToast('error', 'All Tactical Slots Full for this Group');
             return;
         }
 
-        newTeams[listKey].push(playerId);
+        newTeams[finalKey].push(playerId);
         setTeams(newTeams);
         setActiveMoveMenu(null);
     };
