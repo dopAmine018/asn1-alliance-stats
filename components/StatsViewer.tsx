@@ -13,14 +13,17 @@ interface StatsViewerProps {
   onBack: () => void;
 }
 
+type ExtractMode = 'power' | 'squads' | 't10';
+
 const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => {
   const { t } = useLanguage();
   const { addToast } = useToast();
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [extractMode, setExtractMode] = useState<ExtractMode>('power');
   
-  const [filter, setFilter] = useState<PlayerFilter>({ language: 'all', search: '', sort: 'time_desc', activeOnly: false });
+  const [filter, setFilter] = useState<PlayerFilter>({ language: 'all', search: '', sort: 'power_desc', activeOnly: false });
 
   const fetchData = async () => {
     if(players.length === 0 && !errorMsg) setLoading(true);
@@ -47,6 +50,8 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
               const costB = calculateT10RemainingCost(b).gold;
               return costA - costB;
           });
+      } else if (filter.sort === 'power_desc') {
+          uniqueItems.sort((a, b) => b.firstSquadPower - a.firstSquadPower);
       } else {
           const uniqueIds = new Set(uniqueItems.map(p => p.id));
           uniqueItems = res.items.filter(p => uniqueIds.has(p.id));
@@ -70,26 +75,52 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFilter(prev => ({ ...prev, search: e.target.value })); };
 
-  const pad = (str: string, length: number) => str.length > length ? str.substring(0, length - 3) + '..' : str.padEnd(length, ' ');
+  const pad = (str: string, length: number) => {
+    const s = String(str);
+    return s.length > length ? s.substring(0, length - 3) + '..' : s.padEnd(length, ' ');
+  };
 
-  const copyTacticalReport = async () => {
+  const formatM = (val: number | undefined) => {
+    if (val === undefined || val === null) return '0.0';
+    return (val / 1000000).toFixed(1);
+  };
+
+  const copyTacticalReport = async (mode: ExtractMode) => {
     if (!players.length) return;
     const date = new Date().toLocaleDateString();
-    let report = `### 📋 ASN1 ALLIANCE INTEL REPORT [${date}]\n\`\`\`\n`;
-    report += `${pad("RK", 3)} ${pad("COMMANDER", 15)} ${pad("POWER", 8)} ${pad("T10%", 5)}\n`;
-    report += `${"-".repeat(3)} ${"-".repeat(15)} ${"-".repeat(8)} ${"-".repeat(5)}\n`;
+    let report = "";
+    
+    if (mode === 'power') {
+        report = `### 📋 ASN1 POWER INTEL [${date}]\n\`\`\`\n`;
+        report += `${pad("RK", 3)} ${pad("COMMANDER", 15)} ${pad("S1 PWR", 8)} ${pad("T10%", 5)}\n`;
+        report += `${"-".repeat(3)} ${"-".repeat(15)} ${"-".repeat(8)} ${"-".repeat(5)}\n`;
+        players.forEach((p, i) => {
+            const t10 = (100 - Math.round(calculateT10RemainingCost(p).gold / 35000000000 * 100)) + "%";
+            report += `${pad((i + 1).toString(), 3)} ${pad(p.name.toUpperCase(), 15)} ${pad(formatM(p.firstSquadPower) + "M", 8)} ${pad(t10, 5)}\n`;
+        });
+    } else if (mode === 'squads') {
+        report = `### 🚚 ASN1 SQUAD LOGISTICS [${date}]\n\`\`\`\n`;
+        report += `${pad("RK", 3)} ${pad("COMMANDER", 14)} | ${pad("S1", 6)} | ${pad("S2", 6)} | ${pad("S3", 6)} | ${pad("S4", 6)}\n`;
+        report += `${"-".repeat(3)}-${"-".repeat(14)}-|-${"-".repeat(6)}-|-${"-".repeat(6)}-|-${"-".repeat(6)}-|-${"-".repeat(6)}\n`;
+        players.forEach((p, i) => {
+            report += `${pad((i + 1).toString(), 3)} ${pad(p.name.toUpperCase(), 14)} | ${pad(formatM(p.firstSquadPower), 6)} | ${pad(formatM(p.secondSquadPower), 6)} | ${pad(formatM(p.thirdSquadPower), 6)} | ${pad(formatM(p.fourthSquadPower), 6)}\n`;
+        });
+    } else if (mode === 't10') {
+        report = `### 💎 ASN1 T10 READINESS [${date}]\n\`\`\`\n`;
+        report += `${pad("RK", 3)} ${pad("COMMANDER", 15)} ${pad("GOLD LEFT", 10)} ${pad("ELITE", 5)}\n`;
+        report += `${"-".repeat(3)} ${"-".repeat(15)} ${"-".repeat(10)} ${"-".repeat(5)}\n`;
+        players.forEach((p, i) => {
+            const cost = calculateT10RemainingCost(p);
+            const goldStr = cost.gold >= 1000000000 ? (cost.gold / 1000000000).toFixed(2) + "B" : (cost.gold / 1000000).toFixed(0) + "M";
+            report += `${pad((i + 1).toString(), 3)} ${pad(p.name.toUpperCase(), 15)} ${pad(goldStr, 10)} ${pad(p.t10Elite === 10 ? "YES" : "NO", 5)}\n`;
+        });
+    }
 
-    players.slice(0, 15).forEach((p, i) => {
-      const pwr = (p.firstSquadPower / 1000000).toFixed(1) + "M";
-      const t10 = (100 - Math.round(calculateT10RemainingCost(p).gold / 35000000000 * 100)) + "%";
-      report += `${pad((i + 1).toString(), 3)} ${pad(p.name.toUpperCase(), 15)} ${pad(pwr, 8)} ${pad(t10, 5)}\n`;
-    });
-
-    report += `\`\`\`\n*Generated via ASN1 Command Center*`;
+    report += `\`\`\`\n*EXTRACTED ALL COMMANDERS FROM ASN1 TERMINAL*`;
 
     try {
       await navigator.clipboard.writeText(report);
-      addToast('success', 'Tactical Intel Copied');
+      addToast('success', `EXTRACTED ${players.length} OPERATIVES`);
     } catch (err) {
       addToast('error', 'Clipboard denied');
     }
@@ -102,6 +133,12 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
       { value: 'total_hero_power_desc', label: 'MAX_HERO_PWR' },
       { value: 'time_desc', label: 'RECENT_SYNC' }, 
       { value: 't10_closest', label: 'T10_PROGRESS' }
+  ];
+
+  const extractOptions = [
+      { value: 'power', label: 'REPORT: POWER' },
+      { value: 'squads', label: 'REPORT: ALL SQUADS' },
+      { value: 't10', label: 'REPORT: T10 PROGRESS' }
   ];
 
   return (
@@ -123,7 +160,7 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
       </div>
 
       <div className="bg-[#020617]/50 backdrop-blur-md border border-white/5 p-2 rounded-2xl grid grid-cols-1 md:grid-cols-12 gap-2 shadow-2xl">
-        <div className="md:col-span-4 relative group">
+        <div className="md:col-span-3 relative group">
              <div className="absolute inset-y-0 start-0 ps-4 flex items-center pointer-events-none">
                 <svg className="h-3.5 w-3.5 text-slate-500 group-focus-within:text-sky-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
              </div>
@@ -143,13 +180,21 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
              <CustomDropdown value={filter.sort} onChange={(val) => setFilter(prev => ({ ...prev, sort: val as any }))} options={sortOptions} />
         </div>
         
-        <div className="md:col-span-2">
+        <div className="md:col-span-3 flex gap-2">
+            <div className="flex-1">
+                <CustomDropdown 
+                    value={extractMode} 
+                    onChange={(val) => setExtractMode(val as any)} 
+                    options={extractOptions} 
+                    className="h-full"
+                />
+            </div>
             <button 
-                onClick={copyTacticalReport}
-                className="w-full h-full bg-sky-600 hover:bg-sky-500 text-white border border-sky-400/20 rounded-xl flex items-center justify-center transition-all click-scale shadow-lg py-3"
+                onClick={() => copyTacticalReport(extractMode)}
+                className="w-14 h-full bg-sky-600 hover:bg-sky-500 text-white border border-sky-400/20 rounded-xl flex items-center justify-center transition-all click-scale shadow-lg"
+                title="Extract All Operatives"
             >
-               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
-               <span className="text-[10px] font-bold uppercase tracking-widest">Tactical Copy</span>
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
             </button>
         </div>
       </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { MockApi } from '../services/mockBackend';
 import { Player, PlayerFilter } from '../types';
@@ -80,7 +81,7 @@ const AdminDashboard: React.FC = () => {
     setLoading(false); 
   };
   
-  const formatPower = (val: number | undefined) => { if (!val) return '-'; return (val / 1000000).toLocaleString(undefined, { maximumFractionDigits: 1 }) + 'M'; };
+  const formatPower = (val: number | undefined) => { if (val === undefined || val === null) return '-'; return (val / 1000000).toLocaleString(undefined, { maximumFractionDigits: 1 }) + 'M'; };
 
   const startEdit = (player: Player) => {
     setEditingPlayer(player);
@@ -97,7 +98,11 @@ const AdminDashboard: React.FC = () => {
   const saveEdit = async () => {
     if (!editingPlayer) return;
     try {
-      const normalizePower = (val: any) => (Number(val) || 0) * 1000000;
+      const normalizePower = (val: any) => {
+          const n = Number(val);
+          if (isNaN(n) || val === '') return 0;
+          return Math.round(n * 1000000);
+      };
       const payload: Partial<Player> = {
         name: editForm.name, language: editForm.language, active: editForm.active,
         firstSquadPower: normalizePower(editForm.firstSquadPower),

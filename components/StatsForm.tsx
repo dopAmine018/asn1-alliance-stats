@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef } from 'react';
 import { MockApi } from '../services/mockBackend';
 import { Player, Language } from '../types';
@@ -114,14 +115,18 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
 
   const populateWithPlayer = (match: Player) => {
       addToast('info', `Profile Synced: ${match.name}`);
-      const norm = (v: number|undefined) => v ? String(v/1000000) : '';
+      const normVal = (v: number|undefined) => {
+          if (v === undefined || v === null) return '';
+          if (v === 0) return '0';
+          return String(v/1000000);
+      };
       setFormData(prev => ({
           ...prev, name: match.name,
-          firstSquadPower: norm(match.firstSquadPower), 
-          secondSquadPower: norm(match.secondSquadPower),
-          thirdSquadPower: norm(match.thirdSquadPower),
-          fourthSquadPower: norm(match.fourthSquadPower),
-          totalHeroPower: norm(match.totalHeroPower),
+          firstSquadPower: normVal(match.firstSquadPower), 
+          secondSquadPower: normVal(match.secondSquadPower),
+          thirdSquadPower: normVal(match.thirdSquadPower),
+          fourthSquadPower: normVal(match.fourthSquadPower),
+          totalHeroPower: normVal(match.totalHeroPower),
           heroPercent: String(match.heroPercent), duelPercent: String(match.duelPercent), unitsPercent: String(match.unitsPercent),
           t10Morale: String(match.t10Morale), t10Protection: String(match.t10Protection), t10Hp: String(match.t10Hp), t10Atk: String(match.t10Atk), t10Def: String(match.t10Def), t10Elite: String(match.t10Elite || 0),
           techLevel: String(match.techLevel || ''), barracksLevel: String(match.barracksLevel || ''),
@@ -150,19 +155,23 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const norm = (v: string) => { const n = Number(v); if(isNaN(n)) return 0; return n > 1000 ? n : n * 1000000; };
+    const norm = (v: string) => { 
+        const n = Number(v); 
+        if(isNaN(n) || v === '') return 0; 
+        return n > 1000 ? n : Math.round(n * 1000000); 
+    };
     
     try {
-        // Validation: Ensure everything is filled
-        const requiredFields = [
-            formData.name, formData.firstSquadPower, formData.secondSquadPower, formData.thirdSquadPower, 
-            formData.fourthSquadPower, formData.totalHeroPower, formData.heroPercent, formData.duelPercent, 
-            formData.unitsPercent, formData.barracksLevel, formData.techLevel,
+        // Essential fields for profile sync
+        const essentialFields = [
+            formData.name, formData.firstSquadPower, formData.totalHeroPower, 
+            formData.heroPercent, formData.duelPercent, formData.unitsPercent, 
+            formData.barracksLevel, formData.techLevel,
             formData.tankCenterLevel, formData.airCenterLevel, formData.missileCenterLevel
         ];
 
-        if (requiredFields.some(field => field === undefined || field === null || String(field).trim() === '')) {
-            throw new Error("All fields are mandatory for HQ synchronization.");
+        if (essentialFields.some(field => field === undefined || field === null || String(field).trim() === '')) {
+            throw new Error("Critical fields are missing. Identity and primary power required.");
         }
         
         const res = await MockApi.upsertPlayer({
@@ -249,9 +258,9 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                 <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 shadow-lg flex flex-col gap-8 transition-all hover:border-amber-500/20">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                         <FormInput label={t('label.power') + " (M)"} name="firstSquadPower" val={formData.firstSquadPower} change={(e: any) => setFormData(p => ({...p, firstSquadPower: e.target.value}))} req={true} type="number" />
-                        <FormInput label={t('label.squad2') + " (M)"} name="secondSquadPower" val={formData.secondSquadPower} change={(e: any) => setFormData(p => ({...p, secondSquadPower: e.target.value}))} req={true} type="number" />
-                        <FormInput label={t('label.squad3') + " (M)"} name="thirdSquadPower" val={formData.thirdSquadPower} change={(e: any) => setFormData(p => ({...p, thirdSquadPower: e.target.value}))} req={true} type="number" />
-                        <FormInput label={t('label.squad4') + " (M)"} name="fourthSquadPower" val={formData.fourthSquadPower} change={(e: any) => setFormData(p => ({...p, fourthSquadPower: e.target.value}))} type="number" req={true} />
+                        <FormInput label={t('label.squad2') + " (M)"} name="secondSquadPower" val={formData.secondSquadPower} change={(e: any) => setFormData(p => ({...p, secondSquadPower: e.target.value}))} req={false} type="number" />
+                        <FormInput label={t('label.squad3') + " (M)"} name="thirdSquadPower" val={formData.thirdSquadPower} change={(e: any) => setFormData(p => ({...p, thirdSquadPower: e.target.value}))} req={false} type="number" />
+                        <FormInput label={t('label.squad4') + " (M)"} name="fourthSquadPower" val={formData.fourthSquadPower} change={(e: any) => setFormData(p => ({...p, fourthSquadPower: e.target.value}))} type="number" req={false} />
                         <FormInput label={t('label.totalHeroPower') + " (M)"} name="totalHeroPower" val={formData.totalHeroPower} change={(e: any) => setFormData(p => ({...p, totalHeroPower: e.target.value}))} req={true} type="number" />
                     </div>
                 </div>
