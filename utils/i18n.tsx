@@ -17,7 +17,6 @@ type TranslationKey =
   | 'placeholder.server_rank' | 'hint.server_rank'
   | 'stat.hero' | 'stat.duel' | 'stat.units'
   | 't10.title' | 't10.morale' | 't10.protection' | 't10.hp' | 't10.atk' | 't10.def'
-  | 'sts.title' | 'sts.power_boost' | 'sts.final_stand' | 'sts.fierce_assault' | 'sts.vigilant' | 'sts.extra_drill' | 'sts.barrack' | 'sts.focused' | 'sts.drill_exp' | 'sts.rapid' | 'sts.fatal'
   | 'calc.title' | 'calc.gold' | 'calc.valor' | 'calc.food_iron' | 'calc.remaining'
   | 'level.tech' | 'level.barracks' | 'level.tank' | 'level.air' | 'level.missile'
   | 'card.hero_pwr' | 'card.tech_short' | 'card.barr_short' | 'card.tank_short' | 'card.air_short' | 'card.misl_short'
@@ -30,6 +29,7 @@ type TranslationKey =
   | 'vs.agent' | 'vs.sum' | 'vs.add_agent_ph' | 'vs.inject' | 'vs.awaiting'
   | 'train.title' | 'train.desc' | 'train.generate' | 'train.candidates' | 'train.schedule' | 'train.conductor' | 'train.vip' | 'train.remaining_cost' | 'train.week'
   | 'train.mode_vip' | 'train.mode_guardian' | 'train.defender' | 'train.guardian' | 'train.search' | 'train.post' | 'train.copied' | 'train.public_view'
+  | 'sts.title' | 'sts.power_boost' | 'sts.final_stand' | 'sts.fierce_assault' | 'sts.vigilant' | 'sts.extra_drill' | 'sts.barrack' | 'sts.focused' | 'sts.drill_exp' | 'sts.rapid' | 'sts.fatal'
   | 'manual.title' | 'manual.subtitle' | 'manual.faq.t10' | 'manual.faq.t10.ans' | 'manual.faq.update' | 'manual.faq.update.ans' | 'manual.faq.train' | 'manual.faq.train.ans'
   | 'day.mon' | 'day.tue' | 'day.wed' | 'day.thu' | 'day.fri' | 'day.sat' | 'day.sun'
   | 'credit.architect';
@@ -42,7 +42,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'nav.home': 'Dashboard',
     'nav.train_public': 'Schedule',
     'nav.manual': 'Field Manual',
-    'landing.welcome': 'ASN1 Alliance Command',
+    'landing.welcome': 'GUN1 Alliance Command',
     'landing.subtitle': 'Central Intelligence & Logistics Terminal',
     'landing.action.update': 'Update stats',
     'landing.action.update.desc': 'Submit latest stats to HQ.',
@@ -202,7 +202,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'nav.home': 'لوحة القيادة',
     'nav.train_public': 'الجدول',
     'nav.manual': 'دليل الميدان',
-    'landing.welcome': 'مركز قيادة ASN1',
+    'landing.welcome': 'مركز قيادة GUN1',
     'landing.subtitle': 'محطة الاستخبارات واللوجستيات المركزية',
     'landing.action.update': 'تحديث الملف',
     'landing.action.update.desc': 'إرسال أحدث إحصائيات للمقر.',
@@ -362,7 +362,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'nav.home': 'Panel',
     'nav.train_public': 'Program',
     'nav.manual': 'Saha Kılavuzu',
-    'landing.welcome': 'ASN1 Komuta Merkezi',
+    'landing.welcome': 'GUN1 Komuta Merkezi',
     'landing.subtitle': 'Merkezi İstihbarat ve Lojistik Terminali',
     'landing.action.update': 'İstatistikleri güncelle',
     'landing.action.update.desc': 'Son istatistikleri Karargaha gönder.',
@@ -407,17 +407,6 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     't10.hp': 'Can',
     't10.atk': 'Saldırı',
     't10.def': 'Savunma',
-    'sts.title': 'Kuşatmayı Ele Geçir',
-    'sts.power_boost': 'Güç Artışı',
-    'sts.final_stand': 'Son Direniş',
-    'sts.fierce_assault': 'Şiddetli Saldırı',
-    'sts.vigilant': 'Uyanık Formasyon',
-    'sts.extra_drill': 'Ekstra Talim Alanı',
-    'sts.barrack': 'Kışla Genişletme',
-    'sts.focused': 'Odaklanmış Eğitim',
-    'sts.drill_exp': 'Talim Alanı Genişletme',
-    'sts.rapid': 'Hızlı Yürüyüş',
-    'sts.fatal': 'Ölümcül Vuruş',
     'calc.title': 'T10 Projeksiyonu',
     'calc.gold': 'Altın',
     'calc.valor': 'Cesaret',
@@ -498,6 +487,17 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'train.post': 'Emirleri Kopyala',
     'train.copied': 'Emirler Kopyalandı',
     'train.public_view': 'Tren Programı',
+    'sts.title': 'Kuşatmayı Ele Geçir',
+    'sts.power_boost': 'Güç Artışı',
+    'sts.final_stand': 'Son Direniş',
+    'sts.fierce_assault': 'Şiddetli Saldırı',
+    'sts.vigilant': 'Uyanık Formasyon',
+    'sts.extra_drill': 'Ekstra Talim Alanı',
+    'sts.barrack': 'Kışla Genişletme',
+    'sts.focused': 'Odaklanmış Eğitim',
+    'sts.drill_exp': 'Talim Alanı Genişletme',
+    'sts.rapid': 'Hızlı Yürüyüş',
+    'sts.fatal': 'Ölümcül Vuruş',
     'manual.title': 'Saha Kılavuzu',
     'manual.subtitle': 'Standart Operasyon Prosedürleri',
     'manual.faq.t10': 'T10 Maliyeti Nasıl Hesaplanır?',
@@ -522,7 +522,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'nav.home': 'Dasbor',
     'nav.train_public': 'Jadwal',
     'nav.manual': 'Panduan Lapangan',
-    'landing.welcome': 'Pusat Komando ASN1',
+    'landing.welcome': 'Pusat Komando GUN1',
     'landing.subtitle': 'Terminal Intelijen & Logistik Pusat',
     'landing.action.update': 'Perbarui statistik',
     'landing.action.update.desc': 'Kirim statistik terbaru ke HQ.',
@@ -665,7 +665,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'manual.faq.update': 'Kapan saya harus memperbarui statistik?',
     'manual.faq.update.ans': 'Perbarui profil Anda setiap hari Jumat sebelum reset server atau setelah peningkatan kekuatan yang signifikan.',
     'manual.faq.train': 'Bagaimana cara kerja Jadwal Kereta?',
-    'manual.faq.train.ans': 'Algoritme memprioritaskan pemain yang paling dekat dengan T10 (Biaya Emas Terendah). Ini memasangkan pemain kuat (Kondektur) dengan yang lebih lemah (VIP) untuk memastikan keselamatan kereta.',
+    'manual.faq.train.ans': 'Algoritme memprioritaskan pemain yang paling dekat dengan T10 (Biaya Emas Terendah). Ini memasangkan pemain kuat (Kondektur) with yang lebih lemah (VIP) untuk memastikan keselamatan kereta.',
     'day.mon': 'Senin',
     'day.tue': 'Selasa',
     'day.wed': 'Rabu',

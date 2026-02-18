@@ -171,7 +171,7 @@ const AdminDashboard: React.FC = () => {
   if (!token) {
     return (
       <div className="flex justify-center items-center min-h-[60vh] animate-in fade-in zoom-in-95 duration-700">
-        <div className="bg-[#0f172a] p-10 rounded-[2rem] shadow-2xl w-full max-sm border border-white/5 relative overflow-hidden">
+        <div className="bg-[#0f172a] p-10 rounded-[2rem] shadow-2xl w-full max-w-sm border border-white/5 relative overflow-hidden">
            <div className="absolute top-0 left-0 w-full h-1 bg-sky-500 shadow-[0_0_20px_#0ea5e9]"></div>
            <div className="text-center mb-10">
                <h2 className="text-lg font-header font-bold text-white tracking-widest uppercase">{t('admin.login.title')}</h2>
@@ -311,7 +311,7 @@ const AdminDashboard: React.FC = () => {
                                     {['stsPowerBoost1', 'stsFinalStand1', 'stsFierceAssault1', 'stsVigilantFormation1', 'stsExtraDrillGround', 'stsBarrackExpansion1', 'stsFocusedTraining1', 'stsFinalStand2', 'stsFierceAssault2', 'stsVigilantFormation2', 'stsDrillGroundExpansion', 'stsRapidMarch1', 'stsFinalStand3', 'stsFierceAssault3', 'stsVigilantFormation3', 'stsFatalStrike1'].map(field => (
                                         <div key={field}>
                                             <label className="text-[6px] text-slate-700 block truncate">{field.replace('sts','')}</label>
-                                            <input type="number" min="0" max="10" className="w-full bg-slate-950 border border-slate-800 rounded p-1 text-[8px] text-white" value={editForm[field]} onChange={e => setEditForm(p => ({...p, [field]: e.target.value}))} />
+                                            <input type="number" min="0" max="10" className="w-full bg-slate-950 border border-slate-800 rounded p-1 text-[8px] text-white" value={editForm[field] || 0} onChange={e => setEditForm(p => ({...p, [field]: e.target.value}))} />
                                         </div>
                                     ))}
                                 </div>

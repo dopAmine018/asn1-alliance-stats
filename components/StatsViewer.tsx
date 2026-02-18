@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Player, PlayerFilter } from '../types';
 import { MockApi } from '../services/mockBackend';
@@ -91,7 +90,7 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
     let report = "";
     
     if (mode === 'power') {
-        report = `### 📋 ASN1 POWER INTEL [${date}]\n\`\`\`\n`;
+        report = `### 📋 GUN1 POWER INTEL [${date}]\n\`\`\`\n`;
         report += `${pad("RK", 3)} ${pad("COMMANDER", 15)} ${pad("S1 PWR", 8)} ${pad("T10%", 5)}\n`;
         report += `${"-".repeat(3)} ${"-".repeat(15)} ${"-".repeat(8)} ${"-".repeat(5)}\n`;
         players.forEach((p, i) => {
@@ -99,14 +98,14 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
             report += `${pad((i + 1).toString(), 3)} ${pad(p.name.toUpperCase(), 15)} ${pad(formatM(p.firstSquadPower) + "M", 8)} ${pad(t10, 5)}\n`;
         });
     } else if (mode === 'squads') {
-        report = `### 🚚 ASN1 SQUAD LOGISTICS [${date}]\n\`\`\`\n`;
+        report = `### 🚚 GUN1 SQUAD LOGISTICS [${date}]\n\`\`\`\n`;
         report += `${pad("RK", 3)} ${pad("COMMANDER", 14)} | ${pad("S1", 6)} | ${pad("S2", 6)} | ${pad("S3", 6)} | ${pad("S4", 6)}\n`;
         report += `${"-".repeat(3)}-${"-".repeat(14)}-|-${"-".repeat(6)}-|-${"-".repeat(6)}-|-${"-".repeat(6)}-|-${"-".repeat(6)}\n`;
         players.forEach((p, i) => {
             report += `${pad((i + 1).toString(), 3)} ${pad(p.name.toUpperCase(), 14)} | ${pad(formatM(p.firstSquadPower), 6)} | ${pad(formatM(p.secondSquadPower), 6)} | ${pad(formatM(p.thirdSquadPower), 6)} | ${pad(formatM(p.fourthSquadPower), 6)}\n`;
         });
     } else if (mode === 't10') {
-        report = `### 💎 ASN1 T10 READINESS [${date}]\n\`\`\`\n`;
+        report = `### 💎 GUN1 T10 READINESS [${date}]\n\`\`\`\n`;
         report += `${pad("RK", 3)} ${pad("COMMANDER", 15)} ${pad("GOLD LEFT", 10)} ${pad("ELITE", 5)}\n`;
         report += `${"-".repeat(3)} ${"-".repeat(15)} ${"-".repeat(10)} ${"-".repeat(5)}\n`;
         players.forEach((p, i) => {
@@ -116,7 +115,7 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
         });
     }
 
-    report += `\`\`\`\n*EXTRACTED ALL COMMANDERS FROM ASN1 TERMINAL*`;
+    report += `\`\`\`\n*EXTRACTED ALL COMMANDERS FROM GUN1 TERMINAL*`;
 
     try {
       await navigator.clipboard.writeText(report);

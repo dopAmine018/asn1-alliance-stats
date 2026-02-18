@@ -1,7 +1,17 @@
 export type Language = 'english' | 'arabic' | 'turkish' | 'indonesian';
 
+export interface Alliance {
+  id: string;
+  tag: string; // Unique short code like 'ASN1'
+  name: string;
+  logoUrl?: string;
+  adminPass: string;
+  createdAt: string;
+}
+
 export interface Player {
   id: string;
+  allianceId: string; // Multi-tenancy key
   createdAt: string; 
   updatedAt: string; 
   language: Language;
@@ -23,8 +33,9 @@ export interface Player {
   t10Hp: number;
   t10Atk: number;
   t10Def: number;
-  t10Elite: number; // 0 or 10 (MAX)
-  
+  t10Elite: number; 
+
+  // Siege to Seize nodes
   stsPowerBoost1: number;
   stsFinalStand1: number;
   stsFierceAssault1: number;
@@ -41,7 +52,7 @@ export interface Player {
   stsFierceAssault3: number;
   stsVigilantFormation3: number;
   stsFatalStrike1: number;
-
+  
   techLevel: number;
   barracksLevel: number;
   tankCenterLevel: number;
@@ -53,6 +64,7 @@ export interface Player {
 
 export interface Announcement {
   id: string;
+  allianceId: string;
   content: string;
   type: 'info' | 'warning' | 'critical';
   active: boolean;
@@ -62,6 +74,7 @@ export interface Announcement {
 export type SortOption = 'time_desc' | 'time_asc' | 'power_desc' | 'power_asc' | 'total_hero_power_desc' | 'total_hero_power_asc' | 't10_closest';
 
 export interface PlayerFilter {
+  allianceId?: string;
   language: Language | 'all';
   search: string;
   sort: SortOption;
@@ -77,11 +90,12 @@ export interface ApiResponse<T> {
 
 export interface AuthResponse {
   token: string;
-  user: { username: string };
+  alliance: Alliance;
 }
 
 export interface VsWeek {
   id: string;
+  allianceId: string;
   name: string; 
   createdAt: string;
 }
@@ -89,6 +103,7 @@ export interface VsWeek {
 export interface VsRecord {
   id: string;
   weekId: string;
+  allianceId: string;
   playerName: string;
   mon: number;
   tue: number;
@@ -97,4 +112,11 @@ export interface VsRecord {
   fri: number;
   sat: number;
   total: number;
+}
+
+export interface DesertStormRegistration {
+  id: string;
+  playerId: string;
+  preference: string;
+  createdAt: string;
 }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, Suspense } from 'react';
 import Layout from './components/Layout';
 import StatsForm from './components/StatsForm';

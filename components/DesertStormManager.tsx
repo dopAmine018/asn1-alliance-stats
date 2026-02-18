@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Player } from '../types';
-import { MockApi, DesertStormApi, DesertStormRegistration } from '../services/mockBackend';
+/* Fix: Import DesertStormRegistration from types instead of mockBackend */
+import { Player, DesertStormRegistration } from '../types';
+import { MockApi, DesertStormApi } from '../services/mockBackend';
 import { useToast } from './Toast';
 import { useLanguage } from '../utils/i18n';
 
