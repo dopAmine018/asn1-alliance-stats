@@ -1,4 +1,3 @@
-
 import { Player } from '../types';
 
 export const T10_COSTS = {
@@ -186,5 +185,33 @@ export const calculateT10RemainingCost = (p: T10Levels) => {
     gold += barracksCost.bGold + techCenterCost.bGold;
     foodIron += barracksCost.bFood + techCenterCost.bFood;
 
+    return { gold, valor, foodIron };
+};
+
+export const calculateStsRemainingCost = (p: any) => {
+    let gold = 0, valor = 0, foodIron = 0;
+    const sum = (curr: number, map: any) => {
+        let g = 0, f = 0, v = 0;
+        for (let i = Number(curr) + 1; i <= 10; i++) {
+            let k = i <= 3 ? 'lv1_3' : i <= 6 ? 'lv4_6' : 'lv7_10';
+            if (map['lv'+i]) k = 'lv'+i;
+            g += map[k].g; f += map[k].f; v += map[k].v;
+        }
+        return { g, f, v };
+    };
+    const add = (r: any) => { gold += r.g; foodIron += r.f; valor += r.v; };
+    const t1 = { lv1: {g:33.65e6,f:11.1e6,v:400}, lv2: {g:33.65e6,f:11.1e6,v:400}, lv3: {g:33.6e6,f:11.6e6,v:400}, lv4_6: {g:47.07e6,f:15.7e6,v:550}, lv7_10: {g:61.25e6,f:20.42e6,v:700} };
+    const t2 = { lv1_3: {g:33.6e6,f:11.6e6,v:400}, lv4_6: {g:47.07e6,f:15.7e6,v:550}, lv7_10: {g:61.25e6,f:20.42e6,v:700} };
+    const t4 = { lv1_3: {g:61.25e6,f:20.42e6,v:700}, lv4_6: {g:76.56e6,f:25.52e6,v:900}, lv7_10: {g:95.7e6,f:31.9e6,v:1100} };
+    const t6 = { lv1_3: {g:76.56e6,f:25.52e6,v:900}, lv4_6: {g:95.7e6,f:31.9e6,v:1100}, lv7_10: {g:162.7e6,f:54.23e6,v:1850} };
+    const t7 = { lv1_3: {g:95.7e6,f:31.9e6,v:1100}, lv4_6: {g:162.7e6,f:54.23e6,v:1850}, lv7_10: {g:227.78e6,f:75.93e6,v:2550} };
+    add(sum(p.stsPowerBoost1, t1));
+    add(sum(p.stsFinalStand1, t2)); add(sum(p.stsFierceAssault1, t2)); add(sum(p.stsVigilantFormation1, t2));
+    if (Number(p.stsExtraDrillGround||0)<1) { gold+=61.25e6; foodIron+=20.42e6; valor+=700; }
+    add(sum(p.stsBarrackExpansion1, t4)); add(sum(p.stsFocusedTraining1, t4));
+    add(sum(p.stsFinalStand2, t4)); add(sum(p.stsFierceAssault2, t4)); add(sum(p.stsVigilantFormation2, t4));
+    add(sum(p.stsDrillGroundExpansion, t6)); add(sum(p.stsRapidMarch1, t6));
+    add(sum(p.stsFinalStand3, t7)); add(sum(p.stsFierceAssault3, t7)); add(sum(p.stsVigilantFormation3, t7));
+    add(sum(p.stsFatalStrike1, t7));
     return { gold, valor, foodIron };
 };

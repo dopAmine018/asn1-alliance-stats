@@ -1,16 +1,20 @@
-
 import React, { useState, useMemo, useRef } from 'react';
 import { MockApi } from '../services/mockBackend';
 import { Player, Language } from '../types';
 import { useLanguage } from '../utils/i18n';
 import { CustomDropdown } from './CustomDropdown';
 import { useToast } from './Toast';
-import { calculateT10RemainingCost } from '../utils/gameLogic';
+import { calculateT10RemainingCost, calculateStsRemainingCost } from '../utils/gameLogic';
 
 const defaultFormData = {
   name: '', firstSquadPower: '', secondSquadPower: '', thirdSquadPower: '', fourthSquadPower: '', totalHeroPower: '',
   heroPercent: '', duelPercent: '', unitsPercent: '',
   t10Morale: '1', t10Protection: '0', t10Hp: '0', t10Atk: '0', t10Def: '0', t10Elite: '0',
+  stsPowerBoost1: '0', stsFinalStand1: '0', stsFierceAssault1: '0', stsVigilantFormation1: '0',
+  stsExtraDrillGround: '0', stsBarrackExpansion1: '0', stsFocusedTraining1: '0',
+  stsFinalStand2: '0', stsFierceAssault2: '0', stsVigilantFormation2: '0',
+  stsDrillGroundExpansion: '0', stsRapidMarch1: '0',
+  stsFinalStand3: '0', stsFierceAssault3: '0', stsVigilantFormation3: '0', stsFatalStrike1: '0',
   techLevel: '', barracksLevel: '', tankCenterLevel: '', airCenterLevel: '', missileCenterLevel: '',
 };
 
@@ -38,16 +42,18 @@ const FormInput = ({ label, name, val, change, req, locked, type="text", loading
   </div>
 );
 
-const TechNode = ({ id, label, value, onChange, binary }: any) => {
+const TechNode = ({ id, label, value, onChange, binary, hint }: any) => {
     const options = binary 
-        ? [{ value: 0, label: '0' }, { value: 10, label: 'MAX' }]
+        ? [{ value: 0, label: '0' }, { value: 1, label: '1' }]
         : Array.from({length:11},(_,x)=>({value:x,label:x===10?'MAX':String(x)}));
 
     return (
         <div className={`relative group bg-[#0f172a] rounded-xl border p-1 w-full max-w-[140px] hover:shadow-[0_0_15px_rgba(14,165,233,0.2)] transition-all z-10 ${binary ? 'border-purple-500/50 hover:border-purple-400' : 'border-sky-500/30 hover:border-sky-400'}`}>
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                  <div className={`w-8 h-8 rounded-full bg-slate-900 border flex items-center justify-center shadow-lg ${binary ? 'border-purple-500 text-purple-400' : 'border-sky-500/50 text-sky-400'}`}>
-                     {id === 't10Protection' ? (
+                     {id?.includes('sts') ? (
+                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                     ) : id === 't10Protection' ? (
                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                      ) : id === 't10Hp' ? (
                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
@@ -61,7 +67,7 @@ const TechNode = ({ id, label, value, onChange, binary }: any) => {
                  </div>
             </div>
             <div className="pt-6 pb-2 px-1 text-center">
-                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-2 truncate">{label}</label>
+                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-2 truncate px-1">{label}</label>
                 <CustomDropdown 
                     value={value} 
                     onChange={onChange} 
@@ -69,6 +75,7 @@ const TechNode = ({ id, label, value, onChange, binary }: any) => {
                     disableSearch 
                     className="text-xs" 
                 />
+                {hint && <div className="mt-1 text-[7px] font-mono text-slate-600 uppercase tracking-tighter leading-none">{hint}</div>}
             </div>
         </div>
     );
@@ -129,6 +136,11 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
           totalHeroPower: normVal(match.totalHeroPower),
           heroPercent: String(match.heroPercent), duelPercent: String(match.duelPercent), unitsPercent: String(match.unitsPercent),
           t10Morale: String(match.t10Morale), t10Protection: String(match.t10Protection), t10Hp: String(match.t10Hp), t10Atk: String(match.t10Atk), t10Def: String(match.t10Def), t10Elite: String(match.t10Elite || 0),
+          stsPowerBoost1: String(match.stsPowerBoost1 || 0), stsFinalStand1: String(match.stsFinalStand1 || 0), stsFierceAssault1: String(match.stsFierceAssault1 || 0), stsVigilantFormation1: String(match.stsVigilantFormation1 || 0),
+          stsExtraDrillGround: String(match.stsExtraDrillGround || 0), stsBarrackExpansion1: String(match.stsBarrackExpansion1 || 0), stsFocusedTraining1: String(match.stsFocusedTraining1 || 0),
+          stsFinalStand2: String(match.stsFinalStand2 || 0), stsFierceAssault2: String(match.stsFierceAssault2 || 0), stsVigilantFormation2: String(match.stsVigilantFormation2 || 0),
+          stsDrillGroundExpansion: String(match.stsDrillGroundExpansion || 0), stsRapidMarch1: String(match.stsRapidMarch1 || 0),
+          stsFinalStand3: String(match.stsFinalStand3 || 0), stsFierceAssault3: String(match.stsFierceAssault3 || 0), stsVigilantFormation3: String(match.stsVigilantFormation3 || 0), stsFatalStrike1: String(match.stsFatalStrike1 || 0),
           techLevel: String(match.techLevel || ''), barracksLevel: String(match.barracksLevel || ''),
           tankCenterLevel: String(match.tankCenterLevel || ''), airCenterLevel: String(match.airCenterLevel || ''), missileCenterLevel: String(match.missileCenterLevel || ''),
       }));
@@ -146,10 +158,12 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
     });
   }, [formData.t10Protection, formData.t10Hp, formData.t10Atk, formData.t10Def, formData.t10Elite, formData.barracksLevel, formData.techLevel]);
 
+  const stsResources = useMemo(() => calculateStsRemainingCost(formData), [formData]);
+
   const formatResource = (num: number) => {
       if (num >= 1000000000) return (num / 1000000000).toFixed(2) + 'B';
       if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-      return num.toString();
+      return num.toLocaleString();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -162,18 +176,6 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
     };
     
     try {
-        // Essential fields for profile sync
-        const essentialFields = [
-            formData.name, formData.firstSquadPower, formData.totalHeroPower, 
-            formData.heroPercent, formData.duelPercent, formData.unitsPercent, 
-            formData.barracksLevel, formData.techLevel,
-            formData.tankCenterLevel, formData.airCenterLevel, formData.missileCenterLevel
-        ];
-
-        if (essentialFields.some(field => field === undefined || field === null || String(field).trim() === '')) {
-            throw new Error("Critical fields are missing. Identity and primary power required.");
-        }
-        
         const res = await MockApi.upsertPlayer({
             name: formData.name,
             language: formData.language,
@@ -191,6 +193,22 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
             t10Atk: Number(formData.t10Atk), 
             t10Def: Number(formData.t10Def), 
             t10Elite: Number(formData.t10Elite),
+            stsPowerBoost1: Number(formData.stsPowerBoost1),
+            stsFinalStand1: Number(formData.stsFinalStand1),
+            stsFierceAssault1: Number(formData.stsFierceAssault1),
+            stsVigilantFormation1: Number(formData.stsVigilantFormation1),
+            stsExtraDrillGround: Number(formData.stsExtraDrillGround),
+            stsBarrackExpansion1: Number(formData.stsBarrackExpansion1),
+            stsFocusedTraining1: Number(formData.stsFocusedTraining1),
+            stsFinalStand2: Number(formData.stsFinalStand2),
+            stsFierceAssault2: Number(formData.stsFierceAssault2),
+            stsVigilantFormation2: Number(formData.stsVigilantFormation2),
+            stsDrillGroundExpansion: Number(formData.stsDrillGroundExpansion),
+            stsRapidMarch1: Number(formData.stsRapidMarch1),
+            stsFinalStand3: Number(formData.stsFinalStand3),
+            stsFierceAssault3: Number(formData.stsFierceAssault3),
+            stsVigilantFormation3: Number(formData.stsVigilantFormation3),
+            stsFatalStrike1: Number(formData.stsFatalStrike1),
             techLevel: Number(formData.techLevel), 
             barracksLevel: Number(formData.barracksLevel),
             tankCenterLevel: Number(formData.tankCenterLevel),
@@ -269,16 +287,99 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
             <section className="space-y-6">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest border-l-2 border-indigo-500 pl-3">{t('section.tech')}</h3>
                 <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 shadow-lg space-y-8 transition-all hover:border-indigo-500/20">
-                    <div className="flex flex-col items-center relative mb-8">
-                         <TechNode id="t10Protection" label={t('t10.protection')} value={formData.t10Protection} onChange={(v: any) => setFormData(p => ({...p, t10Protection: String(v)}))} />
-                         <div className="h-6 w-px bg-sky-500/30"></div>
-                         <div className="flex justify-center gap-4 relative z-20">
-                             <TechNode id="t10Hp" label={t('t10.hp')} value={formData.t10Hp} onChange={(v: any) => setFormData(p => ({...p, t10Hp: String(v)}))} />
-                             <TechNode id="t10Atk" label={t('t10.atk')} value={formData.t10Atk} onChange={(v: any) => setFormData(p => ({...p, t10Atk: String(v)}))} />
-                             <TechNode id="t10Def" label={t('t10.def')} value={formData.t10Def} onChange={(v: any) => setFormData(p => ({...p, t10Def: String(v)}))} />
-                         </div>
-                         <div className="h-6 w-px bg-sky-500/30"></div>
-                         <TechNode id="t10Elite" label="Elite Units" value={formData.t10Elite} onChange={(v: any) => setFormData(p => ({...p, t10Elite: String(v)}))} binary />
+                    
+                    {/* T10 HUD */}
+                    <div className="bg-slate-950/40 p-6 rounded-xl border border-white/5 space-y-8">
+                        <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">T10 PROTOCOL</h4>
+                        <div className="flex flex-col items-center relative">
+                             <TechNode id="t10Protection" label={t('t10.protection')} value={formData.t10Protection} onChange={(v: any) => setFormData(p => ({...p, t10Protection: String(v)}))} />
+                             <div className="h-6 w-px bg-sky-500/30"></div>
+                             <div className="flex justify-center gap-4 relative z-20">
+                                 <TechNode id="t10Hp" label={t('t10.hp')} value={formData.t10Hp} onChange={(v: any) => setFormData(p => ({...p, t10Hp: String(v)}))} />
+                                 <TechNode id="t10Atk" label={t('t10.atk')} value={formData.t10Atk} onChange={(v: any) => setFormData(p => ({...p, t10Atk: String(v)}))} />
+                                 <TechNode id="t10Def" label={t('t10.def')} value={formData.t10Def} onChange={(v: any) => setFormData(p => ({...p, t10Def: String(v)}))} />
+                             </div>
+                             <div className="h-6 w-px bg-sky-500/30"></div>
+                             <TechNode id="t10Elite" label="Elite Units" value={formData.t10Elite} onChange={(v: any) => setFormData(p => ({...p, t10Elite: String(v)}))} binary />
+                        </div>
+                        <div className="relative overflow-hidden rounded-lg bg-black/40 border border-slate-800 p-4 flex flex-col sm:flex-row items-center justify-between gap-6 text-left">
+                            <div>
+                                <h4 className="text-xs font-bold text-sky-400 uppercase tracking-widest">{t('calc.remaining')}</h4>
+                                <p className="text-[9px] text-slate-500 font-mono">Projected resources to finish T10.</p>
+                            </div>
+                            <div className="flex gap-6">
+                                <div className="text-center"><span className="text-[10px] text-amber-500 block uppercase">Gold</span><span className="text-lg font-mono text-white font-bold">{formatResource(resourcesNeeded.gold)}</span></div>
+                                <div className="text-center"><span className="text-[10px] text-purple-400 block uppercase">Valor</span><span className="text-lg font-mono text-white font-bold">{resourcesNeeded.valor.toLocaleString()}</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Siege to Seize HUD */}
+                    <div className="bg-slate-950/40 p-6 rounded-xl border border-rose-500/10 shadow-[inset_0_0_20px_rgba(244,63,94,0.05)] space-y-10">
+                        <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em]">{t('sts.title')}</h4>
+                        <div className="flex flex-col items-center gap-4">
+                            {/* Tier 1 */}
+                            <TechNode id="stsPowerBoost1" label={t('sts.power_boost')} value={formData.stsPowerBoost1} onChange={(v: any) => setFormData(p => ({...p, stsPowerBoost1: String(v)}))} />
+                            <div className="h-4 w-px bg-slate-800"></div>
+                            
+                            {/* Tier 2 */}
+                            <div className="flex gap-2">
+                                <TechNode id="stsFinalStand1" label={t('sts.final_stand') + " I"} value={formData.stsFinalStand1} onChange={(v: any) => setFormData(p => ({...p, stsFinalStand1: String(v)}))} />
+                                <TechNode id="stsFierceAssault1" label={t('sts.fierce_assault') + " I"} value={formData.stsFierceAssault1} onChange={(v: any) => setFormData(p => ({...p, stsFierceAssault1: String(v)}))} />
+                                <TechNode id="stsVigilantFormation1" label={t('sts.vigilant') + " I"} value={formData.stsVigilantFormation1} onChange={(v: any) => setFormData(p => ({...p, stsVigilantFormation1: String(v)}))} />
+                            </div>
+                            <div className="h-4 w-px bg-slate-800"></div>
+                            
+                            {/* Tier 3 */}
+                            <TechNode id="stsExtraDrillGround" label={t('sts.extra_drill')} value={formData.stsExtraDrillGround} onChange={(v: any) => setFormData(p => ({...p, stsExtraDrillGround: String(v)}))} binary hint="REQ: TIER 2 Lv10" />
+                            <div className="h-4 w-px bg-slate-800"></div>
+                            
+                            {/* Tier 4 */}
+                            <div className="flex gap-2">
+                                <TechNode id="stsBarrackExpansion1" label={t('sts.barrack') + " I"} value={formData.stsBarrackExpansion1} onChange={(v: any) => setFormData(p => ({...p, stsBarrackExpansion1: String(v)}))} />
+                                <TechNode id="stsFocusedTraining1" label={t('sts.focused') + " I"} value={formData.stsFocusedTraining1} onChange={(v: any) => setFormData(p => ({...p, stsFocusedTraining1: String(v)}))} />
+                            </div>
+                            <div className="h-4 w-px bg-slate-800"></div>
+                            
+                            {/* Tier 5 */}
+                            <div className="flex gap-2">
+                                <TechNode id="stsFinalStand2" label={t('sts.final_stand') + " II"} value={formData.stsFinalStand2} onChange={(v: any) => setFormData(p => ({...p, stsFinalStand2: String(v)}))} />
+                                <TechNode id="stsFierceAssault2" label={t('sts.fierce_assault') + " II"} value={formData.stsFierceAssault2} onChange={(v: any) => setFormData(p => ({...p, stsFierceAssault2: String(v)}))} />
+                                <TechNode id="stsVigilantFormation2" label={t('sts.vigilant') + " II"} value={formData.stsVigilantFormation2} onChange={(v: any) => setFormData(p => ({...p, stsVigilantFormation2: String(v)}))} />
+                            </div>
+                            <div className="h-4 w-px bg-slate-800"></div>
+                            
+                            {/* Tier 6 */}
+                            <TechNode id="stsDrillGroundExpansion" label={t('sts.drill_exp')} value={formData.stsDrillGroundExpansion} onChange={(v: any) => setFormData(p => ({...p, stsDrillGroundExpansion: String(v)}))} hint="REQ: TIER 5 Lv6" />
+                            <div className="h-4 w-px bg-slate-800"></div>
+                            <TechNode id="stsRapidMarch1" label={t('sts.rapid')} value={formData.stsRapidMarch1} onChange={(v: any) => setFormData(p => ({...p, stsRapidMarch1: String(v)}))} />
+                            <div className="h-4 w-px bg-slate-800"></div>
+                            
+                            {/* Tier 7 */}
+                            <div className="flex gap-2">
+                                <TechNode id="stsFinalStand3" label={t('sts.final_stand') + " III"} value={formData.stsFinalStand3} onChange={(v: any) => setFormData(p => ({...p, stsFinalStand3: String(v)}))} />
+                                <TechNode id="stsFierceAssault3" label={t('sts.fierce_assault') + " III"} value={formData.stsFierceAssault3} onChange={(v: any) => setFormData(p => ({...p, stsFierceAssault3: String(v)}))} />
+                                <TechNode id="stsVigilantFormation3" label={t('sts.vigilant') + " III"} value={formData.stsVigilantFormation3} onChange={(v: any) => setFormData(p => ({...p, stsVigilantFormation3: String(v)}))} />
+                            </div>
+                            <div className="h-4 w-px bg-slate-800"></div>
+                            
+                            {/* Tier 8 */}
+                            <TechNode id="stsFatalStrike1" label={t('sts.fatal')} value={formData.stsFatalStrike1} onChange={(v: any) => setFormData(p => ({...p, stsFatalStrike1: String(v)}))} hint="REQ: TIER 7 Lv1" />
+                        </div>
+                        <div className="relative overflow-hidden rounded-lg bg-black/40 border border-slate-800 p-4 flex flex-col sm:flex-row items-center justify-around gap-6 text-left">
+                            <div className="text-center">
+                                <span className="text-[10px] text-amber-500 block uppercase font-bold tracking-tighter">Gold Req</span>
+                                <span className="text-sm font-mono text-white font-bold">{formatResource(stsResources.gold)}</span>
+                            </div>
+                            <div className="text-center border-x border-white/5 px-6">
+                                <span className="text-[10px] text-purple-400 block uppercase font-bold tracking-tighter">Valor Req</span>
+                                <span className="text-sm font-mono text-white font-bold">{stsResources.valor.toLocaleString()}</span>
+                            </div>
+                            <div className="text-center">
+                                <span className="text-[10px] text-sky-400 block uppercase font-bold tracking-tighter">Food/Iron</span>
+                                <span className="text-sm font-mono text-white font-bold">{formatResource(stsResources.foodIron)}</span>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/5">
@@ -295,17 +396,6 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                             options={moraleOptions}
                             disableSearch
                         />
-                    </div>
-
-                    <div className="relative overflow-hidden rounded-lg bg-black/40 border border-slate-800 p-4 flex flex-col sm:flex-row items-center justify-between gap-6 text-left">
-                        <div>
-                            <h4 className="text-xs font-bold text-sky-400 uppercase tracking-widest">{t('calc.remaining')}</h4>
-                            <p className="text-[9px] text-slate-500 font-mono">Projected resources to finish T10.</p>
-                        </div>
-                        <div className="flex gap-6">
-                            <div className="text-center"><span className="text-[10px] text-amber-500 block uppercase">Gold</span><span className="text-lg font-mono text-white font-bold">{formatResource(resourcesNeeded.gold)}</span></div>
-                            <div className="text-center"><span className="text-[10px] text-purple-400 block uppercase">Valor</span><span className="text-lg font-mono text-white font-bold">{resourcesNeeded.valor.toLocaleString()}</span></div>
-                        </div>
                     </div>
                 </div>
             </section>

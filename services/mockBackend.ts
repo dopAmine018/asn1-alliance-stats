@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { Player, PlayerFilter, ApiResponse, AuthResponse, VsWeek, VsRecord, Announcement } from '../types';
 
@@ -25,9 +24,9 @@ const supabase = createClient(supabaseUrl.trim(), supabaseKey.trim(), {
 
 // --- TACTICAL MOCK FALLBACK DATA ---
 const INITIAL_MOCK_PLAYERS: Player[] = [
-    { id: 'm1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), language: 'english', name: 'imAYAD', nameNormalized: 'imayad', firstSquadPower: 23200000, totalHeroPower: 18500000, heroPercent: 92, duelPercent: 88, unitsPercent: 85, t10Morale: 10, t10Protection: 10, t10Hp: 10, t10Atk: 10, t10Def: 10, t10Elite: 10, techLevel: 35, barracksLevel: 35, tankCenterLevel: 35, airCenterLevel: 35, missileCenterLevel: 35, active: true },
-    { id: 'm2', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), language: 'turkish', name: 'TuyuLL', nameNormalized: 'tuyull', firstSquadPower: 23000000, totalHeroPower: 18100000, heroPercent: 90, duelPercent: 85, unitsPercent: 82, t10Morale: 10, t10Protection: 10, t10Hp: 10, t10Atk: 10, t10Def: 10, t10Elite: 10, techLevel: 35, barracksLevel: 35, tankCenterLevel: 35, airCenterLevel: 35, missileCenterLevel: 35, active: true },
-    { id: 'm3', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), language: 'indonesian', name: 'Sukakamuturu', nameNormalized: 'sukakamuturu', firstSquadPower: 21300000, totalHeroPower: 16500000, heroPercent: 85, duelPercent: 80, unitsPercent: 78, t10Morale: 8, t10Protection: 9, t10Hp: 8, t10Atk: 8, t10Def: 8, t10Elite: 0, techLevel: 32, barracksLevel: 32, tankCenterLevel: 32, airCenterLevel: 32, missileCenterLevel: 32, active: true }
+    { id: 'm1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), language: 'english', name: 'imAYAD', nameNormalized: 'imayad', firstSquadPower: 23200000, totalHeroPower: 18500000, heroPercent: 92, duelPercent: 88, unitsPercent: 85, t10Morale: 10, t10Protection: 10, t10Hp: 10, t10Atk: 10, t10Def: 10, t10Elite: 10, stsPowerBoost1: 0, stsFinalStand1: 0, stsFierceAssault1: 0, stsVigilantFormation1: 0, stsExtraDrillGround: 0, stsBarrackExpansion1: 0, stsFocusedTraining1: 0, stsFinalStand2: 0, stsFierceAssault2: 0, stsVigilantFormation2: 0, stsDrillGroundExpansion: 0, stsRapidMarch1: 0, stsFinalStand3: 0, stsFierceAssault3: 0, stsVigilantFormation3: 0, stsFatalStrike1: 0, techLevel: 35, barracksLevel: 35, tankCenterLevel: 35, airCenterLevel: 35, missileCenterLevel: 35, active: true },
+    { id: 'm2', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), language: 'turkish', name: 'TuyuLL', nameNormalized: 'tuyull', firstSquadPower: 23000000, totalHeroPower: 18100000, heroPercent: 90, duelPercent: 85, unitsPercent: 82, t10Morale: 10, t10Protection: 10, t10Hp: 10, t10Atk: 10, t10Def: 10, t10Elite: 10, stsPowerBoost1: 0, stsFinalStand1: 0, stsFierceAssault1: 0, stsVigilantFormation1: 0, stsExtraDrillGround: 0, stsBarrackExpansion1: 0, stsFocusedTraining1: 0, stsFinalStand2: 0, stsFierceAssault2: 0, stsVigilantFormation2: 0, stsDrillGroundExpansion: 0, stsRapidMarch1: 0, stsFinalStand3: 0, stsFierceAssault3: 0, stsVigilantFormation3: 0, stsFatalStrike1: 0, techLevel: 35, barracksLevel: 35, tankCenterLevel: 35, airCenterLevel: 35, missileCenterLevel: 35, active: true },
+    { id: 'm3', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), language: 'indonesian', name: 'Sukakamuturu', nameNormalized: 'sukakamuturu', firstSquadPower: 21300000, totalHeroPower: 16500000, heroPercent: 85, duelPercent: 80, unitsPercent: 78, t10Morale: 8, t10Protection: 9, t10Hp: 8, t10Atk: 8, t10Def: 8, t10Elite: 0, stsPowerBoost1: 0, stsFinalStand1: 0, stsFierceAssault1: 0, stsVigilantFormation1: 0, stsExtraDrillGround: 0, stsBarrackExpansion1: 0, stsFocusedTraining1: 0, stsFinalStand2: 0, stsFierceAssault2: 0, stsVigilantFormation2: 0, stsDrillGroundExpansion: 0, stsRapidMarch1: 0, stsFinalStand3: 0, stsFierceAssault3: 0, stsVigilantFormation3: 0, stsFatalStrike1: 0, techLevel: 32, barracksLevel: 32, tankCenterLevel: 32, airCenterLevel: 32, missileCenterLevel: 32, active: true }
 ];
 
 const getLocalMockData = <T>(key: string, initial: T): T => {
@@ -66,6 +65,22 @@ const mapPlayerFromDb = (row: any): Player => ({
   t10Atk: row.t10_atk,
   t10Def: row.t10_def,
   t10Elite: row.t10_elite || 0,
+  stsPowerBoost1: row.sts_power_boost_1 || 0,
+  stsFinalStand1: row.sts_final_stand_1 || 0,
+  stsFierceAssault1: row.sts_fierce_assault_1 || 0,
+  stsVigilantFormation1: row.sts_vigilant_formation_1 || 0,
+  stsExtraDrillGround: row.sts_extra_drill_ground || 0,
+  stsBarrackExpansion1: row.sts_barrack_expansion_1 || 0,
+  stsFocusedTraining1: row.sts_focused_training_1 || 0,
+  stsFinalStand2: row.sts_final_stand_2 || 0,
+  stsFierceAssault2: row.sts_fierce_assault_2 || 0,
+  stsVigilantFormation2: row.sts_vigilant_formation_2 || 0,
+  stsDrillGroundExpansion: row.sts_drill_ground_expansion || 0,
+  stsRapidMarch1: row.sts_rapid_march_1 || 0,
+  stsFinalStand3: row.sts_final_stand_3 || 0,
+  stsFierceAssault3: row.sts_fierce_assault_3 || 0,
+  stsVigilantFormation3: row.sts_vigilant_formation_3 || 0,
+  stsFatalStrike1: row.sts_fatal_strike_1 || 0,
   techLevel: row.tech_level,
   barracksLevel: row.barracks_level,
   tankCenterLevel: row.tank_center_level,
@@ -93,6 +108,22 @@ const mapPlayerToDb = (p: Partial<Player>) => {
   if (p.t10Atk !== undefined) out.t10_atk = p.t10Atk;
   if (p.t10Def !== undefined) out.t10_def = p.t10Def;
   if (p.t10Elite !== undefined) out.t10_elite = p.t10Elite;
+  if (p.stsPowerBoost1 !== undefined) out.sts_power_boost_1 = p.stsPowerBoost1;
+  if (p.stsFinalStand1 !== undefined) out.sts_final_stand_1 = p.stsFinalStand1;
+  if (p.stsFierceAssault1 !== undefined) out.sts_fierce_assault_1 = p.stsFierceAssault1;
+  if (p.stsVigilantFormation1 !== undefined) out.sts_vigilant_formation_1 = p.stsVigilantFormation1;
+  if (p.stsExtraDrillGround !== undefined) out.sts_extra_drill_ground = p.stsExtraDrillGround;
+  if (p.stsBarrackExpansion1 !== undefined) out.sts_barrack_expansion_1 = p.stsBarrackExpansion1;
+  if (p.stsFocusedTraining1 !== undefined) out.sts_focused_training_1 = p.stsFocusedTraining1;
+  if (p.stsFinalStand2 !== undefined) out.sts_final_stand_2 = p.stsFinalStand2;
+  if (p.stsFierceAssault2 !== undefined) out.sts_fierce_assault_2 = p.stsFierceAssault2;
+  if (p.stsVigilantFormation2 !== undefined) out.sts_vigilant_formation_2 = p.stsVigilantFormation2;
+  if (p.stsDrillGroundExpansion !== undefined) out.sts_drill_ground_expansion = p.stsDrillGroundExpansion;
+  if (p.stsRapidMarch1 !== undefined) out.sts_rapid_march_1 = p.stsRapidMarch1;
+  if (p.stsFinalStand3 !== undefined) out.sts_final_stand_3 = p.stsFinalStand3;
+  if (p.stsFierceAssault3 !== undefined) out.sts_fierce_assault_3 = p.stsFierceAssault3;
+  if (p.stsVigilantFormation3 !== undefined) out.sts_vigilant_formation_3 = p.stsVigilantFormation3;
+  if (p.stsFatalStrike1 !== undefined) out.sts_fatal_strike_1 = p.stsFatalStrike1;
   if (p.techLevel !== undefined) out.tech_level = p.techLevel;
   if (p.barracksLevel !== undefined) out.barracks_level = p.barracksLevel;
   if (p.tankCenterLevel !== undefined) out.tank_center_level = p.tankCenterLevel;

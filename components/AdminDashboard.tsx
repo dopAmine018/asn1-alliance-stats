@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MockApi } from '../services/mockBackend';
 import { Player, PlayerFilter } from '../types';
@@ -113,6 +112,22 @@ const AdminDashboard: React.FC = () => {
         heroPercent: Number(editForm.heroPercent), duelPercent: Number(editForm.duelPercent), unitsPercent: Number(editForm.unitsPercent),
         t10Morale: Number(editForm.t10Morale), t10Protection: Number(editForm.t10Protection), t10Hp: Number(editForm.t10Hp),
         t10Atk: Number(editForm.t10Atk), t10Def: Number(editForm.t10Def), t10Elite: Number(editForm.t10Elite),
+        stsPowerBoost1: Number(editForm.stsPowerBoost1 || 0),
+        stsFinalStand1: Number(editForm.stsFinalStand1 || 0),
+        stsFierceAssault1: Number(editForm.stsFierceAssault1 || 0),
+        stsVigilantFormation1: Number(editForm.stsVigilantFormation1 || 0),
+        stsExtraDrillGround: Number(editForm.stsExtraDrillGround || 0),
+        stsBarrackExpansion1: Number(editForm.stsBarrackExpansion1 || 0),
+        stsFocusedTraining1: Number(editForm.stsFocusedTraining1 || 0),
+        stsFinalStand2: Number(editForm.stsFinalStand2 || 0),
+        stsFierceAssault2: Number(editForm.stsFierceAssault2 || 0),
+        stsVigilantFormation2: Number(editForm.stsVigilantFormation2 || 0),
+        stsDrillGroundExpansion: Number(editForm.stsDrillGroundExpansion || 0),
+        stsRapidMarch1: Number(editForm.stsRapidMarch1 || 0),
+        stsFinalStand3: Number(editForm.stsFinalStand3 || 0),
+        stsFierceAssault3: Number(editForm.stsFierceAssault3 || 0),
+        stsVigilantFormation3: Number(editForm.stsVigilantFormation3 || 0),
+        stsFatalStrike1: Number(editForm.stsFatalStrike1 || 0),
         techLevel: Number(editForm.techLevel), barracksLevel: Number(editForm.barracksLevel),
         tankCenterLevel: Number(editForm.tankCenterLevel), airCenterLevel: Number(editForm.airCenterLevel), missileCenterLevel: Number(editForm.missileCenterLevel),
       };
@@ -156,7 +171,7 @@ const AdminDashboard: React.FC = () => {
   if (!token) {
     return (
       <div className="flex justify-center items-center min-h-[60vh] animate-in fade-in zoom-in-95 duration-700">
-        <div className="bg-[#0f172a] p-10 rounded-[2rem] shadow-2xl w-full max-w-sm border border-white/5 relative overflow-hidden">
+        <div className="bg-[#0f172a] p-10 rounded-[2rem] shadow-2xl w-full max-sm border border-white/5 relative overflow-hidden">
            <div className="absolute top-0 left-0 w-full h-1 bg-sky-500 shadow-[0_0_20px_#0ea5e9]"></div>
            <div className="text-center mb-10">
                <h2 className="text-lg font-header font-bold text-white tracking-widest uppercase">{t('admin.login.title')}</h2>
@@ -289,6 +304,17 @@ const AdminDashboard: React.FC = () => {
                            <div className="grid grid-cols-2 gap-3">
                               <div><label className="text-[9px] text-slate-600 font-bold block mb-1">MORALE</label><input type="number" className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white" value={editForm.t10Morale} onChange={e => setEditForm(p => ({...p, t10Morale: e.target.value}))} /></div>
                               <div><label className="text-[9px] text-slate-600 font-bold block mb-1">T10 ELITE</label><select className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white" value={editForm.t10Elite} onChange={e => setEditForm(p => ({...p, t10Elite: e.target.value}))}><option value="0">0 (Locked)</option><option value="10">10 (Max)</option></select></div>
+                           </div>
+                           <div className="space-y-1">
+                                <label className="text-[9px] text-slate-600 font-bold block mb-1">STS LEVELS (0-10)</label>
+                                <div className="grid grid-cols-4 gap-1">
+                                    {['stsPowerBoost1', 'stsFinalStand1', 'stsFierceAssault1', 'stsVigilantFormation1', 'stsExtraDrillGround', 'stsBarrackExpansion1', 'stsFocusedTraining1', 'stsFinalStand2', 'stsFierceAssault2', 'stsVigilantFormation2', 'stsDrillGroundExpansion', 'stsRapidMarch1', 'stsFinalStand3', 'stsFierceAssault3', 'stsVigilantFormation3', 'stsFatalStrike1'].map(field => (
+                                        <div key={field}>
+                                            <label className="text-[6px] text-slate-700 block truncate">{field.replace('sts','')}</label>
+                                            <input type="number" min="0" max="10" className="w-full bg-slate-950 border border-slate-800 rounded p-1 text-[8px] text-white" value={editForm[field]} onChange={e => setEditForm(p => ({...p, [field]: e.target.value}))} />
+                                        </div>
+                                    ))}
+                                </div>
                            </div>
                       </div>
                   </div>

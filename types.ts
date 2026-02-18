@@ -25,6 +25,23 @@ export interface Player {
   t10Def: number;
   t10Elite: number; // 0 or 10 (MAX)
   
+  stsPowerBoost1: number;
+  stsFinalStand1: number;
+  stsFierceAssault1: number;
+  stsVigilantFormation1: number;
+  stsExtraDrillGround: number;
+  stsBarrackExpansion1: number;
+  stsFocusedTraining1: number;
+  stsFinalStand2: number;
+  stsFierceAssault2: number;
+  stsVigilantFormation2: number;
+  stsDrillGroundExpansion: number;
+  stsRapidMarch1: number;
+  stsFinalStand3: number;
+  stsFierceAssault3: number;
+  stsVigilantFormation3: number;
+  stsFatalStrike1: number;
+
   techLevel: number;
   barracksLevel: number;
   tankCenterLevel: number;
