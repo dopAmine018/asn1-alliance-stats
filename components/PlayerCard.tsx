@@ -1,8 +1,7 @@
-
 import React, { useMemo } from 'react';
 import { Player } from '../types';
 import { useLanguage } from '../utils/i18n';
-import { calculateT10RemainingCost } from '../utils/gameLogic';
+import { calculateT10RemainingCost, calculateStsRemainingCost } from '../utils/gameLogic';
 
 interface PlayerCardProps {
   player: Player;
@@ -17,6 +16,13 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
     const MAX_GOLD_REF = 35000000000; 
     const pct = Math.max(5, 100 - (cost.gold / MAX_GOLD_REF * 100));
     return Math.round(pct);
+  }, [player]);
+
+  const stsProgress = useMemo(() => {
+    const cost = calculateStsRemainingCost(player);
+    const MAX_STS_GOLD_REF = 15000000000; 
+    const pct = Math.max(0, 100 - (cost.gold / MAX_STS_GOLD_REF * 100));
+    return Math.min(100, Math.round(pct));
   }, [player]);
 
   const formatM = (val: number | undefined) => {
@@ -96,15 +102,6 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
         </div>
       </div>
 
-      {/* Infrastructure Levels */}
-      <div className="grid grid-cols-5 gap-1 mb-4">
-        <TinyStat label="BARR" val={player.barracksLevel} />
-        <TinyStat label="TECH" val={player.techLevel} />
-        <TinyStat label="TANK" val={player.tankCenterLevel} />
-        <TinyStat label="AIR" val={player.airCenterLevel} />
-        <TinyStat label="MISL" val={player.missileCenterLevel} />
-      </div>
-
       {/* T10 HUD */}
       <div className="space-y-1.5">
         <div className="flex justify-between items-end">
@@ -114,18 +111,30 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
         <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden flex">
           <div className="h-full bg-sky-500 transition-all duration-1000" style={{ width: `${t10Progress}%` }}></div>
         </div>
-        <div className="flex justify-between pt-1">
-            <div className="flex gap-1.5">
-                {['t10Protection', 't10Hp', 't10Atk', 't10Def'].map((key) => (
-                    <span key={key} className="text-[7px] font-mono text-slate-500 font-bold bg-slate-900 px-1 rounded border border-white/5">
-                        {(player as any)[key]}
-                    </span>
-                ))}
-            </div>
-            <span className={`text-[7px] font-black uppercase ${player.t10Elite === 10 ? 'text-emerald-500' : 'text-slate-600'}`}>
-                {player.t10Elite === 10 ? 'ELITE_READY' : 'T10_LOCKED'}
-            </span>
+      </div>
+
+      {/* STS HUD */}
+      <div className="space-y-1.5 mt-4 pt-4 border-t border-white/5">
+        <div className="flex justify-between items-end">
+          <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em]">STS PROTOCOL</span>
+          <span className="text-[9px] font-mono font-black text-rose-400">{stsProgress}%</span>
         </div>
+        <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden flex">
+          <div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: `${stsProgress}%` }}></div>
+        </div>
+      </div>
+
+      <div className="flex justify-between pt-3">
+          <div className="flex gap-1.5">
+              {['t10Protection', 't10Hp', 't10Atk', 't10Def'].map((key) => (
+                  <span key={key} className="text-[7px] font-mono text-slate-500 font-bold bg-slate-900 px-1 rounded border border-white/5">
+                      {(player as any)[key]}
+                  </span>
+              ))}
+          </div>
+          <span className={`text-[7px] font-black uppercase ${player.t10Elite === 10 ? 'text-emerald-500' : 'text-slate-600'}`}>
+              {player.t10Elite === 10 ? 'ELITE_READY' : 'T10_LOCKED'}
+          </span>
       </div>
     </div>
   );

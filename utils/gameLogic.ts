@@ -1,19 +1,16 @@
 import { Player } from '../types';
 
 export const T10_COSTS = {
-    // Advanced Protection
     advProt: {
         gold: [64600000, 92300000, 92300000, 158000000, 158000000, 221000000, 221000000, 287000000, 287000000, 403000000],
         valor: [1280, 1440, 1440, 1600, 1600, 1800, 1800, 2000, 2000, 2000],
         foodIron: [21700000, 31000000, 31000000, 53000000, 53000000, 74000000, 74000000, 96000000, 96000000, 134000000]
     },
-    // HP, Attack, Defense Boost III
     boost3: {
         gold: [92300000, 158000000, 158000000, 221000000, 221000000, 287000000, 287000000, 403000000, 403000000, 563000000],
         valor: [1440, 1600, 1600, 1800, 1800, 2000, 2000, 2200, 2200, 2400],
         foodIron: [31000000, 53000000, 53000000, 74000000, 74000000, 96000000, 96000000, 134000000, 134000000, 175000000]
     },
-    // Final Unlock
     unlock: {
         gold: 563000000,
         valor: 2400,
@@ -51,9 +48,7 @@ export const calculateT10RemainingCost = (p: T10Levels) => {
     const def = Number(p.t10Def) || 0;
     const elite = Number(p.t10Elite) || 0;
 
-    let gold = 0;
-    let valor = 0;
-    let foodIron = 0;
+    let gold = 0, valor = 0, foodIron = 0;
 
     gold += sumRemaining(prot, T10_COSTS.advProt.gold);
     valor += sumRemaining(prot, T10_COSTS.advProt.valor);
@@ -88,11 +83,8 @@ export const calculateT10RemainingCost = (p: T10Levels) => {
         return { bGold, bFood };
     };
 
-    const barracksLvl = Number(p.barracksLevel) || 0;
-    const techLvl = Number(p.techLevel) || 0;
-    const barracksCost = calculateBuildingCost(barracksLvl, BARRACKS_DATA);
-    const techCenterCost = calculateBuildingCost(techLvl, TECH_CENTER_DATA);
-
+    const barracksCost = calculateBuildingCost(Number(p.barracksLevel) || 0, BARRACKS_DATA);
+    const techCenterCost = calculateBuildingCost(Number(p.techLevel) || 0, TECH_CENTER_DATA);
     gold += barracksCost.bGold + techCenterCost.bGold;
     foodIron += barracksCost.bFood + techCenterCost.bFood;
 

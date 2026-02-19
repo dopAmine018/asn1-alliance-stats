@@ -276,22 +276,27 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                          <div className="h-6 w-px bg-indigo-500/30"></div>
                          <TechNode label="Elite Units" value={formData.t10Elite} onChange={(v:any)=>setFormData(p=>({...p,t10Elite:v}))} binary />
                     </div>
-                    <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around">
-                        <div className="text-center"><span className="text-[10px] text-amber-500 block uppercase">GOLD REQ</span><span className="text-sm font-mono text-white font-bold">{fR(resourcesNeeded.gold)}</span></div>
-                        <div className="text-center"><span className="text-[10px] text-purple-400 block uppercase">VALOR REQ</span><span className="text-sm font-mono text-white font-bold">{resourcesNeeded.valor.toLocaleString()}</span></div>
+                    {/* T10 Local Resource Summary */}
+                    <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
+                        <div className="text-center">
+                            <span className="text-[10px] text-amber-500 block uppercase font-black tracking-widest">T10 GOLD</span>
+                            <span className="text-sm font-mono text-white font-bold">{fR(resourcesNeeded.gold)}</span>
+                        </div>
+                        <div className="text-center border-x border-white/5 px-8">
+                            <span className="text-[10px] text-purple-400 block uppercase font-black tracking-widest">T10 VALOR</span>
+                            <span className="text-sm font-mono text-white font-bold">{resourcesNeeded.valor.toLocaleString()}</span>
+                        </div>
+                        <div className="text-center">
+                            <span className="text-[10px] text-emerald-500 block uppercase font-black tracking-widest">T10 F/I</span>
+                            <span className="text-sm font-mono text-white font-bold">{fR(resourcesNeeded.foodIron)}</span>
+                        </div>
                     </div>
                 </div>
 
                 {/* Siege to Seize Tree */}
                 <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-rose-500/10 space-y-10 shadow-[inset_0_0_20px_rgba(244,63,94,0.05)]">
-                    <div className="flex flex-col sm:flex-row justify-between items-center border-b border-white/5 pb-4 gap-4">
-                        <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em]">{t('sts.title')}</h4>
-                        <div className="grid grid-cols-3 gap-4 text-right">
-                            <div className="text-center"><span className="text-[9px] text-slate-500 block uppercase tracking-tighter">GOLD</span><span className="text-xs text-white font-mono font-bold">{fR(stsResources.gold)}</span></div>
-                            <div className="text-center border-x border-white/5 px-4"><span className="text-[9px] text-slate-500 block uppercase tracking-tighter">VALOR</span><span className="text-xs text-white font-mono font-bold">{stsResources.valor}</span></div>
-                            <div className="text-center"><span className="text-[9px] text-slate-500 block uppercase tracking-tighter">F/I</span><span className="text-xs text-white font-mono font-bold">{fR(stsResources.foodIron)}</span></div>
-                        </div>
-                    </div>
+                    <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em]">{t('sts.title')}</h4>
+                    
                     <div className="flex flex-col items-center gap-4">
                         <TechNode label={t('sts.power_boost')+" I"} value={formData.stsPowerBoost1} onChange={(v:any)=>setFormData(p=>({...p,stsPowerBoost1:v}))} />
                         <div className="h-6 w-px bg-rose-500/30"></div>
@@ -325,6 +330,22 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                         </div>
                         <div className="h-6 w-px bg-rose-500/30"></div>
                         <TechNode label={t('sts.fatal')} value={formData.stsFatalStrike1} onChange={(v:any)=>setFormData(p=>({...p,stsFatalStrike1:v}))} hint="REQ: T7 Lv1" />
+                    </div>
+
+                    {/* STS Local Resource Summary */}
+                    <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
+                        <div className="text-center">
+                            <span className="text-[10px] text-amber-500 block uppercase font-black tracking-widest">STS GOLD</span>
+                            <span className="text-sm font-mono text-white font-bold">{fR(stsResources.gold)}</span>
+                        </div>
+                        <div className="text-center border-x border-white/5 px-8">
+                            <span className="text-[10px] text-purple-400 block uppercase font-black tracking-widest">STS VALOR</span>
+                            <span className="text-sm font-mono text-white font-bold">{stsResources.valor.toLocaleString()}</span>
+                        </div>
+                        <div className="text-center">
+                            <span className="text-[10px] text-emerald-500 block uppercase font-black tracking-widest">STS F/I</span>
+                            <span className="text-sm font-mono text-white font-bold">{fR(stsResources.foodIron)}</span>
+                        </div>
                     </div>
                 </div>
 
