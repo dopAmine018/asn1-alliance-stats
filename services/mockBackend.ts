@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { Player, PlayerFilter, ApiResponse, AuthResponse, VsWeek, VsRecord, Announcement, Alliance, DesertStormRegistration } from '../types';
 
-const PROVIDED_URL = "https://akmsbujnguptxdgxdqbp.supabase.co";
-const PROVIDED_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFrbXNidWpuZ3VwdHhkZ3hkcWJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTAxNTM4OSwiZXhwIjoyMDg2NTkxMzg5fQ.uoGB8zvudc1O8J18_3V03L_fhr_G5zlFGEXCbRK79Gc";
+const PROVIDED_URL = "https://fgrzuylyxfogejwmeakn.supabase.co";
+const PROVIDED_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZncnp1eWx5eGZvZ2Vqd21lYWtuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTEyNjEyNCwiZXhwIjoyMDgwNzAyMTI0fQ.3G3BaSOg6uzN_zn7Wf1Ebn4TjAeXsvKGBJO4STzsu8c";
 
 const getEnv = (key: string): string => {
   try {
@@ -23,10 +23,10 @@ const supabase = createClient(supabaseUrl.trim(), supabaseKey.trim(), {
 });
 
 const MOCK_ALLIANCE: Alliance = {
-  id: 'gun1',
-  tag: 'GUN1',
-  name: 'GUN 1 Alliance',
-  adminPass: 'GUN1ADMIN@',
+  id: 'asn1',
+  tag: 'ASN1',
+  name: 'ASN1 Alliance',
+  adminPass: 'ASN1!1628@',
   createdAt: '2025-01-01T00:00:00.000Z'
 };
 
@@ -39,8 +39,8 @@ const DEFAULT_STS = {
 };
 
 const INITIAL_MOCK_PLAYERS: Player[] = [
-    { id: 'm1', allianceId: 'gun1', ...DEFAULT_STS, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), language: 'english', name: 'imAYAD', nameNormalized: 'imayad', firstSquadPower: 23200000, totalHeroPower: 18500000, heroPercent: 92, duelPercent: 88, unitsPercent: 85, t10Morale: 10, t10Protection: 10, t10Hp: 10, t10Atk: 10, t10Def: 10, t10Elite: 10, techLevel: 35, barracksLevel: 35, tankCenterLevel: 35, airCenterLevel: 35, missileCenterLevel: 35, active: true },
-    { id: 'm2', allianceId: 'gun1', ...DEFAULT_STS, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), language: 'turkish', name: 'TuyuLL', nameNormalized: 'tuyull', firstSquadPower: 23000000, totalHeroPower: 18100000, heroPercent: 90, duelPercent: 85, unitsPercent: 82, t10Morale: 10, t10Protection: 10, t10Hp: 10, t10Atk: 10, t10Def: 10, t10Elite: 10, techLevel: 35, barracksLevel: 35, tankCenterLevel: 35, airCenterLevel: 35, missileCenterLevel: 35, active: true },
+    { id: 'm1', allianceId: 'asn1', ...DEFAULT_STS, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), language: 'english', name: 'imAYAD', nameNormalized: 'imayad', firstSquadPower: 23200000, totalHeroPower: 18500000, heroPercent: 92, duelPercent: 88, unitsPercent: 85, t10Morale: 10, t10Protection: 10, t10Hp: 10, t10Atk: 10, t10Def: 10, t10Elite: 10, techLevel: 35, barracksLevel: 35, tankCenterLevel: 35, airCenterLevel: 35, missileCenterLevel: 35, active: true },
+    { id: 'm2', allianceId: 'asn1', ...DEFAULT_STS, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), language: 'turkish', name: 'TuyuLL', nameNormalized: 'tuyull', firstSquadPower: 23000000, totalHeroPower: 18100000, heroPercent: 90, duelPercent: 85, unitsPercent: 82, t10Morale: 10, t10Protection: 10, t10Hp: 10, t10Atk: 10, t10Def: 10, t10Elite: 10, techLevel: 35, barracksLevel: 35, tankCenterLevel: 35, airCenterLevel: 35, missileCenterLevel: 35, active: true },
 ];
 
 const getLocalMockData = <T>(key: string, initial: T): T => {
@@ -52,15 +52,9 @@ const saveLocalMockData = (key: string, data: any) => {
     localStorage.setItem(`asn1_mock_${key}`, JSON.stringify(data));
 };
 
-const formatError = (err: any): string => {
-  if (!err) return "Unknown database error";
-  if (typeof err === 'string') return err;
-  return err.message || err.details || "Database transaction failed";
-};
-
 const mapPlayerFromDb = (row: any): Player => ({
   id: row.id,
-  allianceId: row.alliance_id || 'gun1',
+  allianceId: row.alliance_id || 'asn1',
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   language: row.language,
@@ -203,7 +197,7 @@ export const MockApi = {
   },
 
   login: async (username: string, password: string): Promise<ApiResponse<AuthResponse>> => {
-    if (password === 'GUN1ADMIN@') return { success: true, data: { token: 'mock-token', alliance: MOCK_ALLIANCE } };
+    if (password === 'ASN1!1628@') return { success: true, data: { token: 'mock-token', alliance: MOCK_ALLIANCE } };
     return { success: false, error: 'Access Denied' };
   },
 
@@ -256,22 +250,22 @@ export const VsApi = {
   getWeeks: async (): Promise<VsWeek[]> => {
       try {
           const { data } = await supabase.from('vs_weeks').select('*').order('created_at', { ascending: false });
-          return (data || []).map((w: any) => ({ id: w.id, allianceId: w.alliance_id || 'gun1', name: w.name, createdAt: w.created_at }));
+          return (data || []).map((w: any) => ({ id: w.id, allianceId: w.alliance_id || 'asn1', name: w.name, createdAt: w.created_at }));
       } catch (e) { return []; }
   },
   createWeek: async (name: string): Promise<VsWeek> => {
-    const { data } = await supabase.from('vs_weeks').insert({ name, alliance_id: 'gun1' }).select().single();
+    const { data } = await supabase.from('vs_weeks').insert({ name, alliance_id: 'asn1' }).select().single();
     return { id: data.id, allianceId: data.alliance_id, name: data.name, createdAt: data.created_at };
   },
   getRecords: async (weekId: string): Promise<VsRecord[]> => {
       const { data } = await supabase.from('vs_records').select('*').eq('week_id', weekId);
       return (data || []).map((r: any) => ({
-        id: r.id, weekId: r.week_id, allianceId: r.alliance_id || 'gun1', playerName: r.player_name,
+        id: r.id, weekId: r.week_id, allianceId: r.alliance_id || 'asn1', playerName: r.player_name,
         mon: r.mon, tue: r.tue, wed: r.wed, thu: r.thu, fri: r.fri, sat: r.sat, total: r.total
       }));
   },
   addPlayerToWeek: async (weekId: string, playerName: string) => {
-    await supabase.from('vs_records').insert({ week_id: weekId, player_name: playerName, alliance_id: 'gun1' });
+    await supabase.from('vs_records').insert({ week_id: weekId, player_name: playerName, alliance_id: 'asn1' });
   },
   updateRecord: async (record: VsRecord) => {
     const total = (record.mon || 0) + (record.tue || 0) + (record.wed || 0) + (record.thu || 0) + (record.fri || 0) + (record.sat || 0);

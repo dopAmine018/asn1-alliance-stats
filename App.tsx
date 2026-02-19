@@ -6,10 +6,19 @@ import TrainScheduleViewer from './components/TrainScheduleViewer';
 import DesertStormViewer from './components/DesertStormViewer';
 import { MockApi } from './services/mockBackend';
 import { useLanguage } from './utils/i18n';
+import { Alliance } from './types';
 
 const AdminDashboard = React.lazy(() => import('./components/AdminDashboard'));
 
 type ViewState = 'home' | 'leaderboard' | 'update' | 'train_public' | 'storm_public';
+
+const ASN1_ALLIANCE: Alliance = {
+  id: 'asn1',
+  tag: 'ASN1',
+  name: 'ASN1 Alliance',
+  adminPass: 'ASN1!1628@',
+  createdAt: '2025-01-01T00:00:00.000Z'
+};
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'public' | 'admin'>('public');
@@ -68,7 +77,7 @@ const App: React.FC = () => {
              </div>
              
              <h1 className="text-4xl md:text-6xl font-header font-black text-white uppercase tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-500">
-                 {t('landing.welcome')}
+                 ASN1 <span className="text-sky-500">Command</span>
              </h1>
              <p className="text-slate-400 font-mono text-sm md:text-base tracking-widest uppercase">
                  {t('landing.subtitle')}
@@ -95,7 +104,7 @@ const App: React.FC = () => {
             >
                 <div className="relative z-10">
                     <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-3 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" /></svg>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                     </div>
                     <h3 className="text-lg font-header font-bold text-white uppercase tracking-wider">{t('landing.action.view')}</h3>
                 </div>
@@ -105,10 +114,10 @@ const App: React.FC = () => {
              {settings.show_train_schedule && (
                  <button 
                     onClick={() => setView('train_public')}
-                    className="group relative h-48 rounded-2xl overflow-hidden border border-white/10 bg-[#0f172a]/60 hover:bg-[#0f172a] transition-all duration-300 hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(245,158,11,0.1)] text-left p-6 flex flex-col justify-between"
+                    className="group relative h-48 rounded-2xl overflow-hidden border border-white/10 bg-[#0f172a]/60 hover:bg-[#0f172a] transition-all duration-300 hover:border-sky-500/50 hover:shadow-[0_0_30px_rgba(14,165,233,0.1)] text-left p-6 flex flex-col justify-between"
                 >
                     <div className="relative z-10">
-                        <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 mb-3 group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                        <div className="w-10 h-10 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-400 mb-3 group-hover:bg-sky-500 group-hover:text-white transition-colors">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
                         <h3 className="text-lg font-header font-bold text-white uppercase tracking-wider">{t('landing.action.train')}</h3>
@@ -154,6 +163,7 @@ const App: React.FC = () => {
         onHomeClick={() => setView('home')} 
         showHomeBtn={view !== 'home' && activeTab === 'public'}
         onNavigate={(v) => setView(v)}
+        alliance={ASN1_ALLIANCE}
     >
       {activeTab === 'public' && (
         <>
