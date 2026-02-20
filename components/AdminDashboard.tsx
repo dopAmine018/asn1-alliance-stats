@@ -171,7 +171,7 @@ const AdminDashboard: React.FC = () => {
   if (!token) {
     return (
       <div className="flex justify-center items-center min-h-[60vh] animate-in fade-in zoom-in-95 duration-700">
-        <div className="bg-[#0f172a] p-10 rounded-[2rem] shadow-2xl w-full max-w-sm border border-white/5 relative overflow-hidden">
+        <div className="bg-[#0f172a] p-10 rounded-[2rem] shadow-2xl w-full max-sm border border-white/5 relative overflow-hidden">
            <div className="absolute top-0 left-0 w-full h-1 bg-sky-500 shadow-[0_0_20px_#0ea5e9]"></div>
            <div className="text-center mb-10">
                <h2 className="text-lg font-header font-bold text-white tracking-widest uppercase">{t('admin.login.title')}</h2>

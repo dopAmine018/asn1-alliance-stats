@@ -65,7 +65,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
 
     const copyTacticalRoster = async () => {
         const date = new Date().toLocaleDateString();
-        let report = `### 🌩️ ASN1 DESERT STORM ROSTER [${date}]\n\`\`\`\n`;
+        let report = `### 🌩️ GUN1 DESERT STORM ROSTER [${date}]\n\`\`\`\n`;
         
         const renderTeam = (name: string, main: Player[], subs: Player[], pwr: string) => {
             let chunk = `== ${name} (${pwr}) ==\n`;
@@ -87,7 +87,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
         report += `\n`;
         report += renderTeam("TEAM B (23:00)", data.teamBMain, data.teamBSubs, getTotalPower([...data.teamBMain, ...data.teamBSubs]));
         
-        report += `\`\`\`\n*Intelligence established by ASN1 Command Terminal*`;
+        report += `\`\`\`\n*Intelligence established by GUN1 Command Terminal*`;
 
         try {
             await navigator.clipboard.writeText(report);
@@ -229,7 +229,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
 
             {showRegister && (
                 <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
-                    <div className="bg-[#0b1121] w-full max-w-md rounded-2xl border border-white/5 shadow-2xl overflow-hidden animate-in zoom-in-95">
+                    <div className="bg-[#0b1121] w-full max-md rounded-2xl border border-white/5 shadow-2xl overflow-hidden animate-in zoom-in-95">
                         <div className="p-6 border-b border-white/5 flex justify-between items-center bg-slate-900/50">
                             <h3 className="text-sm font-header font-black text-white uppercase tracking-widest">Apply for Slot</h3>
                             <button onClick={() => setShowRegister(false)} className="text-slate-500 hover:text-white transition-colors">✕</button>

@@ -81,7 +81,7 @@ const VsTracker: React.FC = () => {
       report += `${pad((i + 1).toString(), 3)} ${pad(r.playerName.toUpperCase(), 15)} ${pad(r.total.toLocaleString(), 10)}\n`;
     });
 
-    report += `\`\`\`\n*Intelligence gathered from ASN1 Command Terminal*`;
+    report += `\`\`\`\n*Intelligence gathered from GUN1 Command Terminal*`;
 
     try {
       await navigator.clipboard.writeText(report);
