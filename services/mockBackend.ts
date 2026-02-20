@@ -115,6 +115,46 @@ const mapPlayerFromDb = (row: any): Player => ({
   masteryAirDef4: row.mastery_air_def_4 || 0,
   masteryAirDamage4: row.mastery_air_damage_4 || 0,
   masteryAirUltDef2: row.mastery_air_ult_def_2 || 0,
+  masteryTankHp1: row.mastery_tank_hp_1 || 0,
+  masteryTankAtk1: row.mastery_tank_atk_1 || 0,
+  masteryTankDef1: row.mastery_tank_def_1 || 0,
+  masteryTankDamage1: row.mastery_tank_damage_1 || 0,
+  masteryTankMarch1: row.mastery_tank_march_1 || 0,
+  masteryTankHp2: row.mastery_tank_hp_2 || 0,
+  masteryTankAtk2: row.mastery_tank_atk_2 || 0,
+  masteryTankDef2: row.mastery_tank_def_2 || 0,
+  masteryTankDamage2: row.mastery_tank_damage_2 || 0,
+  masteryTankUltDef1: row.mastery_tank_ult_def_1 || 0,
+  masteryTankHp3: row.mastery_tank_hp_3 || 0,
+  masteryTankAtk3: row.mastery_tank_atk_3 || 0,
+  masteryTankDef3: row.mastery_tank_def_3 || 0,
+  masteryTankDamage3: row.mastery_tank_damage_3 || 0,
+  masteryTankMarch2: row.mastery_tank_march_2 || 0,
+  masteryTankHp4: row.mastery_tank_hp_4 || 0,
+  masteryTankAtk4: row.mastery_tank_atk_4 || 0,
+  masteryTankDef4: row.mastery_tank_def_4 || 0,
+  masteryTankDamage4: row.mastery_tank_damage_4 || 0,
+  masteryTankUltDef2: row.mastery_tank_ult_def_2 || 0,
+  masteryMissileHp1: row.mastery_missile_hp_1 || 0,
+  masteryMissileAtk1: row.mastery_missile_atk_1 || 0,
+  masteryMissileDef1: row.mastery_missile_def_1 || 0,
+  masteryMissileDamage1: row.mastery_missile_damage_1 || 0,
+  masteryMissileMarch1: row.mastery_missile_march_1 || 0,
+  masteryMissileHp2: row.mastery_missile_hp_2 || 0,
+  masteryMissileAtk2: row.mastery_missile_atk_2 || 0,
+  masteryMissileDef2: row.mastery_missile_def_2 || 0,
+  masteryMissileDamage2: row.mastery_missile_damage_2 || 0,
+  masteryMissileUltDef1: row.mastery_missile_ult_def_1 || 0,
+  masteryMissileHp3: row.mastery_missile_hp_3 || 0,
+  masteryMissileAtk3: row.mastery_missile_atk_3 || 0,
+  masteryMissileDef3: row.mastery_missile_def_3 || 0,
+  masteryMissileDamage3: row.mastery_missile_damage_3 || 0,
+  masteryMissileMarch2: row.mastery_missile_march_2 || 0,
+  masteryMissileHp4: row.mastery_missile_hp_4 || 0,
+  masteryMissileAtk4: row.mastery_missile_atk_4 || 0,
+  masteryMissileDef4: row.mastery_missile_def_4 || 0,
+  masteryMissileDamage4: row.mastery_missile_damage_4 || 0,
+  masteryMissileUltDef2: row.mastery_missile_ult_def_2 || 0,
   active: row.active
 });
 
@@ -178,6 +218,46 @@ const mapPlayerToDb = (p: Partial<Player>) => {
   if (p.masteryAirDef4 !== undefined) out.mastery_air_def_4 = p.masteryAirDef4;
   if (p.masteryAirDamage4 !== undefined) out.mastery_air_damage_4 = p.masteryAirDamage4;
   if (p.masteryAirUltDef2 !== undefined) out.mastery_air_ult_def_2 = p.masteryAirUltDef2;
+  if (p.masteryTankHp1 !== undefined) out.mastery_tank_hp_1 = p.masteryTankHp1;
+  if (p.masteryTankAtk1 !== undefined) out.mastery_tank_atk_1 = p.masteryTankAtk1;
+  if (p.masteryTankDef1 !== undefined) out.mastery_tank_def_1 = p.masteryTankDef1;
+  if (p.masteryTankDamage1 !== undefined) out.mastery_tank_damage_1 = p.masteryTankDamage1;
+  if (p.masteryTankMarch1 !== undefined) out.mastery_tank_march_1 = p.masteryTankMarch1;
+  if (p.masteryTankHp2 !== undefined) out.mastery_tank_hp_2 = p.masteryTankHp2;
+  if (p.masteryTankAtk2 !== undefined) out.mastery_tank_atk_2 = p.masteryTankAtk2;
+  if (p.masteryTankDef2 !== undefined) out.mastery_tank_def_2 = p.masteryTankDef2;
+  if (p.masteryTankDamage2 !== undefined) out.mastery_tank_damage_2 = p.masteryTankDamage2;
+  if (p.masteryTankUltDef1 !== undefined) out.mastery_tank_ult_def_1 = p.masteryTankUltDef1;
+  if (p.masteryTankHp3 !== undefined) out.mastery_tank_hp_3 = p.masteryTankHp3;
+  if (p.masteryTankAtk3 !== undefined) out.mastery_tank_atk_3 = p.masteryTankAtk3;
+  if (p.masteryTankDef3 !== undefined) out.mastery_tank_def_3 = p.masteryTankDef3;
+  if (p.masteryTankDamage3 !== undefined) out.mastery_tank_damage_3 = p.masteryTankDamage3;
+  if (p.masteryTankMarch2 !== undefined) out.mastery_tank_march_2 = p.masteryTankMarch2;
+  if (p.masteryTankHp4 !== undefined) out.mastery_tank_hp_4 = p.masteryTankHp4;
+  if (p.masteryTankAtk4 !== undefined) out.mastery_tank_atk_4 = p.masteryTankAtk4;
+  if (p.masteryTankDef4 !== undefined) out.mastery_tank_def_4 = p.masteryTankDef4;
+  if (p.masteryTankDamage4 !== undefined) out.mastery_tank_damage_4 = p.masteryTankDamage4;
+  if (p.masteryTankUltDef2 !== undefined) out.mastery_tank_ult_def_2 = p.masteryTankUltDef2;
+  if (p.masteryMissileHp1 !== undefined) out.mastery_missile_hp_1 = p.masteryMissileHp1;
+  if (p.masteryMissileAtk1 !== undefined) out.mastery_missile_atk_1 = p.masteryMissileAtk1;
+  if (p.masteryMissileDef1 !== undefined) out.mastery_missile_def_1 = p.masteryMissileDef1;
+  if (p.masteryMissileDamage1 !== undefined) out.mastery_missile_damage_1 = p.masteryMissileDamage1;
+  if (p.masteryMissileMarch1 !== undefined) out.mastery_missile_march_1 = p.masteryMissileMarch1;
+  if (p.masteryMissileHp2 !== undefined) out.mastery_missile_hp_2 = p.masteryMissileHp2;
+  if (p.masteryMissileAtk2 !== undefined) out.mastery_missile_atk_2 = p.masteryMissileAtk2;
+  if (p.masteryMissileDef2 !== undefined) out.mastery_missile_def_2 = p.masteryMissileDef2;
+  if (p.masteryMissileDamage2 !== undefined) out.mastery_missile_damage_2 = p.masteryMissileDamage2;
+  if (p.masteryMissileUltDef1 !== undefined) out.mastery_missile_ult_def_1 = p.masteryMissileUltDef1;
+  if (p.masteryMissileHp3 !== undefined) out.mastery_missile_hp_3 = p.masteryMissileHp3;
+  if (p.masteryMissileAtk3 !== undefined) out.mastery_missile_atk_3 = p.masteryMissileAtk3;
+  if (p.masteryMissileDef3 !== undefined) out.mastery_missile_def_3 = p.masteryMissileDef3;
+  if (p.masteryMissileDamage3 !== undefined) out.mastery_missile_damage_3 = p.masteryMissileDamage3;
+  if (p.masteryMissileMarch2 !== undefined) out.mastery_missile_march_2 = p.masteryMissileMarch2;
+  if (p.masteryMissileHp4 !== undefined) out.mastery_missile_hp_4 = p.masteryMissileHp4;
+  if (p.masteryMissileAtk4 !== undefined) out.mastery_missile_atk_4 = p.masteryMissileAtk4;
+  if (p.masteryMissileDef4 !== undefined) out.mastery_missile_def_4 = p.masteryMissileDef4;
+  if (p.masteryMissileDamage4 !== undefined) out.mastery_missile_damage_4 = p.masteryMissileDamage4;
+  if (p.masteryMissileUltDef2 !== undefined) out.mastery_missile_ult_def_2 = p.masteryMissileUltDef2;
   if (p.active !== undefined) out.active = p.active;
   out.updated_at = new Date().toISOString();
   return out;

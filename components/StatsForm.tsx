@@ -4,7 +4,7 @@ import { Player, Language } from '../types';
 import { useLanguage } from '../utils/i18n';
 import { CustomDropdown } from './CustomDropdown';
 import { useToast } from './Toast';
-import { calculateT10RemainingCost, calculateStsRemainingCost, calculateAirMasteryRemainingCost } from '../utils/gameLogic';
+import { calculateT10RemainingCost, calculateStsRemainingCost, calculateAirMasteryRemainingCost, calculateTankMasteryRemainingCost, calculateMissileMasteryRemainingCost } from '../utils/gameLogic';
 
 const defaultFormData = {
   name: '', firstSquadPower: '', secondSquadPower: '', thirdSquadPower: '', fourthSquadPower: '', totalHeroPower: '',
@@ -20,6 +20,14 @@ const defaultFormData = {
   masteryAirHp2: '0', masteryAirAtk2: '0', masteryAirDef2: '0', masteryAirDamage2: '0', masteryAirUltDef1: '0',
   masteryAirHp3: '0', masteryAirAtk3: '0', masteryAirDef3: '0', masteryAirDamage3: '0', masteryAirMarch2: '0',
   masteryAirHp4: '0', masteryAirAtk4: '0', masteryAirDef4: '0', masteryAirDamage4: '0', masteryAirUltDef2: '0',
+  masteryTankHp1: '0', masteryTankAtk1: '0', masteryTankDef1: '0', masteryTankDamage1: '0', masteryTankMarch1: '0',
+  masteryTankHp2: '0', masteryTankAtk2: '0', masteryTankDef2: '0', masteryTankDamage2: '0', masteryTankUltDef1: '0',
+  masteryTankHp3: '0', masteryTankAtk3: '0', masteryTankDef3: '0', masteryTankDamage3: '0', masteryTankMarch2: '0',
+  masteryTankHp4: '0', masteryTankAtk4: '0', masteryTankDef4: '0', masteryTankDamage4: '0', masteryTankUltDef2: '0',
+  masteryMissileHp1: '0', masteryMissileAtk1: '0', masteryMissileDef1: '0', masteryMissileDamage1: '0', masteryMissileMarch1: '0',
+  masteryMissileHp2: '0', masteryMissileAtk2: '0', masteryMissileDef2: '0', masteryMissileDamage2: '0', masteryMissileUltDef1: '0',
+  masteryMissileHp3: '0', masteryMissileAtk3: '0', masteryMissileDef3: '0', masteryMissileDamage3: '0', masteryMissileMarch2: '0',
+  masteryMissileHp4: '0', masteryMissileAtk4: '0', masteryMissileDef4: '0', masteryMissileDamage4: '0', masteryMissileUltDef2: '0',
 };
 
 const FormInput = ({ label, name, val, change, req, locked, type="text", loading, onBlur, autoComplete, suffix, children }: any) => (
@@ -44,22 +52,184 @@ const FormInput = ({ label, name, val, change, req, locked, type="text", loading
   </div>
 );
 
-const TechNode = ({ id, label, value, onChange, binary, hint, max=10 }: any) => {
+const TechNode = ({ id, label, value, onChange, binary, hint, max=10, accentColor='sky' }: any) => {
+    const isMax = Number(value) === max;
     const options = binary 
         ? [{ value: 0, label: '0' }, { value: 1, label: '1' }]
         : Array.from({length:max+1},(_,x)=>({value:x,label:x===max?'MAX':String(x)}));
 
+    const colors: any = {
+        amber: { border: 'border-amber-500/30', hover: 'hover:border-amber-400', shadow: 'hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]', icon: 'text-amber-400', iconBg: 'border-amber-500/50', maxBg: 'bg-amber-500/10', maxText: 'text-amber-400', ring: 'ring-amber-500/50' },
+        sky: { border: 'border-sky-500/30', hover: 'hover:border-sky-400', shadow: 'hover:shadow-[0_0_15px_rgba(14,165,233,0.2)]', icon: 'text-sky-400', iconBg: 'border-sky-500/50', maxBg: 'bg-sky-500/10', maxText: 'text-sky-400', ring: 'ring-sky-500/50' },
+        rose: { border: 'border-rose-500/30', hover: 'hover:border-rose-400', shadow: 'hover:shadow-[0_0_15px_rgba(244,63,94,0.2)]', icon: 'text-rose-400', iconBg: 'border-rose-500/50', maxBg: 'bg-rose-500/10', maxText: 'text-rose-400', ring: 'ring-rose-500/50' },
+        purple: { border: 'border-purple-500/50', hover: 'hover:border-purple-400', shadow: 'hover:shadow-[0_0_15px_rgba(168,85,247,0.2)]', icon: 'text-purple-400', iconBg: 'border-purple-500', maxBg: 'bg-purple-500/10', maxText: 'text-purple-400', ring: 'ring-purple-500/50' }
+    };
+
+    const c = colors[binary ? 'purple' : accentColor] || colors.sky;
+
     return (
-        <div className={`relative group bg-[#0f172a] rounded-xl border p-1 w-full max-w-[140px] hover:shadow-[0_0_15px_rgba(14,165,233,0.2)] transition-all z-10 ${binary ? 'border-purple-500/50 hover:border-purple-400' : 'border-sky-500/30 hover:border-sky-400'}`}>
+        <div className={`relative group bg-[#0f172a] rounded-xl border p-1 w-full max-w-[140px] transition-all z-10 ${c.border} ${c.hover} ${c.shadow} ${isMax ? c.maxBg + ' ring-1 ring-inset ' + c.ring : ''}`}>
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                 <div className={`w-8 h-8 rounded-full bg-slate-900 border flex items-center justify-center shadow-lg ${binary ? 'border-purple-500 text-purple-400' : 'border-sky-500/50 text-sky-400'}`}>
-                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                 <div className={`w-8 h-8 rounded-full bg-slate-900 border flex items-center justify-center shadow-lg transition-all ${c.iconBg} ${isMax ? 'scale-110 border-white/20' : ''}`}>
+                     <svg className={`w-4 h-4 transition-colors ${c.icon} ${isMax ? 'text-white' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                  </div>
             </div>
             <div className="pt-6 pb-2 px-1 text-center">
-                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-2 truncate px-1">{label}</label>
-                <CustomDropdown value={value} onChange={onChange} options={options} disableSearch className="text-xs" />
+                <label className={`block text-[8px] font-bold uppercase mb-2 truncate px-1 transition-colors ${isMax ? c.maxText : 'text-slate-400'}`}>{label}</label>
+                <CustomDropdown value={value} onChange={onChange} options={options} disableSearch className={`text-xs ${isMax ? 'font-black' : ''}`} />
                 {hint && <div className="mt-1 text-[7px] font-mono text-slate-600 uppercase tracking-tighter leading-none">{hint}</div>}
+            </div>
+            {isMax && (
+                <div className={`absolute -right-1 -top-1 w-4 h-4 rounded-full bg-emerald-500 border border-white/20 shadow-lg flex items-center justify-center z-20 animate-pulse`}>
+                    <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" /></svg>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const MasteryTree = ({ type, formData, setFormData, resources, fR }: any) => {
+    const prefix = type.charAt(0).toUpperCase() + type.slice(1);
+    const displayTitle = type === 'air' ? 'Aircraft' : type === 'tank' ? 'Tank' : 'Missile Vehicle';
+    const accentColor = type === 'air' ? 'amber' : type === 'tank' ? 'sky' : 'rose';
+    
+    // Tailwind class mappings to avoid dynamic string interpolation issues
+    const borderClasses: any = { amber: 'border-amber-500/10', sky: 'border-sky-500/10', rose: 'border-rose-500/10' };
+    const textClasses: any = { amber: 'text-amber-500', sky: 'text-sky-500', rose: 'text-rose-500' };
+    const bgClasses: any = { amber: 'bg-amber-500/20', sky: 'bg-sky-500/20', rose: 'bg-rose-500/20' };
+    const lineClasses: any = { amber: 'bg-amber-500/20', sky: 'bg-sky-500/20', rose: 'bg-rose-500/20' };
+    const shadowClasses: any = { amber: 'shadow-[inset_0_0_20px_rgba(245,158,11,0.05)]', sky: 'shadow-[inset_0_0_20px_rgba(14,165,233,0.05)]', rose: 'shadow-[inset_0_0_20px_rgba(244,63,94,0.05)]' };
+
+    const nodes = [
+        { key: 'Hp1', label: `${displayTitle} Synergy - HP I`, max: 10 },
+        { key: 'Atk1', label: `${displayTitle} Synergy - Attack I`, max: 10 },
+        { key: 'Def1', label: `${displayTitle} Synergy - Defense I`, max: 10 },
+        { key: 'Damage1', label: `${displayTitle} Synergy - Damage I`, max: 5 },
+        { key: 'March1', label: `${displayTitle} - March Size I`, max: 5 },
+        { key: 'Hp2', label: `${displayTitle} - HP I`, max: 10 },
+        { key: 'Atk2', label: `${displayTitle} - Attack I`, max: 10 },
+        { key: 'Def2', label: `${displayTitle} - Defense I`, max: 10 },
+        { key: 'Damage2', label: `${displayTitle} - Damage I`, max: 5 },
+        { key: 'UltDef1', label: `${displayTitle} - Ultimate Defense I`, max: 10 },
+        { key: 'Hp3', label: `${displayTitle} Synergy - HP II`, max: 10 },
+        { key: 'Atk3', label: `${displayTitle} Synergy - Attack II`, max: 10 },
+        { key: 'Def3', label: `${displayTitle} Synergy - Defense II`, max: 10 },
+        { key: 'Damage3', label: `${displayTitle} Synergy - Damage II`, max: 5 },
+        { key: 'March2', label: `${displayTitle} - March Size II`, max: 5 },
+        { key: 'Hp4', label: `${displayTitle} - HP II`, max: 10 },
+        { key: 'Atk4', label: `${displayTitle} - Attack II`, max: 10 },
+        { key: 'Def4', label: `${displayTitle} - Defense II`, max: 10 },
+        { key: 'Damage4', label: `${displayTitle} - Damage II`, max: 5 },
+        { key: 'UltDef2', label: `${displayTitle} - Ultimate Defense II`, max: 10 },
+    ];
+
+    const getVal = (key: string) => formData[`mastery${prefix}${key}`];
+    const setVal = (key: string, v: any) => setFormData((p: any) => ({ ...p, [`mastery${prefix}${key}`]: v }));
+
+    return (
+        <div className={`bg-[#0a0f1e]/50 p-8 rounded-xl border ${borderClasses[accentColor]} space-y-10 ${shadowClasses[accentColor]}`}>
+            <h4 className={`text-[10px] font-black ${textClasses[accentColor]} uppercase tracking-[0.3em]`}>{displayTitle.toUpperCase()} MASTERY PROTOCOL</h4>
+            
+            <div className="flex flex-col items-center">
+                {/* Tier 1: Synergy I */}
+                <div className="flex gap-4">
+                    <TechNode label={nodes[0].label} value={getVal(nodes[0].key)} onChange={(v:any)=>setVal(nodes[0].key, v)} accentColor={accentColor} />
+                    <TechNode label={nodes[1].label} value={getVal(nodes[1].key)} onChange={(v:any)=>setVal(nodes[1].key, v)} accentColor={accentColor} />
+                    <TechNode label={nodes[2].label} value={getVal(nodes[2].key)} onChange={(v:any)=>setVal(nodes[2].key, v)} accentColor={accentColor} />
+                </div>
+                <div className={`relative w-full flex justify-center py-6`}>
+                    <div className={`absolute top-0 left-1/2 -translate-x-1/2 h-full w-px ${lineClasses[accentColor]}`}></div>
+                    <div className={`absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px ${lineClasses[accentColor]}`}></div>
+                </div>
+
+                {/* Tier 2: Synergy DMG I */}
+                <TechNode label={nodes[3].label} value={getVal(nodes[3].key)} onChange={(v:any)=>setVal(nodes[3].key, v)} max={nodes[3].max} accentColor={accentColor} />
+                <div className={`h-6 w-px ${lineClasses[accentColor]}`}></div>
+
+                {/* Tier 3: March I */}
+                <TechNode label={nodes[4].label} value={getVal(nodes[4].key)} onChange={(v:any)=>setVal(nodes[4].key, v)} max={nodes[4].max} accentColor={accentColor} />
+                <div className={`relative w-full flex justify-center py-6`}>
+                    <div className={`absolute top-0 left-1/2 -translate-x-1/2 h-full w-px ${lineClasses[accentColor]}`}></div>
+                    <div className={`absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px ${lineClasses[accentColor]}`}></div>
+                </div>
+
+                {/* Tier 4: Unit I */}
+                <div className="flex gap-4">
+                    <TechNode label={nodes[5].label} value={getVal(nodes[5].key)} onChange={(v:any)=>setVal(nodes[5].key, v)} accentColor={accentColor} />
+                    <TechNode label={nodes[6].label} value={getVal(nodes[6].key)} onChange={(v:any)=>setVal(nodes[6].key, v)} accentColor={accentColor} />
+                    <TechNode label={nodes[7].label} value={getVal(nodes[7].key)} onChange={(v:any)=>setVal(nodes[7].key, v)} accentColor={accentColor} />
+                </div>
+                <div className={`relative w-full flex justify-center py-6`}>
+                    <div className={`absolute top-0 left-1/2 -translate-x-1/2 h-full w-px ${lineClasses[accentColor]}`}></div>
+                    <div className={`absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px ${lineClasses[accentColor]}`}></div>
+                </div>
+
+                {/* Tier 5: Unit DMG I */}
+                <TechNode label={nodes[8].label} value={getVal(nodes[8].key)} onChange={(v:any)=>setVal(nodes[8].key, v)} max={nodes[8].max} accentColor={accentColor} />
+                <div className={`h-6 w-px ${lineClasses[accentColor]}`}></div>
+
+                {/* Tier 6: Ult Def I */}
+                <TechNode label={nodes[9].label} value={getVal(nodes[9].key)} onChange={(v:any)=>setVal(nodes[9].key, v)} accentColor={accentColor} />
+                <div className={`relative w-full flex justify-center py-6`}>
+                    <div className={`absolute top-0 left-1/2 -translate-x-1/2 h-full w-px ${lineClasses[accentColor]}`}></div>
+                    <div className={`absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px ${lineClasses[accentColor]}`}></div>
+                </div>
+
+                {/* Tier 7: Synergy II */}
+                <div className="flex gap-4">
+                    <TechNode label={nodes[10].label} value={getVal(nodes[10].key)} onChange={(v:any)=>setVal(nodes[10].key, v)} accentColor={accentColor} />
+                    <TechNode label={nodes[11].label} value={getVal(nodes[11].key)} onChange={(v:any)=>setVal(nodes[11].key, v)} accentColor={accentColor} />
+                    <TechNode label={nodes[12].label} value={getVal(nodes[12].key)} onChange={(v:any)=>setVal(nodes[12].key, v)} accentColor={accentColor} />
+                </div>
+                <div className={`relative w-full flex justify-center py-6`}>
+                    <div className={`absolute top-0 left-1/2 -translate-x-1/2 h-full w-px ${lineClasses[accentColor]}`}></div>
+                    <div className={`absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px ${lineClasses[accentColor]}`}></div>
+                </div>
+
+                {/* Tier 8: Synergy DMG II */}
+                <TechNode label={nodes[13].label} value={getVal(nodes[13].key)} onChange={(v:any)=>setVal(nodes[13].key, v)} max={nodes[13].max} accentColor={accentColor} />
+                <div className={`h-6 w-px ${lineClasses[accentColor]}`}></div>
+
+                {/* Tier 9: March II */}
+                <TechNode label={nodes[14].label} value={getVal(nodes[14].key)} onChange={(v:any)=>setVal(nodes[14].key, v)} max={nodes[14].max} accentColor={accentColor} />
+                <div className={`relative w-full flex justify-center py-6`}>
+                    <div className={`absolute top-0 left-1/2 -translate-x-1/2 h-full w-px ${lineClasses[accentColor]}`}></div>
+                    <div className={`absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px ${lineClasses[accentColor]}`}></div>
+                </div>
+
+                {/* Tier 10: Unit II */}
+                <div className="flex gap-4">
+                    <TechNode label={nodes[15].label} value={getVal(nodes[15].key)} onChange={(v:any)=>setVal(nodes[15].key, v)} accentColor={accentColor} />
+                    <TechNode label={nodes[16].label} value={getVal(nodes[16].key)} onChange={(v:any)=>setVal(nodes[16].key, v)} accentColor={accentColor} />
+                    <TechNode label={nodes[17].label} value={getVal(nodes[17].key)} onChange={(v:any)=>setVal(nodes[17].key, v)} accentColor={accentColor} />
+                </div>
+                <div className={`relative w-full flex justify-center py-6`}>
+                    <div className={`absolute top-0 left-1/2 -translate-x-1/2 h-full w-px ${lineClasses[accentColor]}`}></div>
+                    <div className={`absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px ${lineClasses[accentColor]}`}></div>
+                </div>
+
+                {/* Tier 11: Unit DMG II */}
+                <TechNode label={nodes[18].label} value={getVal(nodes[18].key)} onChange={(v:any)=>setVal(nodes[18].key, v)} max={nodes[18].max} accentColor={accentColor} />
+                <div className={`h-6 w-px ${lineClasses[accentColor]}`}></div>
+
+                {/* Tier 12: Ult Def II */}
+                <TechNode label={nodes[19].label} value={getVal(nodes[19].key)} onChange={(v:any)=>setVal(nodes[19].key, v)} accentColor={accentColor} />
+            </div>
+
+            {/* Resource Summary */}
+            <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
+                <div className="text-center">
+                    <span className={`text-[10px] ${textClasses[accentColor]} block uppercase font-black tracking-widest`}>{type.toUpperCase()} GOLD</span>
+                    <span className="text-sm font-mono text-white font-bold">{fR(resources.gold)}</span>
+                </div>
+                <div className="text-center border-x border-white/5 px-8">
+                    <span className="text-[10px] text-purple-400 block uppercase font-black tracking-widest">{type.toUpperCase()} VALOR</span>
+                    <span className="text-sm font-mono text-white font-bold">{resources.valor.toLocaleString()}</span>
+                </div>
+                <div className="text-center">
+                    <span className="text-[10px] text-emerald-500 block uppercase font-black tracking-widest">{type.toUpperCase()} F/I</span>
+                    <span className="text-sm font-mono text-white font-bold">{fR(resources.foodIron)}</span>
+                </div>
             </div>
         </div>
     );
@@ -89,6 +259,8 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
   const resourcesNeeded = useMemo(() => calculateT10RemainingCost(formData as any), [formData]);
   const stsResources = useMemo(() => calculateStsRemainingCost(formData), [formData]);
   const airMasteryResources = useMemo(() => calculateAirMasteryRemainingCost(formData), [formData]);
+  const tankMasteryResources = useMemo(() => calculateTankMasteryRemainingCost(formData), [formData]);
+  const missileMasteryResources = useMemo(() => calculateMissileMasteryRemainingCost(formData), [formData]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
@@ -168,7 +340,47 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
           masteryAirAtk4: sV(match.masteryAirAtk4),
           masteryAirDef4: sV(match.masteryAirDef4),
           masteryAirDamage4: sV(match.masteryAirDamage4),
-          masteryAirUltDef2: sV(match.masteryAirUltDef2)
+          masteryAirUltDef2: sV(match.masteryAirUltDef2),
+          masteryTankHp1: sV(match.masteryTankHp1),
+          masteryTankAtk1: sV(match.masteryTankAtk1),
+          masteryTankDef1: sV(match.masteryTankDef1),
+          masteryTankDamage1: sV(match.masteryTankDamage1),
+          masteryTankMarch1: sV(match.masteryTankMarch1),
+          masteryTankHp2: sV(match.masteryTankHp2),
+          masteryTankAtk2: sV(match.masteryTankAtk2),
+          masteryTankDef2: sV(match.masteryTankDef2),
+          masteryTankDamage2: sV(match.masteryTankDamage2),
+          masteryTankUltDef1: sV(match.masteryTankUltDef1),
+          masteryTankHp3: sV(match.masteryTankHp3),
+          masteryTankAtk3: sV(match.masteryTankAtk3),
+          masteryTankDef3: sV(match.masteryTankDef3),
+          masteryTankDamage3: sV(match.masteryTankDamage3),
+          masteryTankMarch2: sV(match.masteryTankMarch2),
+          masteryTankHp4: sV(match.masteryTankHp4),
+          masteryTankAtk4: sV(match.masteryTankAtk4),
+          masteryTankDef4: sV(match.masteryTankDef4),
+          masteryTankDamage4: sV(match.masteryTankDamage4),
+          masteryTankUltDef2: sV(match.masteryTankUltDef2),
+          masteryMissileHp1: sV(match.masteryMissileHp1),
+          masteryMissileAtk1: sV(match.masteryMissileAtk1),
+          masteryMissileDef1: sV(match.masteryMissileDef1),
+          masteryMissileDamage1: sV(match.masteryMissileDamage1),
+          masteryMissileMarch1: sV(match.masteryMissileMarch1),
+          masteryMissileHp2: sV(match.masteryMissileHp2),
+          masteryMissileAtk2: sV(match.masteryMissileAtk2),
+          masteryMissileDef2: sV(match.masteryMissileDef2),
+          masteryMissileDamage2: sV(match.masteryMissileDamage2),
+          masteryMissileUltDef1: sV(match.masteryMissileUltDef1),
+          masteryMissileHp3: sV(match.masteryMissileHp3),
+          masteryMissileAtk3: sV(match.masteryMissileAtk3),
+          masteryMissileDef3: sV(match.masteryMissileDef3),
+          masteryMissileDamage3: sV(match.masteryMissileDamage3),
+          masteryMissileMarch2: sV(match.masteryMissileMarch2),
+          masteryMissileHp4: sV(match.masteryMissileHp4),
+          masteryMissileAtk4: sV(match.masteryMissileAtk4),
+          masteryMissileDef4: sV(match.masteryMissileDef4),
+          masteryMissileDamage4: sV(match.masteryMissileDamage4),
+          masteryMissileUltDef2: sV(match.masteryMissileUltDef2)
       }));
   };
 
@@ -234,7 +446,47 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
             masteryAirAtk4: Number(formData.masteryAirAtk4),
             masteryAirDef4: Number(formData.masteryAirDef4),
             masteryAirDamage4: Number(formData.masteryAirDamage4),
-            masteryAirUltDef2: Number(formData.masteryAirUltDef2)
+            masteryAirUltDef2: Number(formData.masteryAirUltDef2),
+            masteryTankHp1: Number(formData.masteryTankHp1),
+            masteryTankAtk1: Number(formData.masteryTankAtk1),
+            masteryTankDef1: Number(formData.masteryTankDef1),
+            masteryTankDamage1: Number(formData.masteryTankDamage1),
+            masteryTankMarch1: Number(formData.masteryTankMarch1),
+            masteryTankHp2: Number(formData.masteryTankHp2),
+            masteryTankAtk2: Number(formData.masteryTankAtk2),
+            masteryTankDef2: Number(formData.masteryTankDef2),
+            masteryTankDamage2: Number(formData.masteryTankDamage2),
+            masteryTankUltDef1: Number(formData.masteryTankUltDef1),
+            masteryTankHp3: Number(formData.masteryTankHp3),
+            masteryTankAtk3: Number(formData.masteryTankAtk3),
+            masteryTankDef3: Number(formData.masteryTankDef3),
+            masteryTankDamage3: Number(formData.masteryTankDamage3),
+            masteryTankMarch2: Number(formData.masteryTankMarch2),
+            masteryTankHp4: Number(formData.masteryTankHp4),
+            masteryTankAtk4: Number(formData.masteryTankAtk4),
+            masteryTankDef4: Number(formData.masteryTankDef4),
+            masteryTankDamage4: Number(formData.masteryTankDamage4),
+            masteryTankUltDef2: Number(formData.masteryTankUltDef2),
+            masteryMissileHp1: Number(formData.masteryMissileHp1),
+            masteryMissileAtk1: Number(formData.masteryMissileAtk1),
+            masteryMissileDef1: Number(formData.masteryMissileDef1),
+            masteryMissileDamage1: Number(formData.masteryMissileDamage1),
+            masteryMissileMarch1: Number(formData.masteryMissileMarch1),
+            masteryMissileHp2: Number(formData.masteryMissileHp2),
+            masteryMissileAtk2: Number(formData.masteryMissileAtk2),
+            masteryMissileDef2: Number(formData.masteryMissileDef2),
+            masteryMissileDamage2: Number(formData.masteryMissileDamage2),
+            masteryMissileUltDef1: Number(formData.masteryMissileUltDef1),
+            masteryMissileHp3: Number(formData.masteryMissileHp3),
+            masteryMissileAtk3: Number(formData.masteryMissileAtk3),
+            masteryMissileDef3: Number(formData.masteryMissileDef3),
+            masteryMissileDamage3: Number(formData.masteryMissileDamage3),
+            masteryMissileMarch2: Number(formData.masteryMissileMarch2),
+            masteryMissileHp4: Number(formData.masteryMissileHp4),
+            masteryMissileAtk4: Number(formData.masteryMissileAtk4),
+            masteryMissileDef4: Number(formData.masteryMissileDef4),
+            masteryMissileDamage4: Number(formData.masteryMissileDamage4),
+            masteryMissileUltDef2: Number(formData.masteryMissileUltDef2)
         } as any);
         if(res.success) {
             localStorage.setItem('asn1_last_submission', JSON.stringify(formData));
@@ -421,119 +673,9 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                         </button>
                     </div>
                     
-                    {activeMasteryTab === 'air' ? (
-                        <div className="bg-[#0a0f1e]/50 p-8 rounded-xl border border-amber-500/10 space-y-10 shadow-[inset_0_0_20px_rgba(245,158,11,0.05)]">
-                            <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em]">AIRCRAFT MASTERY PROTOCOL</h4>
-                            
-                            <div className="flex flex-col items-center">
-                                <div className="flex gap-4">
-                                    <TechNode label="Synergy HP I" value={formData.masteryAirHp1} onChange={(v:any)=>setFormData(p=>({...p,masteryAirHp1:v}))} />
-                                    <TechNode label="Synergy ATK I" value={formData.masteryAirAtk1} onChange={(v:any)=>setFormData(p=>({...p,masteryAirAtk1:v}))} />
-                                    <TechNode label="Synergy DEF I" value={formData.masteryAirDef1} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDef1:v}))} />
-                                </div>
-                                
-                                <div className="relative w-full flex justify-center py-6">
-                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-amber-500/20"></div>
-                                    <div className="absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px bg-amber-500/20"></div>
-                                </div>
-
-                                <TechNode label="Synergy DMG I" value={formData.masteryAirDamage1} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDamage1:v}))} max={5} />
-                                
-                                <div className="h-6 w-px bg-amber-500/20"></div>
-
-                                <TechNode label="March Size I" value={formData.masteryAirMarch1} onChange={(v:any)=>setFormData(p=>({...p,masteryAirMarch1:v}))} max={5} />
-
-                                <div className="relative w-full flex justify-center py-6">
-                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-amber-500/20"></div>
-                                    <div className="absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px bg-amber-500/20"></div>
-                                </div>
-
-                                <div className="flex gap-4">
-                                    <TechNode label="Aircraft HP I" value={formData.masteryAirHp2} onChange={(v:any)=>setFormData(p=>({...p,masteryAirHp2:v}))} />
-                                    <TechNode label="Aircraft ATK I" value={formData.masteryAirAtk2} onChange={(v:any)=>setFormData(p=>({...p,masteryAirAtk2:v}))} />
-                                    <TechNode label="Aircraft DEF I" value={formData.masteryAirDef2} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDef2:v}))} />
-                                </div>
-
-                                <div className="relative w-full flex justify-center py-6">
-                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-amber-500/20"></div>
-                                    <div className="absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px bg-amber-500/20"></div>
-                                </div>
-
-                                <TechNode label="Aircraft DMG I" value={formData.masteryAirDamage2} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDamage2:v}))} max={5} />
-
-                                <div className="h-6 w-px bg-amber-500/20"></div>
-
-                                <TechNode label="Ultimate DEF I" value={formData.masteryAirUltDef1} onChange={(v:any)=>setFormData(p=>({...p,masteryAirUltDef1:v}))} />
-
-                                <div className="relative w-full flex justify-center py-6">
-                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-amber-500/20"></div>
-                                    <div className="absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px bg-amber-500/20"></div>
-                                </div>
-
-                                <div className="flex gap-4">
-                                    <TechNode label="Synergy HP II" value={formData.masteryAirHp3} onChange={(v:any)=>setFormData(p=>({...p,masteryAirHp3:v}))} />
-                                    <TechNode label="Synergy ATK II" value={formData.masteryAirAtk3} onChange={(v:any)=>setFormData(p=>({...p,masteryAirAtk3:v}))} />
-                                    <TechNode label="Synergy DEF II" value={formData.masteryAirDef3} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDef3:v}))} />
-                                </div>
-
-                                <div className="relative w-full flex justify-center py-6">
-                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-amber-500/20"></div>
-                                    <div className="absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px bg-amber-500/20"></div>
-                                </div>
-
-                                <TechNode label="Synergy DMG II" value={formData.masteryAirDamage3} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDamage3:v}))} max={5} />
-
-                                <div className="h-6 w-px bg-amber-500/20"></div>
-
-                                <TechNode label="March Size II" value={formData.masteryAirMarch2} onChange={(v:any)=>setFormData(p=>({...p,masteryAirMarch2:v}))} max={5} />
-
-                                <div className="relative w-full flex justify-center py-6">
-                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-amber-500/20"></div>
-                                    <div className="absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px bg-amber-500/20"></div>
-                                </div>
-
-                                <div className="flex gap-4">
-                                    <TechNode label="Aircraft HP II" value={formData.masteryAirHp4} onChange={(v:any)=>setFormData(p=>({...p,masteryAirHp4:v}))} />
-                                    <TechNode label="Aircraft ATK II" value={formData.masteryAirAtk4} onChange={(v:any)=>setFormData(p=>({...p,masteryAirAtk4:v}))} />
-                                    <TechNode label="Aircraft DEF II" value={formData.masteryAirDef4} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDef4:v}))} />
-                                </div>
-
-                                <div className="relative w-full flex justify-center py-6">
-                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-amber-500/20"></div>
-                                    <div className="absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px bg-amber-500/20"></div>
-                                </div>
-
-                                <TechNode label="Aircraft DMG II" value={formData.masteryAirDamage4} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDamage4:v}))} max={5} />
-
-                                <div className="h-6 w-px bg-amber-500/20"></div>
-
-                                <TechNode label="Ultimate DEF II" value={formData.masteryAirUltDef2} onChange={(v:any)=>setFormData(p=>({...p,masteryAirUltDef2:v}))} />
-                            </div>
-
-                            {/* Air Mastery Resource Summary */}
-                            <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
-                                <div className="text-center">
-                                    <span className="text-[10px] text-amber-500 block uppercase font-black tracking-widest">AIR GOLD</span>
-                                    <span className="text-sm font-mono text-white font-bold">{fR(airMasteryResources.gold)}</span>
-                                </div>
-                                <div className="text-center border-x border-white/5 px-8">
-                                    <span className="text-[10px] text-purple-400 block uppercase font-black tracking-widest">AIR VALOR</span>
-                                    <span className="text-sm font-mono text-white font-bold">{airMasteryResources.valor.toLocaleString()}</span>
-                                </div>
-                                <div className="text-center">
-                                    <span className="text-[10px] text-emerald-500 block uppercase font-black tracking-widest">AIR F/I</span>
-                                    <span className="text-sm font-mono text-white font-bold">{fR(airMasteryResources.foodIron)}</span>
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="bg-[#0a0f1e]/50 p-12 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center space-y-4">
-                            <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-600">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                            </div>
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">This Mastery Tree is currently under development</p>
-                        </div>
-                    )}
+                    {activeMasteryTab === 'air' && <MasteryTree type="air" formData={formData} setFormData={setFormData} resources={airMasteryResources} fR={fR} />}
+                    {activeMasteryTab === 'tank' && <MasteryTree type="tank" formData={formData} setFormData={setFormData} resources={tankMasteryResources} fR={fR} />}
+                    {activeMasteryTab === 'missile' && <MasteryTree type="missile" formData={formData} setFormData={setFormData} resources={missileMasteryResources} fR={fR} />}
                 </div>
 
                 <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 grid grid-cols-3 gap-6">

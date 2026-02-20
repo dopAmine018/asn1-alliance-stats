@@ -119,7 +119,7 @@ export const calculateStsRemainingCost = (p: any) => {
     return { gold, valor, foodIron };
 };
 
-export const calculateAirMasteryRemainingCost = (p: any) => {
+export const calculateMasteryRemainingCost = (p: any, prefix: 'Air' | 'Tank' | 'Missile') => {
     let gold = 0, valor = 0, foodIron = 0;
     
     const costs10 = [
@@ -153,26 +153,30 @@ export const calculateAirMasteryRemainingCost = (p: any) => {
 
     const add = (r: any) => { gold += r.g; foodIron += r.f; valor += r.v; };
 
-    add(sumRemaining(p.masteryAirHp1 || 0, costs10));
-    add(sumRemaining(p.masteryAirAtk1 || 0, costs10));
-    add(sumRemaining(p.masteryAirDef1 || 0, costs10));
-    add(sumRemaining(p.masteryAirDamage1 || 0, costs5));
-    add(sumRemaining(p.masteryAirMarch1 || 0, costs5));
-    add(sumRemaining(p.masteryAirHp2 || 0, costs10));
-    add(sumRemaining(p.masteryAirAtk2 || 0, costs10));
-    add(sumRemaining(p.masteryAirDef2 || 0, costs10));
-    add(sumRemaining(p.masteryAirDamage2 || 0, costs5));
-    add(sumRemaining(p.masteryAirUltDef1 || 0, costs10));
-    add(sumRemaining(p.masteryAirHp3 || 0, costs10));
-    add(sumRemaining(p.masteryAirAtk3 || 0, costs10));
-    add(sumRemaining(p.masteryAirDef3 || 0, costs10));
-    add(sumRemaining(p.masteryAirDamage3 || 0, costs5));
-    add(sumRemaining(p.masteryAirMarch2 || 0, costs5));
-    add(sumRemaining(p.masteryAirHp4 || 0, costs10));
-    add(sumRemaining(p.masteryAirAtk4 || 0, costs10));
-    add(sumRemaining(p.masteryAirDef4 || 0, costs10));
-    add(sumRemaining(p.masteryAirDamage4 || 0, costs5));
-    add(sumRemaining(p.masteryAirUltDef2 || 0, costs10));
+    add(sumRemaining(p[`mastery${prefix}Hp1`] || 0, costs10));
+    add(sumRemaining(p[`mastery${prefix}Atk1`] || 0, costs10));
+    add(sumRemaining(p[`mastery${prefix}Def1`] || 0, costs10));
+    add(sumRemaining(p[`mastery${prefix}Damage1`] || 0, costs5));
+    add(sumRemaining(p[`mastery${prefix}March1`] || 0, costs5));
+    add(sumRemaining(p[`mastery${prefix}Hp2`] || 0, costs10));
+    add(sumRemaining(p[`mastery${prefix}Atk2`] || 0, costs10));
+    add(sumRemaining(p[`mastery${prefix}Def2`] || 0, costs10));
+    add(sumRemaining(p[`mastery${prefix}Damage2`] || 0, costs5));
+    add(sumRemaining(p[`mastery${prefix}UltDef1`] || 0, costs10));
+    add(sumRemaining(p[`mastery${prefix}Hp3`] || 0, costs10));
+    add(sumRemaining(p[`mastery${prefix}Atk3`] || 0, costs10));
+    add(sumRemaining(p[`mastery${prefix}Def3`] || 0, costs10));
+    add(sumRemaining(p[`mastery${prefix}Damage3`] || 0, costs5));
+    add(sumRemaining(p[`mastery${prefix}March2`] || 0, costs5));
+    add(sumRemaining(p[`mastery${prefix}Hp4`] || 0, costs10));
+    add(sumRemaining(p[`mastery${prefix}Atk4`] || 0, costs10));
+    add(sumRemaining(p[`mastery${prefix}Def4`] || 0, costs10));
+    add(sumRemaining(p[`mastery${prefix}Damage4`] || 0, costs5));
+    add(sumRemaining(p[`mastery${prefix}UltDef2`] || 0, costs10));
 
     return { gold, valor, foodIron };
 };
+
+export const calculateAirMasteryRemainingCost = (p: any) => calculateMasteryRemainingCost(p, 'Air');
+export const calculateTankMasteryRemainingCost = (p: any) => calculateMasteryRemainingCost(p, 'Tank');
+export const calculateMissileMasteryRemainingCost = (p: any) => calculateMasteryRemainingCost(p, 'Missile');
