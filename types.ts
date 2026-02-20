@@ -59,6 +59,13 @@ export interface Player {
   airCenterLevel: number;
   missileCenterLevel: number;
   
+  // Air Mastery
+  masteryAirHp1: number;
+  masteryAirAtk1: number;
+  masteryAirDef1: number;
+  masteryAirDamage1: number;
+  masteryAirMarch1: number;
+
   active: boolean;
 }
 

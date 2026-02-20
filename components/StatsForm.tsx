@@ -4,7 +4,7 @@ import { Player, Language } from '../types';
 import { useLanguage } from '../utils/i18n';
 import { CustomDropdown } from './CustomDropdown';
 import { useToast } from './Toast';
-import { calculateT10RemainingCost, calculateStsRemainingCost } from '../utils/gameLogic';
+import { calculateT10RemainingCost, calculateStsRemainingCost, calculateAirMasteryRemainingCost } from '../utils/gameLogic';
 
 const defaultFormData = {
   name: '', firstSquadPower: '', secondSquadPower: '', thirdSquadPower: '', fourthSquadPower: '', totalHeroPower: '',
@@ -16,6 +16,7 @@ const defaultFormData = {
   stsDrillGroundExpansion: '0', stsRapidMarch1: '0',
   stsFinalStand3: '0', stsFierceAssault3: '0', stsVigilantFormation3: '0', stsFatalStrike1: '0',
   techLevel: '', barracksLevel: '', tankCenterLevel: '', airCenterLevel: '', missileCenterLevel: '',
+  masteryAirHp1: '0', masteryAirAtk1: '0', masteryAirDef1: '0', masteryAirDamage1: '0', masteryAirMarch1: '0',
 };
 
 const FormInput = ({ label, name, val, change, req, locked, type="text", loading, onBlur, autoComplete, suffix, children }: any) => (
@@ -67,6 +68,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<Player[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeMasteryTab, setActiveMasteryTab] = useState<'tank' | 'missile' | 'air'>('air');
   const searchTimeout = useRef<any>(null);
 
   const [formData, setFormData] = useState({ language: 'english' as Language, ...defaultFormData });
@@ -83,6 +85,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
 
   const resourcesNeeded = useMemo(() => calculateT10RemainingCost(formData as any), [formData]);
   const stsResources = useMemo(() => calculateStsRemainingCost(formData), [formData]);
+  const airMasteryResources = useMemo(() => calculateAirMasteryRemainingCost(formData), [formData]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
@@ -142,7 +145,12 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
           barracksLevel: sV(match.barracksLevel),
           tankCenterLevel: sV(match.tankCenterLevel),
           airCenterLevel: sV(match.airCenterLevel),
-          missileCenterLevel: sV(match.missileCenterLevel)
+          missileCenterLevel: sV(match.missileCenterLevel),
+          masteryAirHp1: sV(match.masteryAirHp1),
+          masteryAirAtk1: sV(match.masteryAirAtk1),
+          masteryAirDef1: sV(match.masteryAirDef1),
+          masteryAirDamage1: sV(match.masteryAirDamage1),
+          masteryAirMarch1: sV(match.masteryAirMarch1)
       }));
   };
 
@@ -188,7 +196,12 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
             barracksLevel: Number(formData.barracksLevel),
             tankCenterLevel: Number(formData.tankCenterLevel),
             airCenterLevel: Number(formData.airCenterLevel),
-            missileCenterLevel: Number(formData.missileCenterLevel)
+            missileCenterLevel: Number(formData.missileCenterLevel),
+            masteryAirHp1: Number(formData.masteryAirHp1),
+            masteryAirAtk1: Number(formData.masteryAirAtk1),
+            masteryAirDef1: Number(formData.masteryAirDef1),
+            masteryAirDamage1: Number(formData.masteryAirDamage1),
+            masteryAirMarch1: Number(formData.masteryAirMarch1)
         } as any);
         if(res.success) {
             localStorage.setItem('asn1_last_submission', JSON.stringify(formData));
@@ -347,6 +360,81 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                             <span className="text-sm font-mono text-white font-bold">{fR(stsResources.foodIron)}</span>
                         </div>
                     </div>
+                </div>
+
+                {/* Mastery Mini Tab */}
+                <div className="space-y-4">
+                    <div className="flex gap-2">
+                        <button 
+                            type="button" 
+                            onClick={() => setActiveMasteryTab('tank')}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeMasteryTab === 'tank' ? 'bg-amber-500/20 border border-amber-500/50 text-amber-500' : 'bg-slate-900/50 border border-slate-800 text-slate-500 hover:text-slate-400'}`}
+                        >
+                            Tank Mastery
+                        </button>
+                        <button 
+                            type="button" 
+                            onClick={() => setActiveMasteryTab('missile')}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeMasteryTab === 'missile' ? 'bg-amber-500/20 border border-amber-500/50 text-amber-500' : 'bg-slate-900/50 border border-slate-800 text-slate-500 hover:text-slate-400'}`}
+                        >
+                            Missile Mastery
+                        </button>
+                        <button 
+                            type="button" 
+                            onClick={() => setActiveMasteryTab('air')}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeMasteryTab === 'air' ? 'bg-amber-500/20 border border-amber-500/50 text-amber-500' : 'bg-slate-900/50 border border-slate-800 text-slate-500 hover:text-slate-400'}`}
+                        >
+                            Air Mastery
+                        </button>
+                    </div>
+                    
+                    {activeMasteryTab === 'air' ? (
+                        <div className="bg-[#0a0f1e]/50 p-8 rounded-xl border border-amber-500/10 space-y-10 shadow-[inset_0_0_20px_rgba(245,158,11,0.05)]">
+                            <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em]">AIRCRAFT MASTERY PROTOCOL</h4>
+                            
+                            <div className="flex flex-col items-center">
+                                <div className="flex gap-4">
+                                    <TechNode label="Synergy HP I" value={formData.masteryAirHp1} onChange={(v:any)=>setFormData(p=>({...p,masteryAirHp1:v}))} />
+                                    <TechNode label="Synergy ATK I" value={formData.masteryAirAtk1} onChange={(v:any)=>setFormData(p=>({...p,masteryAirAtk1:v}))} />
+                                    <TechNode label="Synergy DEF I" value={formData.masteryAirDef1} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDef1:v}))} />
+                                </div>
+                                
+                                <div className="relative w-full flex justify-center py-6">
+                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-amber-500/20"></div>
+                                    <div className="absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px bg-amber-500/20"></div>
+                                </div>
+
+                                <TechNode label="Synergy DMG I" value={formData.masteryAirDamage1} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDamage1:v}))} max={5} />
+                                
+                                <div className="h-6 w-px bg-amber-500/20"></div>
+
+                                <TechNode label="March Size I" value={formData.masteryAirMarch1} onChange={(v:any)=>setFormData(p=>({...p,masteryAirMarch1:v}))} max={5} />
+                            </div>
+
+                            {/* Air Mastery Resource Summary */}
+                            <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
+                                <div className="text-center">
+                                    <span className="text-[10px] text-amber-500 block uppercase font-black tracking-widest">AIR GOLD</span>
+                                    <span className="text-sm font-mono text-white font-bold">{fR(airMasteryResources.gold)}</span>
+                                </div>
+                                <div className="text-center border-x border-white/5 px-8">
+                                    <span className="text-[10px] text-purple-400 block uppercase font-black tracking-widest">AIR VALOR</span>
+                                    <span className="text-sm font-mono text-white font-bold">{airMasteryResources.valor.toLocaleString()}</span>
+                                </div>
+                                <div className="text-center">
+                                    <span className="text-[10px] text-emerald-500 block uppercase font-black tracking-widest">AIR F/I</span>
+                                    <span className="text-sm font-mono text-white font-bold">{fR(airMasteryResources.foodIron)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-[#0a0f1e]/50 p-12 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center space-y-4">
+                            <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-600">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                            </div>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">This Mastery Tree is currently under development</p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 grid grid-cols-3 gap-6">

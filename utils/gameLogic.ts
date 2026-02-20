@@ -118,3 +118,46 @@ export const calculateStsRemainingCost = (p: any) => {
     add(sum(p.stsFatalStrike1, t7));
     return { gold, valor, foodIron };
 };
+
+export const calculateAirMasteryRemainingCost = (p: any) => {
+    let gold = 0, valor = 0, foodIron = 0;
+    
+    const costs10 = [
+        { f: 21.66e6, g: 65e6, v: 1500 }, // 1
+        { f: 21.66e6, g: 65e6, v: 1500 }, // 2
+        { f: 30.28e6, g: 91.05e6, v: 1690 }, // 3
+        { f: 30.28e6, g: 91.05e6, v: 1690 }, // 4
+        { f: 39.48e6, g: 118.44e6, v: 1880 }, // 5
+        { f: 39.48e6, g: 118.44e6, v: 1880 }, // 6
+        { f: 55.27e6, g: 165.82e6, v: 2070 }, // 7
+        { f: 55.27e6, g: 165.82e6, v: 2070 }, // 8
+        { f: 77.38e6, g: 232.15e6, v: 2250 }, // 9
+        { f: 77.38e6, g: 232.15e6, v: 2250 }, // 10
+    ];
+
+    const costs5 = [
+        { f: 21.66e6, g: 65e6, v: 1500 }, // 1
+        { f: 30.28e6, g: 91.05e6, v: 1690 }, // 2
+        { f: 39.48e6, g: 118.44e6, v: 1880 }, // 3
+        { f: 55.27e6, g: 165.82e6, v: 2070 }, // 4
+        { f: 77.38e6, g: 232.15e6, v: 2250 }, // 5
+    ];
+
+    const sumRemaining = (current: number, costs: any[]) => {
+        let g = 0, f = 0, v = 0;
+        for (let i = Number(current); i < costs.length; i++) {
+            g += costs[i].g; f += costs[i].f; v += costs[i].v;
+        }
+        return { g, f, v };
+    };
+
+    const add = (r: any) => { gold += r.g; foodIron += r.f; valor += r.v; };
+
+    add(sumRemaining(p.masteryAirHp1 || 0, costs10));
+    add(sumRemaining(p.masteryAirAtk1 || 0, costs10));
+    add(sumRemaining(p.masteryAirDef1 || 0, costs10));
+    add(sumRemaining(p.masteryAirDamage1 || 0, costs5));
+    add(sumRemaining(p.masteryAirMarch1 || 0, costs5));
+
+    return { gold, valor, foodIron };
+};

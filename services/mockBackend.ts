@@ -95,6 +95,11 @@ const mapPlayerFromDb = (row: any): Player => ({
   tankCenterLevel: row.tank_center_level,
   airCenterLevel: row.air_center_level,
   missileCenterLevel: row.missile_center_level,
+  masteryAirHp1: row.mastery_air_hp_1 || 0,
+  masteryAirAtk1: row.mastery_air_atk_1 || 0,
+  masteryAirDef1: row.mastery_air_def_1 || 0,
+  masteryAirDamage1: row.mastery_air_damage_1 || 0,
+  masteryAirMarch1: row.mastery_air_march_1 || 0,
   active: row.active
 });
 
@@ -138,6 +143,11 @@ const mapPlayerToDb = (p: Partial<Player>) => {
   if (p.tankCenterLevel !== undefined) out.tank_center_level = p.tankCenterLevel;
   if (p.airCenterLevel !== undefined) out.air_center_level = p.airCenterLevel;
   if (p.missileCenterLevel !== undefined) out.missile_center_level = p.missileCenterLevel;
+  if (p.masteryAirHp1 !== undefined) out.mastery_air_hp_1 = p.masteryAirHp1;
+  if (p.masteryAirAtk1 !== undefined) out.mastery_air_atk_1 = p.masteryAirAtk1;
+  if (p.masteryAirDef1 !== undefined) out.mastery_air_def_1 = p.masteryAirDef1;
+  if (p.masteryAirDamage1 !== undefined) out.mastery_air_damage_1 = p.masteryAirDamage1;
+  if (p.masteryAirMarch1 !== undefined) out.mastery_air_march_1 = p.masteryAirMarch1;
   if (p.active !== undefined) out.active = p.active;
   out.updated_at = new Date().toISOString();
   return out;
