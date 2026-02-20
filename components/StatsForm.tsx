@@ -653,14 +653,14 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                         <button 
                             type="button" 
                             onClick={() => setActiveMasteryTab('tank')}
-                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeMasteryTab === 'tank' ? 'bg-sky-500/20 border border-sky-500/50 text-sky-500' : 'bg-slate-900/50 border border-slate-800 text-slate-500 hover:text-slate-400'}`}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeMasteryTab === 'tank' ? 'bg-amber-500/20 border border-amber-500/50 text-amber-500' : 'bg-slate-900/50 border border-slate-800 text-slate-500 hover:text-slate-400'}`}
                         >
                             Tank Mastery
                         </button>
                         <button 
                             type="button" 
                             onClick={() => setActiveMasteryTab('missile')}
-                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeMasteryTab === 'missile' ? 'bg-rose-500/20 border border-rose-500/50 text-rose-500' : 'bg-slate-900/50 border border-slate-800 text-slate-500 hover:text-slate-400'}`}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeMasteryTab === 'missile' ? 'bg-amber-500/20 border border-amber-500/50 text-amber-500' : 'bg-slate-900/50 border border-slate-800 text-slate-500 hover:text-slate-400'}`}
                         >
                             Missile Mastery
                         </button>
