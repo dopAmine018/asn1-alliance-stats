@@ -17,6 +17,9 @@ const defaultFormData = {
   stsFinalStand3: '0', stsFierceAssault3: '0', stsVigilantFormation3: '0', stsFatalStrike1: '0',
   techLevel: '', barracksLevel: '', tankCenterLevel: '', airCenterLevel: '', missileCenterLevel: '',
   masteryAirHp1: '0', masteryAirAtk1: '0', masteryAirDef1: '0', masteryAirDamage1: '0', masteryAirMarch1: '0',
+  masteryAirHp2: '0', masteryAirAtk2: '0', masteryAirDef2: '0', masteryAirDamage2: '0', masteryAirUltDef1: '0',
+  masteryAirHp3: '0', masteryAirAtk3: '0', masteryAirDef3: '0', masteryAirDamage3: '0', masteryAirMarch2: '0',
+  masteryAirHp4: '0', masteryAirAtk4: '0', masteryAirDef4: '0', masteryAirDamage4: '0', masteryAirUltDef2: '0',
 };
 
 const FormInput = ({ label, name, val, change, req, locked, type="text", loading, onBlur, autoComplete, suffix, children }: any) => (
@@ -150,7 +153,22 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
           masteryAirAtk1: sV(match.masteryAirAtk1),
           masteryAirDef1: sV(match.masteryAirDef1),
           masteryAirDamage1: sV(match.masteryAirDamage1),
-          masteryAirMarch1: sV(match.masteryAirMarch1)
+          masteryAirMarch1: sV(match.masteryAirMarch1),
+          masteryAirHp2: sV(match.masteryAirHp2),
+          masteryAirAtk2: sV(match.masteryAirAtk2),
+          masteryAirDef2: sV(match.masteryAirDef2),
+          masteryAirDamage2: sV(match.masteryAirDamage2),
+          masteryAirUltDef1: sV(match.masteryAirUltDef1),
+          masteryAirHp3: sV(match.masteryAirHp3),
+          masteryAirAtk3: sV(match.masteryAirAtk3),
+          masteryAirDef3: sV(match.masteryAirDef3),
+          masteryAirDamage3: sV(match.masteryAirDamage3),
+          masteryAirMarch2: sV(match.masteryAirMarch2),
+          masteryAirHp4: sV(match.masteryAirHp4),
+          masteryAirAtk4: sV(match.masteryAirAtk4),
+          masteryAirDef4: sV(match.masteryAirDef4),
+          masteryAirDamage4: sV(match.masteryAirDamage4),
+          masteryAirUltDef2: sV(match.masteryAirUltDef2)
       }));
   };
 
@@ -201,7 +219,22 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
             masteryAirAtk1: Number(formData.masteryAirAtk1),
             masteryAirDef1: Number(formData.masteryAirDef1),
             masteryAirDamage1: Number(formData.masteryAirDamage1),
-            masteryAirMarch1: Number(formData.masteryAirMarch1)
+            masteryAirMarch1: Number(formData.masteryAirMarch1),
+            masteryAirHp2: Number(formData.masteryAirHp2),
+            masteryAirAtk2: Number(formData.masteryAirAtk2),
+            masteryAirDef2: Number(formData.masteryAirDef2),
+            masteryAirDamage2: Number(formData.masteryAirDamage2),
+            masteryAirUltDef1: Number(formData.masteryAirUltDef1),
+            masteryAirHp3: Number(formData.masteryAirHp3),
+            masteryAirAtk3: Number(formData.masteryAirAtk3),
+            masteryAirDef3: Number(formData.masteryAirDef3),
+            masteryAirDamage3: Number(formData.masteryAirDamage3),
+            masteryAirMarch2: Number(formData.masteryAirMarch2),
+            masteryAirHp4: Number(formData.masteryAirHp4),
+            masteryAirAtk4: Number(formData.masteryAirAtk4),
+            masteryAirDef4: Number(formData.masteryAirDef4),
+            masteryAirDamage4: Number(formData.masteryAirDamage4),
+            masteryAirUltDef2: Number(formData.masteryAirUltDef2)
         } as any);
         if(res.success) {
             localStorage.setItem('asn1_last_submission', JSON.stringify(formData));
@@ -409,6 +442,72 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                                 <div className="h-6 w-px bg-amber-500/20"></div>
 
                                 <TechNode label="March Size I" value={formData.masteryAirMarch1} onChange={(v:any)=>setFormData(p=>({...p,masteryAirMarch1:v}))} max={5} />
+
+                                <div className="relative w-full flex justify-center py-6">
+                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-amber-500/20"></div>
+                                    <div className="absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px bg-amber-500/20"></div>
+                                </div>
+
+                                <div className="flex gap-4">
+                                    <TechNode label="Aircraft HP I" value={formData.masteryAirHp2} onChange={(v:any)=>setFormData(p=>({...p,masteryAirHp2:v}))} />
+                                    <TechNode label="Aircraft ATK I" value={formData.masteryAirAtk2} onChange={(v:any)=>setFormData(p=>({...p,masteryAirAtk2:v}))} />
+                                    <TechNode label="Aircraft DEF I" value={formData.masteryAirDef2} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDef2:v}))} />
+                                </div>
+
+                                <div className="relative w-full flex justify-center py-6">
+                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-amber-500/20"></div>
+                                    <div className="absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px bg-amber-500/20"></div>
+                                </div>
+
+                                <TechNode label="Aircraft DMG I" value={formData.masteryAirDamage2} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDamage2:v}))} max={5} />
+
+                                <div className="h-6 w-px bg-amber-500/20"></div>
+
+                                <TechNode label="Ultimate DEF I" value={formData.masteryAirUltDef1} onChange={(v:any)=>setFormData(p=>({...p,masteryAirUltDef1:v}))} />
+
+                                <div className="relative w-full flex justify-center py-6">
+                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-amber-500/20"></div>
+                                    <div className="absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px bg-amber-500/20"></div>
+                                </div>
+
+                                <div className="flex gap-4">
+                                    <TechNode label="Synergy HP II" value={formData.masteryAirHp3} onChange={(v:any)=>setFormData(p=>({...p,masteryAirHp3:v}))} />
+                                    <TechNode label="Synergy ATK II" value={formData.masteryAirAtk3} onChange={(v:any)=>setFormData(p=>({...p,masteryAirAtk3:v}))} />
+                                    <TechNode label="Synergy DEF II" value={formData.masteryAirDef3} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDef3:v}))} />
+                                </div>
+
+                                <div className="relative w-full flex justify-center py-6">
+                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-amber-500/20"></div>
+                                    <div className="absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px bg-amber-500/20"></div>
+                                </div>
+
+                                <TechNode label="Synergy DMG II" value={formData.masteryAirDamage3} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDamage3:v}))} max={5} />
+
+                                <div className="h-6 w-px bg-amber-500/20"></div>
+
+                                <TechNode label="March Size II" value={formData.masteryAirMarch2} onChange={(v:any)=>setFormData(p=>({...p,masteryAirMarch2:v}))} max={5} />
+
+                                <div className="relative w-full flex justify-center py-6">
+                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-amber-500/20"></div>
+                                    <div className="absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px bg-amber-500/20"></div>
+                                </div>
+
+                                <div className="flex gap-4">
+                                    <TechNode label="Aircraft HP II" value={formData.masteryAirHp4} onChange={(v:any)=>setFormData(p=>({...p,masteryAirHp4:v}))} />
+                                    <TechNode label="Aircraft ATK II" value={formData.masteryAirAtk4} onChange={(v:any)=>setFormData(p=>({...p,masteryAirAtk4:v}))} />
+                                    <TechNode label="Aircraft DEF II" value={formData.masteryAirDef4} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDef4:v}))} />
+                                </div>
+
+                                <div className="relative w-full flex justify-center py-6">
+                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-px bg-amber-500/20"></div>
+                                    <div className="absolute top-0 left-[calc(50%-70px)] right-[calc(50%-70px)] h-px bg-amber-500/20"></div>
+                                </div>
+
+                                <TechNode label="Aircraft DMG II" value={formData.masteryAirDamage4} onChange={(v:any)=>setFormData(p=>({...p,masteryAirDamage4:v}))} max={5} />
+
+                                <div className="h-6 w-px bg-amber-500/20"></div>
+
+                                <TechNode label="Ultimate DEF II" value={formData.masteryAirUltDef2} onChange={(v:any)=>setFormData(p=>({...p,masteryAirUltDef2:v}))} />
                             </div>
 
                             {/* Air Mastery Resource Summary */}

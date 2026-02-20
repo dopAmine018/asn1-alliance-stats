@@ -65,6 +65,21 @@ export interface Player {
   masteryAirDef1: number;
   masteryAirDamage1: number;
   masteryAirMarch1: number;
+  masteryAirHp2: number;
+  masteryAirAtk2: number;
+  masteryAirDef2: number;
+  masteryAirDamage2: number;
+  masteryAirUltDef1: number;
+  masteryAirHp3: number;
+  masteryAirAtk3: number;
+  masteryAirDef3: number;
+  masteryAirDamage3: number;
+  masteryAirMarch2: number;
+  masteryAirHp4: number;
+  masteryAirAtk4: number;
+  masteryAirDef4: number;
+  masteryAirDamage4: number;
+  masteryAirUltDef2: number;
 
   active: boolean;
 }

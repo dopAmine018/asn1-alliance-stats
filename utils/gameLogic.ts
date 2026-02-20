@@ -158,6 +158,21 @@ export const calculateAirMasteryRemainingCost = (p: any) => {
     add(sumRemaining(p.masteryAirDef1 || 0, costs10));
     add(sumRemaining(p.masteryAirDamage1 || 0, costs5));
     add(sumRemaining(p.masteryAirMarch1 || 0, costs5));
+    add(sumRemaining(p.masteryAirHp2 || 0, costs10));
+    add(sumRemaining(p.masteryAirAtk2 || 0, costs10));
+    add(sumRemaining(p.masteryAirDef2 || 0, costs10));
+    add(sumRemaining(p.masteryAirDamage2 || 0, costs5));
+    add(sumRemaining(p.masteryAirUltDef1 || 0, costs10));
+    add(sumRemaining(p.masteryAirHp3 || 0, costs10));
+    add(sumRemaining(p.masteryAirAtk3 || 0, costs10));
+    add(sumRemaining(p.masteryAirDef3 || 0, costs10));
+    add(sumRemaining(p.masteryAirDamage3 || 0, costs5));
+    add(sumRemaining(p.masteryAirMarch2 || 0, costs5));
+    add(sumRemaining(p.masteryAirHp4 || 0, costs10));
+    add(sumRemaining(p.masteryAirAtk4 || 0, costs10));
+    add(sumRemaining(p.masteryAirDef4 || 0, costs10));
+    add(sumRemaining(p.masteryAirDamage4 || 0, costs5));
+    add(sumRemaining(p.masteryAirUltDef2 || 0, costs10));
 
     return { gold, valor, foodIron };
 };

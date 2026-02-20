@@ -100,6 +100,21 @@ const mapPlayerFromDb = (row: any): Player => ({
   masteryAirDef1: row.mastery_air_def_1 || 0,
   masteryAirDamage1: row.mastery_air_damage_1 || 0,
   masteryAirMarch1: row.mastery_air_march_1 || 0,
+  masteryAirHp2: row.mastery_air_hp_2 || 0,
+  masteryAirAtk2: row.mastery_air_atk_2 || 0,
+  masteryAirDef2: row.mastery_air_def_2 || 0,
+  masteryAirDamage2: row.mastery_air_damage_2 || 0,
+  masteryAirUltDef1: row.mastery_air_ult_def_1 || 0,
+  masteryAirHp3: row.mastery_air_hp_3 || 0,
+  masteryAirAtk3: row.mastery_air_atk_3 || 0,
+  masteryAirDef3: row.mastery_air_def_3 || 0,
+  masteryAirDamage3: row.mastery_air_damage_3 || 0,
+  masteryAirMarch2: row.mastery_air_march_2 || 0,
+  masteryAirHp4: row.mastery_air_hp_4 || 0,
+  masteryAirAtk4: row.mastery_air_atk_4 || 0,
+  masteryAirDef4: row.mastery_air_def_4 || 0,
+  masteryAirDamage4: row.mastery_air_damage_4 || 0,
+  masteryAirUltDef2: row.mastery_air_ult_def_2 || 0,
   active: row.active
 });
 
@@ -148,6 +163,21 @@ const mapPlayerToDb = (p: Partial<Player>) => {
   if (p.masteryAirDef1 !== undefined) out.mastery_air_def_1 = p.masteryAirDef1;
   if (p.masteryAirDamage1 !== undefined) out.mastery_air_damage_1 = p.masteryAirDamage1;
   if (p.masteryAirMarch1 !== undefined) out.mastery_air_march_1 = p.masteryAirMarch1;
+  if (p.masteryAirHp2 !== undefined) out.mastery_air_hp_2 = p.masteryAirHp2;
+  if (p.masteryAirAtk2 !== undefined) out.mastery_air_atk_2 = p.masteryAirAtk2;
+  if (p.masteryAirDef2 !== undefined) out.mastery_air_def_2 = p.masteryAirDef2;
+  if (p.masteryAirDamage2 !== undefined) out.mastery_air_damage_2 = p.masteryAirDamage2;
+  if (p.masteryAirUltDef1 !== undefined) out.mastery_air_ult_def_1 = p.masteryAirUltDef1;
+  if (p.masteryAirHp3 !== undefined) out.mastery_air_hp_3 = p.masteryAirHp3;
+  if (p.masteryAirAtk3 !== undefined) out.mastery_air_atk_3 = p.masteryAirAtk3;
+  if (p.masteryAirDef3 !== undefined) out.mastery_air_def_3 = p.masteryAirDef3;
+  if (p.masteryAirDamage3 !== undefined) out.mastery_air_damage_3 = p.masteryAirDamage3;
+  if (p.masteryAirMarch2 !== undefined) out.mastery_air_march_2 = p.masteryAirMarch2;
+  if (p.masteryAirHp4 !== undefined) out.mastery_air_hp_4 = p.masteryAirHp4;
+  if (p.masteryAirAtk4 !== undefined) out.mastery_air_atk_4 = p.masteryAirAtk4;
+  if (p.masteryAirDef4 !== undefined) out.mastery_air_def_4 = p.masteryAirDef4;
+  if (p.masteryAirDamage4 !== undefined) out.mastery_air_damage_4 = p.masteryAirDamage4;
+  if (p.masteryAirUltDef2 !== undefined) out.mastery_air_ult_def_2 = p.masteryAirUltDef2;
   if (p.active !== undefined) out.active = p.active;
   out.updated_at = new Date().toISOString();
   return out;
