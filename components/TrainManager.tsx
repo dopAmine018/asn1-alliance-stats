@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Player } from '../types';
 import { MockApi, TrainApi } from '../services/mockBackend';
-import { calculateT10RemainingCost } from '../utils/gameLogic';
+import { calculateStsRemainingCost } from '../utils/gameLogic';
 import { useLanguage } from '../utils/i18n';
 import { useToast } from './Toast';
 
@@ -125,7 +125,7 @@ const TrainManager: React.FC = () => {
           const res = await MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false });
           
           const enriched: EnrichedPlayer[] = res.items.map(p => {
-              const cost = calculateT10RemainingCost(p);
+              const cost = calculateStsRemainingCost(p);
               return {
                   ...p,
                   remainingGold: cost.gold,
@@ -196,12 +196,12 @@ const TrainManager: React.FC = () => {
 
   const handleAutoDeploy = async () => {
     if (!candidates.length) return;
-    if (!window.confirm("AUTO-DEPLOY ENGINE:\nThis will analyze current T10 progress and squad power to generate the most efficient weekly rotation.\n\nOverwrite existing schedule?")) return;
+    if (!window.confirm("AUTO-DEPLOY ENGINE:\nThis will analyze current STS progress and squad power to generate the most efficient weekly rotation.\n\nOverwrite existing schedule?")) return;
 
     setLoading(true);
     const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
     
-    // Algorithm: Find players who need T10, sort by closest (lowest gold)
+    // Algorithm: Find players who need STS, sort by closest (lowest gold)
     // Only use active players
     const activeCandidates = candidates.filter(p => p.active);
     
@@ -214,7 +214,7 @@ const TrainManager: React.FC = () => {
     const newSchedule: TrainDay[] = [];
 
     for (let i = 0; i < 7; i++) {
-        // Simple rotation for the demo, but logic prioritized T10-seekers
+        // Simple rotation for the demo, but logic prioritized STS-seekers
         const pairIndex = Math.floor(i / 2) % Math.max(1, Math.floor(activeCandidates.length / 2));
         const p1 = activeCandidates[pairIndex * 2];
         const p2 = activeCandidates[pairIndex * 2 + 1];
@@ -473,7 +473,7 @@ const TrainManager: React.FC = () => {
                             <tr>
                                 <th className="px-4 py-3">#</th>
                                 <th className="px-4 py-3">{t('admin.identity')}</th>
-                                <th className="px-4 py-3 text-center">T10 Adv</th>
+                                <th className="px-4 py-3 text-center">STS Adv</th>
                                 <th className="px-4 py-3 text-right">Gold</th>
                             </tr>
                         </thead>
@@ -489,9 +489,9 @@ const TrainManager: React.FC = () => {
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <div className="flex justify-center gap-1 text-[9px] font-mono">
-                                            <span className="bg-sky-900/40 text-sky-400 px-1 rounded">{p.t10Protection || 0}</span>
-                                            <span className="bg-emerald-900/40 text-emerald-400 px-1 rounded">{p.t10Hp || 0}</span>
-                                            <span className="bg-rose-900/40 text-rose-400 px-1 rounded">{p.t10Atk || 0}</span>
+                                            <span className="bg-sky-900/40 text-sky-400 px-1 rounded">{p.stsFinalStand1 || 0}</span>
+                                            <span className="bg-emerald-900/40 text-emerald-400 px-1 rounded">{p.stsFierceAssault1 || 0}</span>
+                                            <span className="bg-rose-900/40 text-rose-400 px-1 rounded">{p.stsVigilantFormation1 || 0}</span>
                                         </div>
                                     </td>
                                     <td className={`px-4 py-3 text-right font-mono font-bold ${p.remainingGold === 0 ? 'text-emerald-500' : 'text-amber-500'}`}>
