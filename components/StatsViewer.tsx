@@ -4,7 +4,7 @@ import { MockApi } from '../services/mockBackend';
 import PlayerCard from './PlayerCard';
 import { useLanguage } from '../utils/i18n';
 import { CustomDropdown } from './CustomDropdown';
-import { calculateT10RemainingCost } from '../utils/gameLogic';
+import { calculateT10RemainingCost, calculateStsRemainingCost, calculateDefRemainingCost } from '../utils/gameLogic';
 import { useToast } from './Toast';
 
 interface StatsViewerProps {
@@ -47,6 +47,18 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
           uniqueItems.sort((a, b) => {
               const costA = calculateT10RemainingCost(a).gold;
               const costB = calculateT10RemainingCost(b).gold;
+              return costA - costB;
+          });
+      } else if (filter.sort === 'sts_closest') {
+          uniqueItems.sort((a, b) => {
+              const costA = calculateStsRemainingCost(a).gold;
+              const costB = calculateStsRemainingCost(b).gold;
+              return costA - costB;
+          });
+      } else if (filter.sort === 'def_closest') {
+          uniqueItems.sort((a, b) => {
+              const costA = calculateDefRemainingCost(a).gold;
+              const costB = calculateDefRemainingCost(b).gold;
               return costA - costB;
           });
       } else if (filter.sort === 'power_desc') {
@@ -118,6 +130,15 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
             const goldStr = cost.gold >= 1000000000 ? (cost.gold / 1000000000).toFixed(2) + "B" : (cost.gold / 1000000).toFixed(0) + "M";
             report += `${pad((i + 1).toString(), 3)} ${pad(p.name.toUpperCase(), 15)} ${pad(goldStr, 10)} ${pad(p.t10Elite === 10 ? "YES" : "NO", 5)}\n`;
         });
+    } else if (mode === 'def' as any) {
+        report = `### 🛡️ ASN1 DEFENSE READINESS [${date}]\n\`\`\`\n`;
+        report += `${pad("RK", 3)} ${pad("COMMANDER", 15)} ${pad("GOLD LEFT", 11)}\n`;
+        report += `${"-".repeat(3)} ${"-".repeat(15)} ${"-".repeat(11)}\n`;
+        players.forEach((p, i) => {
+            const cost = calculateDefRemainingCost(p);
+            const goldStr = cost.gold >= 1000000000 ? (cost.gold / 1000000000).toFixed(2) + "B" : (cost.gold / 1000000).toFixed(0) + "M";
+            report += `${pad((i + 1).toString(), 3)} ${pad(p.name.toUpperCase(), 15)} ${pad(goldStr, 11)}\n`;
+        });
     }
 
     report += `\`\`\`\n*EXTRACTED ALL COMMANDERS FROM ASN1 TERMINAL*`;
@@ -136,13 +157,16 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
       { value: 'power_asc', label: 'MIN_POWER' }, 
       { value: 'total_hero_power_desc', label: 'MAX_HERO_PWR' },
       { value: 'time_desc', label: 'RECENT_SYNC' }, 
-      { value: 't10_closest', label: 'T10_PROGRESS' }
+      { value: 't10_closest', label: 'T10_PROGRESS' },
+      { value: 'sts_closest', label: 'STS_PROGRESS' },
+      { value: 'def_closest', label: 'DEFENSE_PROGRESS' }
   ];
 
   const extractOptions = [
       { value: 'power', label: 'REPORT: POWER' },
       { value: 'squads', label: 'REPORT: ALL SQUADS' },
-      { value: 't10', label: 'REPORT: T10 PROGRESS' }
+      { value: 't10', label: 'REPORT: T10 PROGRESS' },
+      { value: 'def', label: 'REPORT: DEFENSE PROGRESS' }
   ];
 
   return (

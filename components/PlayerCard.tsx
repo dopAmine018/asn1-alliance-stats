@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Player } from '../types';
 import { useLanguage } from '../utils/i18n';
-import { calculateT10RemainingCost, calculateStsRemainingCost } from '../utils/gameLogic';
+import { calculateT10RemainingCost, calculateStsRemainingCost, calculateDefRemainingCost } from '../utils/gameLogic';
 
 interface PlayerCardProps {
   player: Player;
@@ -22,6 +22,13 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
     const cost = calculateStsRemainingCost(player);
     const MAX_STS_GOLD_REF = 15000000000; 
     const pct = Math.max(0, 100 - (cost.gold / MAX_STS_GOLD_REF * 100));
+    return Math.min(100, Math.round(pct));
+  }, [player]);
+
+  const defProgress = useMemo(() => {
+    const cost = calculateDefRemainingCost(player);
+    const MAX_DEF_GOLD_REF = 5500000000; 
+    const pct = Math.max(0, 100 - (cost.gold / MAX_DEF_GOLD_REF * 100));
     return Math.min(100, Math.round(pct));
   }, [player]);
 
@@ -121,6 +128,16 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
         </div>
         <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden flex">
           <div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: `${stsProgress}%` }}></div>
+        </div>
+      </div>
+
+      <div className="space-y-1.5 mt-4 pt-4 border-t border-white/5">
+        <div className="flex justify-between items-end">
+          <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em]">DEFENSE PROTOCOL</span>
+          <span className="text-[9px] font-mono font-black text-sky-400">{defProgress}%</span>
+        </div>
+        <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden flex">
+          <div className="h-full bg-sky-500 transition-all duration-1000" style={{ width: `${defProgress}%` }}></div>
         </div>
       </div>
 

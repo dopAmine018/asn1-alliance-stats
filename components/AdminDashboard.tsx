@@ -128,6 +128,18 @@ const AdminDashboard: React.FC = () => {
         stsFierceAssault3: Number(editForm.stsFierceAssault3 || 0),
         stsVigilantFormation3: Number(editForm.stsVigilantFormation3 || 0),
         stsFatalStrike1: Number(editForm.stsFatalStrike1 || 0),
+        defExtraHospitals: Number(editForm.defExtraHospitals || 0),
+        defFortifications: Number(editForm.defFortifications || 0),
+        defInfirmaryExpansion1: Number(editForm.defInfirmaryExpansion1 || 0),
+        defEfficientHealing: Number(editForm.defEfficientHealing || 0),
+        defHoldLine2: Number(editForm.defHoldLine2 || 0),
+        defCounterDefense2: Number(editForm.defCounterDefense2 || 0),
+        defSolidDefense2: Number(editForm.defSolidDefense2 || 0),
+        defResourceProtection: Number(editForm.defResourceProtection || 0),
+        defHoldLine3: Number(editForm.defHoldLine3 || 0),
+        defCounterDefense3: Number(editForm.defCounterDefense3 || 0),
+        defSolidDefense3: Number(editForm.defSolidDefense3 || 0),
+        defSurvivalSkills: Number(editForm.defSurvivalSkills || 0),
         techLevel: Number(editForm.techLevel), barracksLevel: Number(editForm.barracksLevel),
         tankCenterLevel: Number(editForm.tankCenterLevel), airCenterLevel: Number(editForm.airCenterLevel), missileCenterLevel: Number(editForm.missileCenterLevel),
       };
@@ -311,6 +323,17 @@ const AdminDashboard: React.FC = () => {
                                     {['stsPowerBoost1', 'stsFinalStand1', 'stsFierceAssault1', 'stsVigilantFormation1', 'stsExtraDrillGround', 'stsBarrackExpansion1', 'stsFocusedTraining1', 'stsFinalStand2', 'stsFierceAssault2', 'stsVigilantFormation2', 'stsDrillGroundExpansion', 'stsRapidMarch1', 'stsFinalStand3', 'stsFierceAssault3', 'stsVigilantFormation3', 'stsFatalStrike1'].map(field => (
                                         <div key={field}>
                                             <label className="text-[6px] text-slate-700 block truncate">{field.replace('sts','')}</label>
+                                            <input type="number" min="0" max="10" className="w-full bg-slate-950 border border-slate-800 rounded p-1 text-[8px] text-white" value={editForm[field] || 0} onChange={e => setEditForm(p => ({...p, [field]: e.target.value}))} />
+                                        </div>
+                                    ))}
+                                </div>
+                           </div>
+                           <div className="space-y-1">
+                                <label className="text-[9px] text-slate-600 font-bold block mb-1">DEF LEVELS (0-10)</label>
+                                <div className="grid grid-cols-4 gap-1">
+                                    {['defExtraHospitals', 'defFortifications', 'defInfirmaryExpansion1', 'defEfficientHealing', 'defHoldLine2', 'defCounterDefense2', 'defSolidDefense2', 'defResourceProtection', 'defHoldLine3', 'defCounterDefense3', 'defSolidDefense3', 'defSurvivalSkills'].map(field => (
+                                        <div key={field}>
+                                            <label className="text-[6px] text-slate-700 block truncate">{field.replace('def','')}</label>
                                             <input type="number" min="0" max="10" className="w-full bg-slate-950 border border-slate-800 rounded p-1 text-[8px] text-white" value={editForm[field] || 0} onChange={e => setEditForm(p => ({...p, [field]: e.target.value}))} />
                                         </div>
                                     ))}
