@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { MockApi } from '../services/mockBackend';
 import { Player, Language } from '../types';
 import { useLanguage } from '../utils/i18n';
@@ -241,6 +242,55 @@ const MasteryTree = ({ type, formData, setFormData, resources, fR }: any) => {
     );
 };
 
+const Section = ({ title, color, isOpen, onToggle, children }: any) => {
+  return (
+    <div className={`overflow-hidden rounded-2xl border transition-all duration-500 ${isOpen ? 'bg-[#0a0f1e]/80 border-white/10 shadow-2xl' : 'bg-[#0a0f1e]/30 border-white/5 hover:border-white/10'}`}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full px-6 py-5 flex items-center justify-between group transition-colors focus:outline-none"
+      >
+        <div className="flex items-center gap-4">
+          <div className={`w-1 h-8 rounded-full transition-all duration-500 ${
+            isOpen 
+              ? color === 'sky' ? 'bg-sky-500 shadow-[0_0_15px_rgba(14,165,233,0.5)]'
+              : color === 'amber' ? 'bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]'
+              : color === 'indigo' ? 'bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]'
+              : color === 'rose' ? 'bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.5)]'
+              : color === 'emerald' ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]'
+              : 'bg-white shadow-[0_0_15px_rgba(255,255,255,0.5)]'
+            : 'bg-slate-700 group-hover:bg-slate-600'
+          }`}></div>
+          <div className="text-left">
+            <h3 className={`text-xs font-black uppercase tracking-[0.2em] transition-colors duration-500 ${isOpen ? 'text-white' : 'text-slate-400 group-hover:text-slate-300'}`}>
+              {title}
+            </h3>
+          </div>
+        </div>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 ${isOpen ? 'bg-white/10 rotate-180' : 'bg-white/5'}`}>
+          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+          >
+            <div className="px-6 pb-8 pt-2 border-t border-white/5">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ onSuccess, onBack }) => {
   const { t, language } = useLanguage();
   const { addToast } = useToast();
@@ -249,6 +299,20 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeMasteryTab, setActiveMasteryTab] = useState<'tank' | 'missile' | 'air'>('air');
   const searchTimeout = useRef<any>(null);
+  
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+      profile: true,
+      coreTech: false,
+      t10: false,
+      sts: false,
+      def: false,
+      mastery: false,
+      buildings: false
+  });
+
+  const toggleSection = (key: string) => {
+      setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const [formData, setFormData] = useState({ language: 'english' as Language, ...defaultFormData });
 
@@ -556,53 +620,63 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
             <button type="button" onClick={() => setFormData({ language, ...defaultFormData })} className="text-[10px] font-bold text-slate-500 hover:text-white uppercase px-3 py-1 border border-slate-800 rounded transition-colors hover:bg-slate-800/50">Reset</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-12">
-            <section className="space-y-6">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest border-l-2 border-sky-500 pl-3">{t('section.identity')}</h3>
-                <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 shadow-lg relative">
-                    <FormInput 
-                        label={t('label.name')} 
-                        name="name" 
-                        val={formData.name} 
-                        change={handleNameChange} 
-                        req={true} 
-                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} 
-                        autoComplete="off"
-                    >
-                        {showSuggestions && suggestions.length > 0 && (
-                            <div className="absolute top-full left-0 w-full bg-[#0a0f1e] border border-slate-700 z-50 rounded-b-xl overflow-hidden divide-y divide-slate-800">
-                                {suggestions.map(s => (
-                                    <button key={s.id} type="button" onClick={() => populateWithPlayer(s)} className="w-full px-6 py-4 text-left hover:bg-sky-500/10 transition-colors flex justify-between items-center group">
-                                        <span className="text-sm font-bold text-white group-hover:text-sky-400">{s.name}</span>
-                                        <span className="text-[10px] font-mono text-slate-500">{(s.firstSquadPower/1e6).toFixed(1)}M</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </FormInput>
-                </div>
-            </section>
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <Section title="Profile & Power" color="sky" isOpen={openSections.profile} onToggle={() => toggleSection('profile')}>
+                <div className="space-y-8">
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('section.identity')}</label>
+                        <div className="relative">
+                            <FormInput 
+                                label={t('label.name')} 
+                                name="name" 
+                                val={formData.name} 
+                                change={handleNameChange} 
+                                req={true} 
+                                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} 
+                                autoComplete="off"
+                            >
+                                {showSuggestions && suggestions.length > 0 && (
+                                    <div className="absolute top-full left-0 w-full bg-[#0a0f1e] border border-slate-700 z-50 rounded-b-xl overflow-hidden divide-y divide-slate-800">
+                                        {suggestions.map(s => (
+                                            <button key={s.id} type="button" onClick={() => populateWithPlayer(s)} className="w-full px-6 py-4 text-left hover:bg-sky-500/10 transition-colors flex justify-between items-center group">
+                                                <span className="text-sm font-bold text-white group-hover:text-sky-400">{s.name}</span>
+                                                <span className="text-[10px] font-mono text-slate-500">{(s.firstSquadPower/1e6).toFixed(1)}M</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </FormInput>
+                        </div>
+                    </div>
 
-            <section className="space-y-6">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest border-l-2 border-amber-500 pl-3">{t('section.power')}</h3>
-                <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 shadow-lg grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <FormInput label={t('label.power')+"(M)"} name="firstSquadPower" val={formData.firstSquadPower} change={(e:any)=>setFormData(p=>({...p,firstSquadPower:e.target.value}))} req={true} type="number" />
-                    <FormInput label={t('label.squad2')+"(M)"} name="secondSquadPower" val={formData.secondSquadPower} change={(e:any)=>setFormData(p=>({...p,secondSquadPower:e.target.value}))} type="number" />
-                    <FormInput label={t('label.squad3')+"(M)"} name="thirdSquadPower" val={formData.thirdSquadPower} change={(e:any)=>setFormData(p=>({...p,thirdSquadPower:e.target.value}))} type="number" />
-                    <FormInput label={t('label.squad4')+"(M)"} name="fourthSquadPower" val={formData.fourthSquadPower} change={(e:any)=>setFormData(p=>({...p,fourthSquadPower:e.target.value}))} type="number" />
-                    <div className="col-span-2 md:col-span-4 mt-2">
-                        <FormInput label={t('label.totalHeroPower')+"(M)"} name="totalHeroPower" val={formData.totalHeroPower} change={(e:any)=>setFormData(p=>({...p,totalHeroPower:e.target.value}))} req={true} type="number" />
+                    <div className="space-y-4 border-t border-white/5 pt-6">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('section.power')}</label>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                            <FormInput label={t('label.power')+"(M)"} name="firstSquadPower" val={formData.firstSquadPower} change={(e:any)=>setFormData(p=>({...p,firstSquadPower:e.target.value}))} req={true} type="number" />
+                            <FormInput label={t('label.squad2')+"(M)"} name="secondSquadPower" val={formData.secondSquadPower} change={(e:any)=>setFormData(p=>({...p,secondSquadPower:e.target.value}))} type="number" />
+                            <FormInput label={t('label.squad3')+"(M)"} name="thirdSquadPower" val={formData.thirdSquadPower} change={(e:any)=>setFormData(p=>({...p,thirdSquadPower:e.target.value}))} type="number" />
+                            <FormInput label={t('label.squad4')+"(M)"} name="fourthSquadPower" val={formData.fourthSquadPower} change={(e:any)=>setFormData(p=>({...p,fourthSquadPower:e.target.value}))} type="number" />
+                            <div className="col-span-2 md:col-span-4 mt-2">
+                                <FormInput label={t('label.totalHeroPower')+"(M)"} name="totalHeroPower" val={formData.totalHeroPower} change={(e:any)=>setFormData(p=>({...p,totalHeroPower:e.target.value}))} req={true} type="number" />
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </section>
+            </Section>
 
-            <section className="space-y-10">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest border-l-2 border-indigo-500 pl-3">{t('section.tech')}</h3>
-                
-                {/* T10 HUD */}
-                <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 space-y-8">
-                    <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">T10 PROTOCOL</h4>
+            <Section title="T10 Protocol" color="indigo" isOpen={openSections.t10} onToggle={() => toggleSection('t10')}>
+                <div className="space-y-8">
                     <div className="flex flex-col items-center">
+                         <div className="max-w-xs w-full text-left space-y-2 mb-10">
+                            <label className="block text-[10px] font-bold text-sky-500 uppercase tracking-widest ml-1">Morale Level *</label>
+                            <CustomDropdown 
+                                value={formData.t10Morale} 
+                                onChange={(v: any) => setFormData(p => ({...p, t10Morale: String(v)}))} 
+                                options={moraleOptions}
+                                disableSearch
+                            />
+                         </div>
+
                          <TechNode label={t('t10.protection')} value={formData.t10Protection} onChange={(v:any)=>setFormData(p=>({...p,t10Protection:v}))} />
                          <div className="h-6 w-px bg-indigo-500/30"></div>
                          <div className="flex gap-4">
@@ -613,7 +687,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                          <div className="h-6 w-px bg-indigo-500/30"></div>
                          <TechNode label="Elite Units" value={formData.t10Elite} onChange={(v:any)=>setFormData(p=>({...p,t10Elite:v}))} binary />
                     </div>
-                    {/* T10 Local Resource Summary */}
+                    
                     <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
                         <div className="text-center">
                             <span className="text-[10px] text-amber-500 block uppercase font-black tracking-widest">T10 GOLD</span>
@@ -629,47 +703,46 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                         </div>
                     </div>
                 </div>
+            </Section>
 
-                {/* Siege to Seize Tree */}
-                <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-rose-500/10 space-y-10 shadow-[inset_0_0_20px_rgba(244,63,94,0.05)]">
-                    <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em]">{t('sts.title')}</h4>
-                    
+            <Section title="STS Protocol" color="rose" isOpen={openSections.sts} onToggle={() => toggleSection('sts')}>
+                <div className="space-y-10">
                     <div className="flex flex-col items-center gap-4">
-                        <TechNode label={t('sts.power_boost')+" I"} value={formData.stsPowerBoost1} onChange={(v:any)=>setFormData(p=>({...p,stsPowerBoost1:v}))} />
+                        <TechNode label={t('sts.power_boost')+" I"} value={formData.stsPowerBoost1} onChange={(v:any)=>setFormData(p=>({...p,stsPowerBoost1:v}))} accentColor="rose" />
                         <div className="h-6 w-px bg-rose-500/30"></div>
                         <div className="flex gap-4">
-                            <TechNode label={t('sts.final_stand')+" I"} value={formData.stsFinalStand1} onChange={(v:any)=>setFormData(p=>({...p,stsFinalStand1:v}))} />
-                            <TechNode label={t('sts.fierce_assault')+" I"} value={formData.stsFierceAssault1} onChange={(v:any)=>setFormData(p=>({...p,stsFierceAssault1:v}))} />
-                            <TechNode label={t('sts.vigilant')+" I"} value={formData.stsVigilantFormation1} onChange={(v:any)=>setFormData(p=>({...p,stsVigilantFormation1:v}))} />
+                            <TechNode label={t('sts.final_stand')+" I"} value={formData.stsFinalStand1} onChange={(v:any)=>setFormData(p=>({...p,stsFinalStand1:v}))} accentColor="rose" />
+                            <TechNode label={t('sts.fierce_assault')+" I"} value={formData.stsFierceAssault1} onChange={(v:any)=>setFormData(p=>({...p,stsFierceAssault1:v}))} accentColor="rose" />
+                            <TechNode label={t('sts.vigilant')+" I"} value={formData.stsVigilantFormation1} onChange={(v:any)=>setFormData(p=>({...p,stsVigilantFormation1:v}))} accentColor="rose" />
                         </div>
                         <div className="h-6 w-px bg-rose-500/30"></div>
                         <TechNode label={t('sts.extra_drill')} value={formData.stsExtraDrillGround} onChange={(v:any)=>setFormData(p=>({...p,stsExtraDrillGround:v}))} binary hint="REQ: T2 Lv10" />
                         <div className="h-6 w-px bg-rose-500/30"></div>
                         <div className="flex gap-4">
-                            <TechNode label={t('sts.barrack')+" I"} value={formData.stsBarrackExpansion1} onChange={(v:any)=>setFormData(p=>({...p,stsBarrackExpansion1:v}))} />
-                            <TechNode label={t('sts.focused')+" I"} value={formData.stsFocusedTraining1} onChange={(v:any)=>setFormData(p=>({...p,stsFocusedTraining1:v}))} />
+                            <TechNode label={t('sts.barrack')+" I"} value={formData.stsBarrackExpansion1} onChange={(v:any)=>setFormData(p=>({...p,stsBarrackExpansion1:v}))} accentColor="rose" />
+                            <TechNode label={t('sts.focused')+" I"} value={formData.stsFocusedTraining1} onChange={(v:any)=>setFormData(p=>({...p,stsFocusedTraining1:v}))} accentColor="rose" />
                         </div>
                         <div className="h-6 w-px bg-rose-500/30"></div>
                         <div className="flex gap-4">
-                            <TechNode label={t('sts.final_stand')+" II"} value={formData.stsFinalStand2} onChange={(v:any)=>setFormData(p=>({...p,stsFinalStand2:v}))} />
-                            <TechNode label={t('sts.fierce_assault')+" II"} value={formData.stsFierceAssault2} onChange={(v:any)=>setFormData(p=>({...p,stsFierceAssault2:v}))} />
-                            <TechNode label={t('sts.vigilant')+" II"} value={formData.stsVigilantFormation2} onChange={(v:any)=>setFormData(p=>({...p,stsVigilantFormation2:v}))} />
+                            <TechNode label={t('sts.final_stand')+" II"} value={formData.stsFinalStand2} onChange={(v:any)=>setFormData(p=>({...p,stsFinalStand2:v}))} accentColor="rose" />
+                            <TechNode label={t('sts.fierce_assault')+" II"} value={formData.stsFierceAssault2} onChange={(v:any)=>setFormData(p=>({...p,stsFierceAssault2:v}))} accentColor="rose" />
+                            <TechNode label={t('sts.vigilant')+" II"} value={formData.stsVigilantFormation2} onChange={(v:any)=>setFormData(p=>({...p,stsVigilantFormation2:v}))} accentColor="rose" />
                         </div>
-                        <div className="h-6 w-px bg-rose-500/30"></div>
-                        <TechNode label={t('sts.drill_exp')} value={formData.stsDrillGroundExpansion} onChange={(v:any)=>setFormData(p=>({...p,stsDrillGroundExpansion:v}))} hint="REQ: T5 Lv6" />
-                        <div className="h-6 w-px bg-rose-500/30"></div>
-                        <TechNode label={t('sts.rapid')} value={formData.stsRapidMarch1} onChange={(v:any)=>setFormData(p=>({...p,stsRapidMarch1:v}))} />
                         <div className="h-6 w-px bg-rose-500/30"></div>
                         <div className="flex gap-4">
-                            <TechNode label={t('sts.final_stand')+" III"} value={formData.stsFinalStand3} onChange={(v:any)=>setFormData(p=>({...p,stsFinalStand3:v}))} />
-                            <TechNode label={t('sts.fierce_assault')+" III"} value={formData.stsFierceAssault3} onChange={(v:any)=>setFormData(p=>({...p,stsFierceAssault3:v}))} />
-                            <TechNode label={t('sts.vigilant')+" III"} value={formData.stsVigilantFormation3} onChange={(v:any)=>setFormData(p=>({...p,stsVigilantFormation3:v}))} />
+                            <TechNode label={t('sts.drill_exp')} value={formData.stsDrillGroundExpansion} onChange={(v:any)=>setFormData(p=>({...p,stsDrillGroundExpansion:v}))} max={5} hint="REQ: T7 Lv2" accentColor="rose" />
+                            <TechNode label={t('sts.rapid')} value={formData.stsRapidMarch1} onChange={(v:any)=>setFormData(p=>({...p,stsRapidMarch1:v}))} max={10} hint="REQ: T8 Lv1" accentColor="rose" />
                         </div>
                         <div className="h-6 w-px bg-rose-500/30"></div>
-                        <TechNode label={t('sts.fatal')} value={formData.stsFatalStrike1} onChange={(v:any)=>setFormData(p=>({...p,stsFatalStrike1:v}))} hint="REQ: T7 Lv1" />
+                        <div className="flex gap-4">
+                            <TechNode label={t('sts.final_stand')+" III"} value={formData.stsFinalStand3} onChange={(v:any)=>setFormData(p=>({...p,stsFinalStand3:v}))} hint="REQ: T10 Lv4" accentColor="rose" />
+                            <TechNode label={t('sts.fierce_assault')+" III"} value={formData.stsFierceAssault3} onChange={(v:any)=>setFormData(p=>({...p,stsFierceAssault3:v}))} hint="REQ: T10 Lv4" accentColor="rose" />
+                            <TechNode label={t('sts.vigilant')+" III"} value={formData.stsVigilantFormation3} onChange={(v:any)=>setFormData(p=>({...p,stsVigilantFormation3:v}))} hint="REQ: T10 Lv4" accentColor="rose" />
+                        </div>
+                        <div className="h-6 w-px bg-rose-500/30"></div>
+                        <TechNode label={t('sts.fatal')} value={formData.stsFatalStrike1} onChange={(v:any)=>setFormData(p=>({...p,stsFatalStrike1:v}))} hint="REQ: T11 Lv1" accentColor="rose" />
                     </div>
 
-                    {/* STS Local Resource Summary */}
                     <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
                         <div className="text-center">
                             <span className="text-[10px] text-amber-500 block uppercase font-black tracking-widest">STS GOLD</span>
@@ -685,11 +758,10 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                         </div>
                     </div>
                 </div>
+            </Section>
 
-                {/* Defense Fortifications Tree */}
-                <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-sky-500/10 space-y-10 shadow-[inset_0_0_20px_rgba(14,165,233,0.05)]">
-                    <h4 className="text-[10px] font-black text-sky-500 uppercase tracking-[0.3em]">{t('def.title')}</h4>
-                    
+            <Section title="Defense Protocol" color="sky" isOpen={openSections.def} onToggle={() => toggleSection('def')}>
+                <div className="space-y-10">
                     <div className="flex flex-col items-center gap-4">
                         <TechNode label={t('def.extra_hospitals')} value={formData.defExtraHospitals} onChange={(v:any)=>setFormData(p=>({...p,defExtraHospitals:v}))} max={1} binary />
                         <div className="h-6 w-px bg-sky-500/30"></div>
@@ -726,7 +798,6 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                         <TechNode label={t('def.survival_skills')} value={formData.defSurvivalSkills} onChange={(v:any)=>setFormData(p=>({...p,defSurvivalSkills:v}))} hint="REQ: T7 Lv1" />
                     </div>
 
-                    {/* Defense Local Resource Summary */}
                     <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
                         <div className="text-center">
                             <span className="text-[10px] text-amber-500 block uppercase font-black tracking-widest">DEF GOLD</span>
@@ -742,69 +813,63 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                         </div>
                     </div>
                 </div>
+            </Section>
 
-                {/* Mastery Mini Tab */}
+            <Section title="Mastery Protocol" color="amber" isOpen={openSections.mastery} onToggle={() => toggleSection('mastery')}>
                 <div className="space-y-4">
                     <div className="flex gap-2">
-                        <button 
-                            type="button" 
-                            onClick={() => setActiveMasteryTab('tank')}
-                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeMasteryTab === 'tank' ? 'bg-amber-500/20 border border-amber-500/50 text-amber-500' : 'bg-slate-900/50 border border-slate-800 text-slate-500 hover:text-slate-400'}`}
-                        >
-                            Tank Mastery
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={() => setActiveMasteryTab('missile')}
-                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeMasteryTab === 'missile' ? 'bg-amber-500/20 border border-amber-500/50 text-amber-500' : 'bg-slate-900/50 border border-slate-800 text-slate-500 hover:text-slate-400'}`}
-                        >
-                            Missile Mastery
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={() => setActiveMasteryTab('air')}
-                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeMasteryTab === 'air' ? 'bg-amber-500/20 border border-amber-500/50 text-amber-500' : 'bg-slate-900/50 border border-slate-800 text-slate-500 hover:text-slate-400'}`}
-                        >
-                            Air Mastery
-                        </button>
+                        {(['air', 'tank', 'missile'] as const).map(tab => (
+                            <button
+                                key={tab}
+                                type="button"
+                                onClick={() => setActiveMasteryTab(tab)}
+                                className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                                    ${activeMasteryTab === tab 
+                                        ? tab === 'air' ? 'bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.3)]'
+                                          : tab === 'tank' ? 'bg-sky-500 text-white shadow-[0_0_20px_rgba(14,165,233,0.3)]'
+                                          : 'bg-rose-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.3)]'
+                                        : 'bg-[#0f172a] text-slate-500 border border-white/5 hover:border-white/10 hover:text-slate-300'
+                                    }
+                                `}
+                            >
+                                {tab}
+                            </button>
+                        ))}
                     </div>
-                    
-                    {activeMasteryTab === 'air' && <MasteryTree type="air" formData={formData} setFormData={setFormData} resources={airMasteryResources} fR={fR} />}
-                    {activeMasteryTab === 'tank' && <MasteryTree type="tank" formData={formData} setFormData={setFormData} resources={tankMasteryResources} fR={fR} />}
-                    {activeMasteryTab === 'missile' && <MasteryTree type="missile" formData={formData} setFormData={setFormData} resources={missileMasteryResources} fR={fR} />}
-                </div>
 
-                <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 grid grid-cols-3 gap-6">
-                    <FormInput label={t('stat.hero')} name="heroPercent" val={formData.heroPercent} change={(e:any)=>setFormData(p=>({...p,heroPercent:e.target.value}))} type="number" suffix="%" req={true} />
-                    <FormInput label={t('stat.duel')} name="duelPercent" val={formData.duelPercent} change={(e:any)=>setFormData(p=>({...p,duelPercent:e.target.value}))} type="number" suffix="%" req={true} />
-                    <FormInput label={t('stat.units')} name="unitsPercent" val={formData.unitsPercent} change={(e:any)=>setFormData(p=>({...p,unitsPercent:e.target.value}))} type="number" suffix="%" req={true} />
+                    <div className="animate-in fade-in zoom-in-95 duration-500">
+                        {activeMasteryTab === 'air' && <MasteryTree type="air" formData={formData} setFormData={setFormData} resources={airMasteryResources} fR={fR} />}
+                        {activeMasteryTab === 'tank' && <MasteryTree type="tank" formData={formData} setFormData={setFormData} resources={tankMasteryResources} fR={fR} />}
+                        {activeMasteryTab === 'missile' && <MasteryTree type="missile" formData={formData} setFormData={setFormData} resources={missileMasteryResources} fR={fR} />}
+                    </div>
                 </div>
+            </Section>
 
-                <div className="max-w-xs mx-auto text-left space-y-2">
-                    <label className="block text-[10px] font-bold text-sky-500 uppercase tracking-widest ml-1">Morale Level *</label>
-                    <CustomDropdown 
-                        value={formData.t10Morale} 
-                        onChange={(v) => setFormData(p => ({...p, t10Morale: String(v)}))} 
-                        options={moraleOptions}
-                        disableSearch
-                    />
-                </div>
-            </section>
-
-            <section className="space-y-6">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest border-l-2 border-emerald-500 pl-3">Buildings</h3>
-                <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-white/5 grid grid-cols-2 md:grid-cols-5 gap-6">
+            <Section title="Strategic Infrastructures" color="emerald" isOpen={openSections.buildings} onToggle={() => toggleSection('buildings')}>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
                     <FormInput label="Barracks" name="barracksLevel" val={formData.barracksLevel} change={(e:any)=>setFormData(p=>({...p,barracksLevel:e.target.value}))} suffix="lvl" type="number" />
                     <FormInput label="Tech Center" name="techLevel" val={formData.techLevel} change={(e:any)=>setFormData(p=>({...p,techLevel:e.target.value}))} suffix="lvl" type="number" />
                     <FormInput label="Tank" name="tankCenterLevel" val={formData.tankCenterLevel} change={(e:any)=>setFormData(p=>({...p,tankCenterLevel:e.target.value}))} suffix="lvl" type="number" />
                     <FormInput label="Air" name="airCenterLevel" val={formData.airCenterLevel} change={(e:any)=>setFormData(p=>({...p,airCenterLevel:e.target.value}))} suffix="lvl" type="number" />
                     <FormInput label="Missile" name="missileCenterLevel" val={formData.missileCenterLevel} change={(e:any)=>setFormData(p=>({...p,missileCenterLevel:e.target.value}))} suffix="lvl" type="number" />
                 </div>
-            </section>
+            </Section>
 
-            <button type="submit" disabled={loading} className="w-full bg-sky-600 hover:bg-sky-500 text-white font-header font-bold py-4 rounded-xl shadow-lg transition-all uppercase tracking-widest">
-                {loading ? 'Transmitting...' : t('form.submit')}
-            </button>
+            <div className="pt-10">
+                <button type="submit" disabled={loading} className="w-full py-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-black uppercase tracking-[0.3em] rounded-2xl shadow-[0_0_30px_rgba(14,165,233,0.3)] transition-all flex items-center justify-center gap-3">
+                    {loading ? (
+                        <>
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            {t('form.submit')}...
+                        </>
+                    ) : (
+                        <>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                            {t('form.submit')}
+                        </>
+                    )}
+                </button>
+            </div>
         </form>
     </div>
   );

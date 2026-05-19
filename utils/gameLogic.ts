@@ -138,7 +138,7 @@ export const calculateDefRemainingCost = (p: any) => {
     add(sum(p.defFortifications, t1));
     add(sum(p.defInfirmaryExpansion1, t4)); add(sum(p.defEfficientHealing, t4));
     add(sum(p.defHoldLine2, t4)); add(sum(p.defCounterDefense2, t4)); add(sum(p.defSolidDefense2, t4));
-    add(sum(p.defResourceProtection, t6)); add(sum(p.defRapidMarch1, t6));
+    add(sum(p.defResourceProtection, t6));
     add(sum(p.defHoldLine3, t7)); add(sum(p.defCounterDefense3, t7)); add(sum(p.defSolidDefense3, t7));
     add(sum(p.defSurvivalSkills, t7));
 
