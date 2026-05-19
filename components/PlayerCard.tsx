@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Player } from '../types';
 import { useLanguage } from '../utils/i18n';
-import { calculateT10RemainingCost, calculateStsRemainingCost, calculateDefRemainingCost } from '../utils/gameLogic';
+import { calculateStsRemainingCost, calculateDefRemainingCost } from '../utils/gameLogic';
 
 interface PlayerCardProps {
   player: Player;
@@ -11,23 +11,18 @@ interface PlayerCardProps {
 const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
   const { t } = useLanguage();
 
-  const t10Progress = useMemo(() => {
-    const cost = calculateT10RemainingCost(player);
-    const MAX_GOLD_REF = 35000000000; 
-    const pct = Math.max(5, 100 - (cost.gold / MAX_GOLD_REF * 100));
-    return Math.round(pct);
-  }, [player]);
+
 
   const stsProgress = useMemo(() => {
     const cost = calculateStsRemainingCost(player);
-    const MAX_STS_GOLD_REF = 15000000000; 
+    const MAX_STS_GOLD_REF = 8910000000; 
     const pct = Math.max(0, 100 - (cost.gold / MAX_STS_GOLD_REF * 100));
     return Math.min(100, Math.round(pct));
   }, [player]);
 
   const defProgress = useMemo(() => {
     const cost = calculateDefRemainingCost(player);
-    const MAX_DEF_GOLD_REF = 5500000000; 
+    const MAX_DEF_GOLD_REF = 8910000000; 
     const pct = Math.max(0, 100 - (cost.gold / MAX_DEF_GOLD_REF * 100));
     return Math.min(100, Math.round(pct));
   }, [player]);
@@ -93,37 +88,14 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
         <TinyStat label={t('label.squad4')} val={formatM(player.fourthSquadPower)} />
       </div>
 
-      {/* Tech Percentages */}
-      <div className="grid grid-cols-3 gap-1.5 mb-4 border-y border-white/5 py-3">
-        <div className="text-center">
-            <p className="text-[10px] font-mono font-black text-amber-400">{player.heroPercent}%</p>
-            <p className="text-[6px] font-bold text-slate-600 uppercase tracking-widest">{t('stat.hero')}</p>
-        </div>
-        <div className="text-center">
-            <p className="text-[10px] font-mono font-black text-sky-400">{player.duelPercent}%</p>
-            <p className="text-[6px] font-bold text-slate-600 uppercase tracking-widest">{t('stat.duel')}</p>
-        </div>
-        <div className="text-center">
-            <p className="text-[10px] font-mono font-black text-emerald-400">{player.unitsPercent}%</p>
-            <p className="text-[6px] font-bold text-slate-600 uppercase tracking-widest">{t('stat.units')}</p>
-        </div>
-      </div>
 
-      {/* T10 HUD */}
-      <div className="space-y-1.5">
-        <div className="flex justify-between items-end">
-          <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em]">T10 PROTOCOL</span>
-          <span className="text-[9px] font-mono font-black text-sky-400">{t10Progress}%</span>
-        </div>
-        <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden flex">
-          <div className="h-full bg-sky-500 transition-all duration-1000" style={{ width: `${t10Progress}%` }}></div>
-        </div>
-      </div>
+
+
 
       {/* STS HUD */}
-      <div className="space-y-1.5 mt-4 pt-4 border-t border-white/5">
+      <div className="space-y-1.5">
         <div className="flex justify-between items-end">
-          <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em]">STS PROTOCOL</span>
+          <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em]">SIEGE TO SEIZE</span>
           <span className="text-[9px] font-mono font-black text-rose-400">{stsProgress}%</span>
         </div>
         <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden flex">
@@ -133,26 +105,15 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
 
       <div className="space-y-1.5 mt-4 pt-4 border-t border-white/5">
         <div className="flex justify-between items-end">
-          <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em]">DEFENSE PROTOCOL</span>
+          <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em]">DEFENSE FORTIFICATIONS</span>
           <span className="text-[9px] font-mono font-black text-sky-400">{defProgress}%</span>
         </div>
-        <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden flex">
+        <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden flex flex-row">
           <div className="h-full bg-sky-500 transition-all duration-1000" style={{ width: `${defProgress}%` }}></div>
         </div>
       </div>
 
-      <div className="flex justify-between pt-3">
-          <div className="flex gap-1.5">
-              {['t10Protection', 't10Hp', 't10Atk', 't10Def'].map((key) => (
-                  <span key={key} className="text-[7px] font-mono text-slate-500 font-bold bg-slate-900 px-1 rounded border border-white/5">
-                      {(player as any)[key]}
-                  </span>
-              ))}
-          </div>
-          <span className={`text-[7px] font-black uppercase ${player.t10Elite === 10 ? 'text-emerald-500' : 'text-slate-600'}`}>
-              {player.t10Elite === 10 ? 'ELITE_READY' : 'T10_LOCKED'}
-          </span>
-      </div>
+
     </div>
   );
 };

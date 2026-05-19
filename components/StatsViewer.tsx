@@ -4,7 +4,7 @@ import { MockApi } from '../services/mockBackend';
 import PlayerCard from './PlayerCard';
 import { useLanguage } from '../utils/i18n';
 import { CustomDropdown } from './CustomDropdown';
-import { calculateT10RemainingCost, calculateStsRemainingCost, calculateDefRemainingCost } from '../utils/gameLogic';
+import { calculateStsRemainingCost, calculateDefRemainingCost } from '../utils/gameLogic';
 import { useToast } from './Toast';
 
 interface StatsViewerProps {
@@ -12,7 +12,7 @@ interface StatsViewerProps {
   onBack: () => void;
 }
 
-type ExtractMode = 'power' | 'squads' | 't10';
+type ExtractMode = 'power' | 'squads' | 'def';
 
 const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => {
   const { t } = useLanguage();
@@ -43,13 +43,7 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
       
       let uniqueItems = Array.from(uniquePlayersMap.values());
       
-      if (filter.sort === 't10_closest') {
-          uniqueItems.sort((a, b) => {
-              const costA = calculateT10RemainingCost(a).gold;
-              const costB = calculateT10RemainingCost(b).gold;
-              return costA - costB;
-          });
-      } else if (filter.sort === 'sts_closest') {
+      if (filter.sort === 'sts_closest') {
           uniqueItems.sort((a, b) => {
               const costA = calculateStsRemainingCost(a).gold;
               const costB = calculateStsRemainingCost(b).gold;
@@ -108,11 +102,12 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
     
     if (mode === 'power') {
         report = `### 📋 ASN1 POWER INTEL [${date}]\n\`\`\`\n`;
-        report += `${pad("RK", 3)} ${pad("COMMANDER", 15)} ${pad("S1 PWR", 8)} ${pad("T10%", 5)}\n`;
+        report += `${pad("RK", 3)} ${pad("COMMANDER", 15)} ${pad("S1 PWR", 8)} ${pad("STS%", 5)}\n`;
         report += `${"-".repeat(3)} ${"-".repeat(15)} ${"-".repeat(8)} ${"-".repeat(5)}\n`;
         players.forEach((p, i) => {
-            const t10 = (100 - Math.round(calculateT10RemainingCost(p).gold / 35000000000 * 100)) + "%";
-            report += `${pad((i + 1).toString(), 3)} ${pad(p.name.toUpperCase(), 15)} ${pad(formatM(p.firstSquadPower) + "M", 8)} ${pad(t10, 5)}\n`;
+            const stsCost = calculateStsRemainingCost(p).gold;
+            const stsPct = Math.min(100, Math.max(0, 100 - Math.round(stsCost / 8910000000 * 100))) + "%";
+            report += `${pad((i + 1).toString(), 3)} ${pad(p.name.toUpperCase(), 15)} ${pad(formatM(p.firstSquadPower) + "M", 8)} ${pad(stsPct, 5)}\n`;
         });
     } else if (mode === 'squads') {
         report = `### 🚚 ASN1 SQUAD LOGISTICS [${date}]\n\`\`\`\n`;
@@ -120,15 +115,6 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
         report += `${"-".repeat(3)}-${"-".repeat(14)}-|-${"-".repeat(6)}-|-${"-".repeat(6)}-|-${"-".repeat(6)}-|-${"-".repeat(6)}\n`;
         players.forEach((p, i) => {
             report += `${pad((i + 1).toString(), 3)} ${pad(p.name.toUpperCase(), 14)} | ${pad(formatM(p.firstSquadPower), 6)} | ${pad(formatM(p.secondSquadPower), 6)} | ${pad(formatM(p.thirdSquadPower), 6)} | ${pad(formatM(p.fourthSquadPower), 6)}\n`;
-        });
-    } else if (mode === 't10') {
-        report = `### 💎 ASN1 T10 READINESS [${date}]\n\`\`\`\n`;
-        report += `${pad("RK", 3)} ${pad("COMMANDER", 15)} ${pad("GOLD LEFT", 10)} ${pad("ELITE", 5)}\n`;
-        report += `${"-".repeat(3)} ${"-".repeat(15)} ${"-".repeat(10)} ${"-".repeat(5)}\n`;
-        players.forEach((p, i) => {
-            const cost = calculateT10RemainingCost(p);
-            const goldStr = cost.gold >= 1000000000 ? (cost.gold / 1000000000).toFixed(2) + "B" : (cost.gold / 1000000).toFixed(0) + "M";
-            report += `${pad((i + 1).toString(), 3)} ${pad(p.name.toUpperCase(), 15)} ${pad(goldStr, 10)} ${pad(p.t10Elite === 10 ? "YES" : "NO", 5)}\n`;
         });
     } else if (mode === 'def' as any) {
         report = `### 🛡️ ASN1 DEFENSE READINESS [${date}]\n\`\`\`\n`;
@@ -157,16 +143,14 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
       { value: 'power_asc', label: 'MIN_POWER' }, 
       { value: 'total_hero_power_desc', label: 'MAX_HERO_PWR' },
       { value: 'time_desc', label: 'RECENT_SYNC' }, 
-      { value: 't10_closest', label: 'T10_PROGRESS' },
-      { value: 'sts_closest', label: 'STS_PROGRESS' },
-      { value: 'def_closest', label: 'DEFENSE_PROGRESS' }
+      { value: 'sts_closest', label: 'SIEGE_TO_SEIZE_PROG' },
+      { value: 'def_closest', label: 'DEFENSE_FORTIFICATIONS_PROG' }
   ];
 
   const extractOptions = [
       { value: 'power', label: 'REPORT: POWER' },
       { value: 'squads', label: 'REPORT: ALL SQUADS' },
-      { value: 't10', label: 'REPORT: T10 PROGRESS' },
-      { value: 'def', label: 'REPORT: DEFENSE PROGRESS' }
+      { value: 'def', label: 'REPORT: DEFENSE FORTIFICATIONS' }
   ];
 
   return (

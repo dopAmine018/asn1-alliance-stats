@@ -5,7 +5,20 @@ import { Player, Language } from '../types';
 import { useLanguage } from '../utils/i18n';
 import { CustomDropdown } from './CustomDropdown';
 import { useToast } from './Toast';
-import { calculateT10RemainingCost, calculateStsRemainingCost, calculateDefRemainingCost, calculateAirMasteryRemainingCost, calculateTankMasteryRemainingCost, calculateMissileMasteryRemainingCost } from '../utils/gameLogic';
+import { calculateStsRemainingCost, calculateDefRemainingCost, calculateAirMasteryRemainingCost, calculateTankMasteryRemainingCost, calculateMissileMasteryRemainingCost } from '../utils/gameLogic';
+import { 
+  User, 
+  Zap, 
+  Flame, 
+  Swords, 
+  Shield, 
+  Award, 
+  Building2, 
+  ChevronLeft, 
+  ChevronRight, 
+  Sparkles,
+  RotateCcw
+} from 'lucide-react';
 
 const defaultFormData = {
   name: '', firstSquadPower: '', secondSquadPower: '', thirdSquadPower: '', fourthSquadPower: '', totalHeroPower: '',
@@ -300,18 +313,28 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
   const [activeMasteryTab, setActiveMasteryTab] = useState<'tank' | 'missile' | 'air'>('air');
   const searchTimeout = useRef<any>(null);
   
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-      profile: true,
-      coreTech: false,
-      t10: false,
-      sts: false,
-      def: false,
-      mastery: false,
-      buildings: false
-  });
+  const [activeTab, setActiveTab] = useState<string>('profile');
 
-  const toggleSection = (key: string) => {
-      setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  const TABS = [
+    { id: 'profile', label: 'Profile & Power', desc: 'Identity & squad ratings', icon: User, color: 'sky' },
+    { id: 'sts', label: 'Siege to Seize', desc: 'Siege field tactics & ops', icon: Swords, color: 'rose' },
+    { id: 'def', label: 'Defense Fortifications', desc: 'Infiltrator counters & hospitals', icon: Shield, color: 'sky' },
+    { id: 'mastery', label: 'Mastery Protocol', desc: 'Vehicle tactical synergy', icon: Award, color: 'amber' },
+    { id: 'buildings', label: 'Strategic Infrastructures', desc: 'Command center & war yards', icon: Building2, color: 'emerald' },
+  ];
+
+  const activeTabIndex = TABS.findIndex(t => t.id === activeTab);
+
+  const handleNext = () => {
+    if (activeTabIndex < TABS.length - 1) {
+      setActiveTab(TABS[activeTabIndex + 1].id);
+    }
+  };
+
+  const handlePrev = () => {
+    if (activeTabIndex > 0) {
+      setActiveTab(TABS[activeTabIndex - 1].id);
+    }
   };
 
   const [formData, setFormData] = useState({ language: 'english' as Language, ...defaultFormData });
@@ -326,7 +349,8 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
     }
   }, []);
 
-  const resourcesNeeded = useMemo(() => calculateT10RemainingCost(formData as any), [formData]);
+
+  const resourcesNeeded = { gold: 0, valor: 0, foodIron: 0 };
   const stsResources = useMemo(() => calculateStsRemainingCost(formData), [formData]);
   const defResources = useMemo(() => calculateDefRemainingCost(formData), [formData]);
   const airMasteryResources = useMemo(() => calculateAirMasteryRemainingCost(formData), [formData]);
@@ -484,9 +508,9 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
             thirdSquadPower: norm(formData.thirdSquadPower),
             fourthSquadPower: norm(formData.fourthSquadPower),
             totalHeroPower: norm(formData.totalHeroPower),
-            heroPercent: Number(formData.heroPercent),
-            duelPercent: Number(formData.duelPercent),
-            unitsPercent: Number(formData.unitsPercent),
+            heroPercent: 0,
+            duelPercent: 0,
+            unitsPercent: 0,
             t10Morale: Number(formData.t10Morale),
             t10Protection: Number(formData.t10Protection),
             t10Hp: Number(formData.t10Hp),
@@ -620,255 +644,411 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
             <button type="button" onClick={() => setFormData({ language, ...defaultFormData })} className="text-[10px] font-bold text-slate-500 hover:text-white uppercase px-3 py-1 border border-slate-800 rounded transition-colors hover:bg-slate-800/50">Reset</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <Section title="Profile & Power" color="sky" isOpen={openSections.profile} onToggle={() => toggleSection('profile')}>
-                <div className="space-y-8">
-                    <div className="space-y-4">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('section.identity')}</label>
-                        <div className="relative">
-                            <FormInput 
-                                label={t('label.name')} 
-                                name="name" 
-                                val={formData.name} 
-                                change={handleNameChange} 
-                                req={true} 
-                                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} 
-                                autoComplete="off"
+        <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                
+                {/* Visual Category Sub-Menu with polished Icons */}
+                <div className="md:col-span-4 lg:col-span-3 grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-col gap-2">
+                    {TABS.map(tab => {
+                        const IconComponent = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        
+                        let activeClass = "";
+                        if (tab.color === 'sky') activeClass = "border-sky-500/50 bg-sky-500/10 text-sky-400 shadow-[0_0_15px_rgba(14,165,233,0.15)]";
+                        else if (tab.color === 'emerald') activeClass = "border-emerald-500/50 bg-emerald-500/10 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]";
+                        else if (tab.color === 'indigo') activeClass = "border-indigo-500/50 bg-indigo-500/10 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)]";
+                        else if (tab.color === 'rose') activeClass = "border-rose-500/50 bg-rose-500/10 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.15)]";
+                        else if (tab.color === 'amber') activeClass = "border-amber-500/50 bg-amber-500/10 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.15)]";
+
+                        return (
+                            <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`w-full text-left p-3 rounded-xl border flex items-center gap-3 transition-all hover:scale-[1.01] ${
+                                    isActive 
+                                        ? activeClass 
+                                        : "border-white/5 bg-slate-900/30 text-slate-400 hover:text-slate-300 hover:border-white/10"
+                                }`}
                             >
-                                {showSuggestions && suggestions.length > 0 && (
-                                    <div className="absolute top-full left-0 w-full bg-[#0a0f1e] border border-slate-700 z-50 rounded-b-xl overflow-hidden divide-y divide-slate-800">
-                                        {suggestions.map(s => (
-                                            <button key={s.id} type="button" onClick={() => populateWithPlayer(s)} className="w-full px-6 py-4 text-left hover:bg-sky-500/10 transition-colors flex justify-between items-center group">
-                                                <span className="text-sm font-bold text-white group-hover:text-sky-400">{s.name}</span>
-                                                <span className="text-[10px] font-mono text-slate-500">{(s.firstSquadPower/1e6).toFixed(1)}M</span>
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                                    isActive 
+                                        ? tab.color === 'sky' ? 'bg-sky-500/20 text-sky-400'
+                                          : tab.color === 'emerald' ? 'bg-emerald-500/20 text-emerald-400'
+                                          : tab.color === 'indigo' ? 'bg-indigo-500/20 text-indigo-400'
+                                          : tab.color === 'rose' ? 'bg-rose-500/20 text-rose-400'
+                                          : 'bg-amber-500/20 text-amber-400'
+                                        : 'bg-slate-900 text-slate-500'
+                                }`}>
+                                    <IconComponent className="w-4 h-4" />
+                                </div>
+                                <div className="hidden md:block">
+                                    <h4 className="text-[10px] font-black uppercase tracking-wider">
+                                        {tab.id === 'profile' ? t('tab.profile')
+                                         : tab.id === 'coreTech' ? t('tab.duel')
+                                         : tab.id === 'sts' ? t('tab.sts')
+                                         : tab.id === 'def' ? t('tab.def')
+                                         : tab.id === 'mastery' ? t('tab.mastery')
+                                         : t('tab.buildings')}
+                                    </h4>
+                                    <p className="text-[7.5px] text-slate-500 uppercase tracking-tight leading-none truncate max-w-[130px]">
+                                        {tab.id === 'profile' ? t('section.identity.desc')
+                                         : tab.id === 'coreTech' ? t('section.tech.desc')
+                                         : tab.id === 'sts' ? t('sts.title')
+                                         : tab.id === 'def' ? t('def.title')
+                                         : tab.id === 'mastery' ? t('tab.mastery')
+                                         : t('section.infrastructure.desc')}
+                                    </p>
+                                </div>
+                                <div className="md:hidden">
+                                    <h4 className="text-[9px] font-black uppercase tracking-wider truncate">
+                                        {tab.id === 'profile' ? t('tab.profile').split(' ')[0]
+                                         : tab.id === 'coreTech' ? t('tab.duel').split(' ')[0]
+                                         : tab.id === 'sts' ? t('tab.sts').split(' ')[0]
+                                         : tab.id === 'def' ? t('tab.def').split(' ')[0]
+                                         : tab.id === 'mastery' ? t('tab.mastery').split(' ')[0]
+                                         : t('tab.buildings').split(' ')[0]}
+                                    </h4>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Main Tab sheet control dashboard */}
+                <div className="md:col-span-8 lg:col-span-9 bg-[#0b1329]/80 border border-white/5 p-6 md:p-8 rounded-2xl relative shadow-2xl min-h-[460px] flex flex-col justify-between">
+                    
+                    <div className="space-y-6">
+                        
+                        {/* Profile tab sheet */}
+                        {activeTab === 'profile' && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                                        <User className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xs font-black text-white uppercase tracking-wider">{t('tab.profile')}</h3>
+                                        <p className="text-[9px] text-slate-500 uppercase tracking-widest leading-none">{t('section.identity.desc')}</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-6">
+                                    <div className="space-y-4">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('section.identity')}</label>
+                                        <div className="relative">
+                                            <FormInput 
+                                                label={t('label.name')} 
+                                                name="name" 
+                                                val={formData.name} 
+                                                change={handleNameChange} 
+                                                req={true} 
+                                                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} 
+                                                autoComplete="off"
+                                            >
+                                                {showSuggestions && suggestions.length > 0 && (
+                                                    <div className="absolute top-full left-0 w-full bg-[#0a0f1e] border border-slate-700 z-50 rounded-b-xl overflow-hidden divide-y divide-slate-800">
+                                                        {suggestions.map(s => (
+                                                            <button key={s.id} type="button" onClick={() => populateWithPlayer(s)} className="w-full px-6 py-4 text-left hover:bg-sky-500/10 transition-colors flex justify-between items-center group">
+                                                                <span className="text-sm font-bold text-white group-hover:text-sky-400">{s.name}</span>
+                                                                <span className="text-[10px] font-mono text-slate-500">{(s.firstSquadPower/1e6).toFixed(1)}M</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </FormInput>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4 border-t border-white/5 pt-6">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('section.power')}</label>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                            <FormInput label={t('label.power')+"(M)"} name="firstSquadPower" val={formData.firstSquadPower} change={(e:any)=>setFormData(p=>({...p,firstSquadPower:e.target.value}))} req={true} type="number" />
+                                            <FormInput label={t('label.squad2')+"(M)"} name="secondSquadPower" val={formData.secondSquadPower} change={(e:any)=>setFormData(p=>({...p,secondSquadPower:e.target.value}))} type="number" />
+                                            <FormInput label={t('label.squad3')+"(M)"} name="thirdSquadPower" val={formData.thirdSquadPower} change={(e:any)=>setFormData(p=>({...p,thirdSquadPower:e.target.value}))} type="number" />
+                                            <FormInput label={t('label.squad4')+"(M)"} name="fourthSquadPower" val={formData.fourthSquadPower} change={(e:any)=>setFormData(p=>({...p,fourthSquadPower:e.target.value}))} type="number" />
+                                            <div className="col-span-2 md:col-span-4 mt-2">
+                                                <FormInput label={t('label.totalHeroPower')+"(M)"} name="totalHeroPower" val={formData.totalHeroPower} change={(e:any)=>setFormData(p=>({...p,totalHeroPower:e.target.value}))} req={true} type="number" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* T10 drop-sheet */}
+                        {false && activeTab === 't10' && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                        <Flame className="w-5 h-5 animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xs font-black text-white uppercase tracking-wider">{t('t10.title')}</h3>
+                                        <p className="text-[9px] text-slate-500 uppercase tracking-widest leading-none">{t('section.t10.desc')}</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-8">
+                                    <div className="flex flex-col items-center">
+                                         <div className="max-w-xs w-full text-left space-y-2 mb-10">
+                                            <label className="block text-[10px] font-bold text-sky-500 uppercase tracking-widest ml-1">Morale Level *</label>
+                                            <CustomDropdown 
+                                                value={formData.t10Morale} 
+                                                onChange={(v: any) => setFormData(p => ({...p, t10Morale: String(v)}))} 
+                                                options={moraleOptions}
+                                                disableSearch
+                                            />
+                                         </div>
+
+                                         <TechNode label={t('t10.protection')} value={formData.t10Protection} onChange={(v:any)=>setFormData(p=>({...p,t10Protection:v}))} />
+                                         <div className="h-6 w-px bg-indigo-500/30"></div>
+                                         <div className="flex gap-4">
+                                             <TechNode label={t('t10.hp')} value={formData.t10Hp} onChange={(v:any)=>setFormData(p=>({...p,t10Hp:v}))} />
+                                             <TechNode label={t('t10.atk')} value={formData.t10Atk} onChange={(v:any)=>setFormData(p=>({...p,t10Atk:v}))} />
+                                             <TechNode label={t('t10.def')} value={formData.t10Def} onChange={(v:any)=>setFormData(p=>({...p,t10Def:v}))} />
+                                         </div>
+                                         <div className="h-6 w-px bg-indigo-500/30"></div>
+                                         <TechNode label="Elite Units" value={formData.t10Elite} onChange={(v:any)=>setFormData(p=>({...p,t10Elite:v}))} binary />
+                                    </div>
+                                    
+                                    <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
+                                        <div className="text-center">
+                                            <span className="text-[10px] text-amber-500 block uppercase font-black tracking-widest">SF GOLD</span>
+                                            <span className="text-sm font-mono text-white font-bold">{fR(resourcesNeeded.gold)}</span>
+                                        </div>
+                                        <div className="text-center border-x border-white/5 px-8">
+                                            <span className="text-[10px] text-purple-400 block uppercase font-black tracking-widest">SF VALOR</span>
+                                            <span className="text-sm font-mono text-white font-bold">{resourcesNeeded.valor.toLocaleString()}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-[10px] text-emerald-500 block uppercase font-black tracking-widest">SF F/I</span>
+                                            <span className="text-sm font-mono text-white font-bold">{fR(resourcesNeeded.foodIron)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STS tab sheet */}
+                        {activeTab === 'sts' && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                                        <Swords className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xs font-black text-white uppercase tracking-wider">{t('tab.sts')}</h3>
+                                        <p className="text-[9px] text-slate-500 uppercase tracking-widest leading-none">{t('sts.title')}</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-10">
+                                    <div className="flex flex-col items-center gap-4">
+                                        <div className="flex gap-4">
+                                            <TechNode label={t('sts.final_stand')+" I"} value={formData.stsFinalStand1} onChange={(v:any)=>setFormData(p=>({...p,stsFinalStand1:v}))} accentColor="rose" />
+                                            <TechNode label={t('sts.fierce_assault')+" I"} value={formData.stsFierceAssault1} onChange={(v:any)=>setFormData(p=>({...p,stsFierceAssault1:v}))} accentColor="rose" />
+                                            <TechNode label={t('sts.vigilant')+" I"} value={formData.stsVigilantFormation1} onChange={(v:any)=>setFormData(p=>({...p,stsVigilantFormation1:v}))} accentColor="rose" />
+                                        </div>
+                                        <div className="h-6 w-px bg-rose-500/30"></div>
+                                        <div className="flex gap-4">
+                                            <TechNode label={t('sts.final_stand')+" II"} value={formData.stsFinalStand2} onChange={(v:any)=>setFormData(p=>({...p,stsFinalStand2:v}))} accentColor="rose" />
+                                            <TechNode label={t('sts.fierce_assault')+" II"} value={formData.stsFierceAssault2} onChange={(v:any)=>setFormData(p=>({...p,stsFierceAssault2:v}))} accentColor="rose" />
+                                            <TechNode label={t('sts.vigilant')+" II"} value={formData.stsVigilantFormation2} onChange={(v:any)=>setFormData(p=>({...p,stsVigilantFormation2:v}))} accentColor="rose" />
+                                        </div>
+                                        <div className="h-6 w-px bg-rose-500/30"></div>
+                                        <div className="flex gap-4">
+                                            <TechNode label={t('sts.final_stand')+" III"} value={formData.stsFinalStand3} onChange={(v:any)=>setFormData(p=>({...p,stsFinalStand3:v}))} hint="REQ: T10 Lv4" accentColor="rose" />
+                                            <TechNode label={t('sts.fierce_assault')+" III"} value={formData.stsFierceAssault3} onChange={(v:any)=>setFormData(p=>({...p,stsFierceAssault3:v}))} hint="REQ: T10 Lv4" accentColor="rose" />
+                                            <TechNode label={t('sts.vigilant')+" III"} value={formData.stsVigilantFormation3} onChange={(v:any)=>setFormData(p=>({...p,stsVigilantFormation3:v}))} hint="REQ: T10 Lv4" accentColor="rose" />
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
+                                        <div className="text-center">
+                                            <span className="text-[10px] text-amber-500 block uppercase font-black tracking-widest">STS GOLD</span>
+                                            <span className="text-sm font-mono text-white font-bold">{fR(stsResources.gold)}</span>
+                                        </div>
+                                        <div className="text-center border-x border-white/5 px-8">
+                                            <span className="text-[10px] text-purple-400 block uppercase font-black tracking-widest">STS VALOR</span>
+                                            <span className="text-sm font-mono text-white font-bold">{stsResources.valor.toLocaleString()}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-[10px] text-emerald-500 block uppercase font-black tracking-widest">STS F/I</span>
+                                            <span className="text-sm font-mono text-white font-bold">{fR(stsResources.foodIron)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Defense tab sheet */}
+                        {activeTab === 'def' && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                                        <Shield className="w-5 h-5 animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xs font-black text-white uppercase tracking-wider">{t('tab.def')}</h3>
+                                        <p className="text-[9px] text-slate-500 uppercase tracking-widest leading-none">{t('def.title')}</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-10">
+                                    <div className="flex flex-col items-center gap-4">
+                                        <div className="flex gap-4">
+                                            <TechNode label={t('def.hold_line')+" I"} value={formData.defHoldLine1} onChange={(v:any)=>setFormData(p=>({...p,defHoldLine1:v}))} />
+                                            <TechNode label={t('def.counter_defense')+" I"} value={formData.defCounterDefense1} onChange={(v:any)=>setFormData(p=>({...p,defCounterDefense1:v}))} />
+                                            <TechNode label={t('def.solid_defense')+" I"} value={formData.defSolidDefense1} onChange={(v:any)=>setFormData(p=>({...p,defSolidDefense1:v}))} />
+                                        </div>
+                                        <div className="h-6 w-px bg-sky-500/30"></div>
+                                        <div className="flex gap-4">
+                                            <TechNode label={t('def.hold_line')+" II"} value={formData.defHoldLine2} onChange={(v:any)=>setFormData(p=>({...p,defHoldLine2:v}))} hint="REQ: T3 Lv1" />
+                                            <TechNode label={t('def.counter_defense')+" II"} value={formData.defCounterDefense2} onChange={(v:any)=>setFormData(p=>({...p,defCounterDefense2:v}))} hint="REQ: T3 Lv1" />
+                                            <TechNode label={t('def.solid_defense')+" II"} value={formData.defSolidDefense2} onChange={(v:any)=>setFormData(p=>({...p,defSolidDefense2:v}))} hint="REQ: T3 Lv1" />
+                                        </div>
+                                        <div className="h-6 w-px bg-sky-500/30"></div>
+                                        <div className="flex gap-4">
+                                            <TechNode label={t('def.hold_line')+" III"} value={formData.defHoldLine3} onChange={(v:any)=>setFormData(p=>({...p,defHoldLine3:v}))} hint="REQ: T6 Lv4" />
+                                            <TechNode label={t('def.counter_defense')+" III"} value={formData.defCounterDefense3} onChange={(v:any)=>setFormData(p=>({...p,defCounterDefense3:v}))} hint="REQ: T6 Lv4" />
+                                            <TechNode label={t('def.solid_defense')+" III"} value={formData.defSolidDefense3} onChange={(v:any)=>setFormData(p=>({...p,defSolidDefense3:v}))} hint="REQ: T6 Lv4" />
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
+                                        <div className="text-center">
+                                            <span className="text-[10px] text-amber-500 block uppercase font-black tracking-widest">DEF GOLD</span>
+                                            <span className="text-sm font-mono text-white font-bold">{fR(defResources.gold)}</span>
+                                        </div>
+                                        <div className="text-center border-x border-white/5 px-8">
+                                            <span className="text-[10px] text-purple-400 block uppercase font-black tracking-widest">DEF VALOR</span>
+                                            <span className="text-sm font-mono text-white font-bold">{defResources.valor.toLocaleString()}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-[10px] text-emerald-500 block uppercase font-black tracking-widest">DEF F/I</span>
+                                            <span className="text-sm font-mono text-white font-bold">{fR(defResources.foodIron)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Mastery tab sheet */}
+                        {activeTab === 'mastery' && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                                        <Award className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xs font-black text-white uppercase tracking-wider">{t('tab.mastery')}</h3>
+                                        <p className="text-[9px] text-slate-500 uppercase tracking-widest leading-none">{t('tab.mastery')}</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="flex gap-2">
+                                        {(['air', 'tank', 'missile'] as const).map(tab => (
+                                            <button
+                                                key={tab}
+                                                type="button"
+                                                onClick={() => setActiveMasteryTab(tab)}
+                                                className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
+                                                    ${activeMasteryTab === tab 
+                                                        ? tab === 'air' ? 'bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.3)]'
+                                                          : tab === 'tank' ? 'bg-sky-500 text-white shadow-[0_0_20px_rgba(14,165,233,0.3)]'
+                                                          : 'bg-rose-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.3)]'
+                                                        : 'bg-[#0f172a] text-slate-500 border border-white/5 hover:border-white/10 hover:text-slate-300'
+                                                    }
+                                                `}
+                                            >
+                                                {tab === 'air' ? t('mastery.air') : tab === 'tank' ? t('mastery.tank') : t('mastery.missile')}
                                             </button>
                                         ))}
                                     </div>
-                                )}
-                            </FormInput>
-                        </div>
-                    </div>
 
-                    <div className="space-y-4 border-t border-white/5 pt-6">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('section.power')}</label>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                            <FormInput label={t('label.power')+"(M)"} name="firstSquadPower" val={formData.firstSquadPower} change={(e:any)=>setFormData(p=>({...p,firstSquadPower:e.target.value}))} req={true} type="number" />
-                            <FormInput label={t('label.squad2')+"(M)"} name="secondSquadPower" val={formData.secondSquadPower} change={(e:any)=>setFormData(p=>({...p,secondSquadPower:e.target.value}))} type="number" />
-                            <FormInput label={t('label.squad3')+"(M)"} name="thirdSquadPower" val={formData.thirdSquadPower} change={(e:any)=>setFormData(p=>({...p,thirdSquadPower:e.target.value}))} type="number" />
-                            <FormInput label={t('label.squad4')+"(M)"} name="fourthSquadPower" val={formData.fourthSquadPower} change={(e:any)=>setFormData(p=>({...p,fourthSquadPower:e.target.value}))} type="number" />
-                            <div className="col-span-2 md:col-span-4 mt-2">
-                                <FormInput label={t('label.totalHeroPower')+"(M)"} name="totalHeroPower" val={formData.totalHeroPower} change={(e:any)=>setFormData(p=>({...p,totalHeroPower:e.target.value}))} req={true} type="number" />
+                                    <div className="animate-in fade-in zoom-in-95 duration-500">
+                                        {activeMasteryTab === 'air' && <MasteryTree type="air" formData={formData} setFormData={setFormData} resources={airMasteryResources} fR={fR} />}
+                                        {activeMasteryTab === 'tank' && <MasteryTree type="tank" formData={formData} setFormData={setFormData} resources={tankMasteryResources} fR={fR} />}
+                                        {activeMasteryTab === 'missile' && <MasteryTree type="missile" formData={formData} setFormData={setFormData} resources={missileMasteryResources} fR={fR} />}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </Section>
+                        )}
 
-            <Section title="T10 Protocol" color="indigo" isOpen={openSections.t10} onToggle={() => toggleSection('t10')}>
-                <div className="space-y-8">
-                    <div className="flex flex-col items-center">
-                         <div className="max-w-xs w-full text-left space-y-2 mb-10">
-                            <label className="block text-[10px] font-bold text-sky-500 uppercase tracking-widest ml-1">Morale Level *</label>
-                            <CustomDropdown 
-                                value={formData.t10Morale} 
-                                onChange={(v: any) => setFormData(p => ({...p, t10Morale: String(v)}))} 
-                                options={moraleOptions}
-                                disableSearch
-                            />
-                         </div>
+                        {/* Buildings tab sheet */}
+                        {activeTab === 'buildings' && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                        <Building2 className="w-5 h-5 animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xs font-black text-white uppercase tracking-wider">{t('tab.buildings')}</h3>
+                                        <p className="text-[9px] text-slate-500 uppercase tracking-widest leading-none">{t('section.infrastructure.desc')}</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
+                                    <FormInput label={t('level.barracks')} name="barracksLevel" val={formData.barracksLevel} change={(e:any)=>setFormData(p=>({...p,barracksLevel:e.target.value}))} suffix="lvl" type="number" />
+                                    <FormInput label={t('level.tech')} name="techLevel" val={formData.techLevel} change={(e:any)=>setFormData(p=>({...p,techLevel:e.target.value}))} suffix="lvl" type="number" />
+                                    <FormInput label={t('level.tank')} name="tankCenterLevel" val={formData.tankCenterLevel} change={(e:any)=>setFormData(p=>({...p,tankCenterLevel:e.target.value}))} suffix="lvl" type="number" />
+                                    <FormInput label={t('level.air')} name="airCenterLevel" val={formData.airCenterLevel} change={(e:any)=>setFormData(p=>({...p,airCenterLevel:e.target.value}))} suffix="lvl" type="number" />
+                                    <FormInput label={t('level.missile')} name="missileCenterLevel" val={formData.missileCenterLevel} change={(e:any)=>setFormData(p=>({...p,missileCenterLevel:e.target.value}))} suffix="lvl" type="number" />
+                                </div>
+                            </div>
+                        )}
 
-                         <TechNode label={t('t10.protection')} value={formData.t10Protection} onChange={(v:any)=>setFormData(p=>({...p,t10Protection:v}))} />
-                         <div className="h-6 w-px bg-indigo-500/30"></div>
-                         <div className="flex gap-4">
-                             <TechNode label={t('t10.hp')} value={formData.t10Hp} onChange={(v:any)=>setFormData(p=>({...p,t10Hp:v}))} />
-                             <TechNode label={t('t10.atk')} value={formData.t10Atk} onChange={(v:any)=>setFormData(p=>({...p,t10Atk:v}))} />
-                             <TechNode label={t('t10.def')} value={formData.t10Def} onChange={(v:any)=>setFormData(p=>({...p,t10Def:v}))} />
-                         </div>
-                         <div className="h-6 w-px bg-indigo-500/30"></div>
-                         <TechNode label="Elite Units" value={formData.t10Elite} onChange={(v:any)=>setFormData(p=>({...p,t10Elite:v}))} binary />
-                    </div>
-                    
-                    <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
-                        <div className="text-center">
-                            <span className="text-[10px] text-amber-500 block uppercase font-black tracking-widest">T10 GOLD</span>
-                            <span className="text-sm font-mono text-white font-bold">{fR(resourcesNeeded.gold)}</span>
-                        </div>
-                        <div className="text-center border-x border-white/5 px-8">
-                            <span className="text-[10px] text-purple-400 block uppercase font-black tracking-widest">T10 VALOR</span>
-                            <span className="text-sm font-mono text-white font-bold">{resourcesNeeded.valor.toLocaleString()}</span>
-                        </div>
-                        <div className="text-center">
-                            <span className="text-[10px] text-emerald-500 block uppercase font-black tracking-widest">T10 F/I</span>
-                            <span className="text-sm font-mono text-white font-bold">{fR(resourcesNeeded.foodIron)}</span>
-                        </div>
-                    </div>
-                </div>
-            </Section>
-
-            <Section title="STS Protocol" color="rose" isOpen={openSections.sts} onToggle={() => toggleSection('sts')}>
-                <div className="space-y-10">
-                    <div className="flex flex-col items-center gap-4">
-                        <TechNode label={t('sts.power_boost')+" I"} value={formData.stsPowerBoost1} onChange={(v:any)=>setFormData(p=>({...p,stsPowerBoost1:v}))} accentColor="rose" />
-                        <div className="h-6 w-px bg-rose-500/30"></div>
-                        <div className="flex gap-4">
-                            <TechNode label={t('sts.final_stand')+" I"} value={formData.stsFinalStand1} onChange={(v:any)=>setFormData(p=>({...p,stsFinalStand1:v}))} accentColor="rose" />
-                            <TechNode label={t('sts.fierce_assault')+" I"} value={formData.stsFierceAssault1} onChange={(v:any)=>setFormData(p=>({...p,stsFierceAssault1:v}))} accentColor="rose" />
-                            <TechNode label={t('sts.vigilant')+" I"} value={formData.stsVigilantFormation1} onChange={(v:any)=>setFormData(p=>({...p,stsVigilantFormation1:v}))} accentColor="rose" />
-                        </div>
-                        <div className="h-6 w-px bg-rose-500/30"></div>
-                        <TechNode label={t('sts.extra_drill')} value={formData.stsExtraDrillGround} onChange={(v:any)=>setFormData(p=>({...p,stsExtraDrillGround:v}))} binary hint="REQ: T2 Lv10" />
-                        <div className="h-6 w-px bg-rose-500/30"></div>
-                        <div className="flex gap-4">
-                            <TechNode label={t('sts.barrack')+" I"} value={formData.stsBarrackExpansion1} onChange={(v:any)=>setFormData(p=>({...p,stsBarrackExpansion1:v}))} accentColor="rose" />
-                            <TechNode label={t('sts.focused')+" I"} value={formData.stsFocusedTraining1} onChange={(v:any)=>setFormData(p=>({...p,stsFocusedTraining1:v}))} accentColor="rose" />
-                        </div>
-                        <div className="h-6 w-px bg-rose-500/30"></div>
-                        <div className="flex gap-4">
-                            <TechNode label={t('sts.final_stand')+" II"} value={formData.stsFinalStand2} onChange={(v:any)=>setFormData(p=>({...p,stsFinalStand2:v}))} accentColor="rose" />
-                            <TechNode label={t('sts.fierce_assault')+" II"} value={formData.stsFierceAssault2} onChange={(v:any)=>setFormData(p=>({...p,stsFierceAssault2:v}))} accentColor="rose" />
-                            <TechNode label={t('sts.vigilant')+" II"} value={formData.stsVigilantFormation2} onChange={(v:any)=>setFormData(p=>({...p,stsVigilantFormation2:v}))} accentColor="rose" />
-                        </div>
-                        <div className="h-6 w-px bg-rose-500/30"></div>
-                        <div className="flex gap-4">
-                            <TechNode label={t('sts.drill_exp')} value={formData.stsDrillGroundExpansion} onChange={(v:any)=>setFormData(p=>({...p,stsDrillGroundExpansion:v}))} max={5} hint="REQ: T7 Lv2" accentColor="rose" />
-                            <TechNode label={t('sts.rapid')} value={formData.stsRapidMarch1} onChange={(v:any)=>setFormData(p=>({...p,stsRapidMarch1:v}))} max={10} hint="REQ: T8 Lv1" accentColor="rose" />
-                        </div>
-                        <div className="h-6 w-px bg-rose-500/30"></div>
-                        <div className="flex gap-4">
-                            <TechNode label={t('sts.final_stand')+" III"} value={formData.stsFinalStand3} onChange={(v:any)=>setFormData(p=>({...p,stsFinalStand3:v}))} hint="REQ: T10 Lv4" accentColor="rose" />
-                            <TechNode label={t('sts.fierce_assault')+" III"} value={formData.stsFierceAssault3} onChange={(v:any)=>setFormData(p=>({...p,stsFierceAssault3:v}))} hint="REQ: T10 Lv4" accentColor="rose" />
-                            <TechNode label={t('sts.vigilant')+" III"} value={formData.stsVigilantFormation3} onChange={(v:any)=>setFormData(p=>({...p,stsVigilantFormation3:v}))} hint="REQ: T10 Lv4" accentColor="rose" />
-                        </div>
-                        <div className="h-6 w-px bg-rose-500/30"></div>
-                        <TechNode label={t('sts.fatal')} value={formData.stsFatalStrike1} onChange={(v:any)=>setFormData(p=>({...p,stsFatalStrike1:v}))} hint="REQ: T11 Lv1" accentColor="rose" />
                     </div>
 
-                    <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
-                        <div className="text-center">
-                            <span className="text-[10px] text-amber-500 block uppercase font-black tracking-widest">STS GOLD</span>
-                            <span className="text-sm font-mono text-white font-bold">{fR(stsResources.gold)}</span>
-                        </div>
-                        <div className="text-center border-x border-white/5 px-8">
-                            <span className="text-[10px] text-purple-400 block uppercase font-black tracking-widest">STS VALOR</span>
-                            <span className="text-sm font-mono text-white font-bold">{stsResources.valor.toLocaleString()}</span>
-                        </div>
-                        <div className="text-center">
-                            <span className="text-[10px] text-emerald-500 block uppercase font-black tracking-widest">STS F/I</span>
-                            <span className="text-sm font-mono text-white font-bold">{fR(stsResources.foodIron)}</span>
-                        </div>
-                    </div>
-                </div>
-            </Section>
-
-            <Section title="Defense Protocol" color="sky" isOpen={openSections.def} onToggle={() => toggleSection('def')}>
-                <div className="space-y-10">
-                    <div className="flex flex-col items-center gap-4">
-                        <TechNode label={t('def.extra_hospitals')} value={formData.defExtraHospitals} onChange={(v:any)=>setFormData(p=>({...p,defExtraHospitals:v}))} max={1} binary />
-                        <div className="h-6 w-px bg-sky-500/30"></div>
-                        <div className="flex gap-4">
-                            <TechNode label={t('def.hold_line')+" I"} value={formData.defHoldLine1} onChange={(v:any)=>setFormData(p=>({...p,defHoldLine1:v}))} />
-                            <TechNode label={t('def.counter_defense')+" I"} value={formData.defCounterDefense1} onChange={(v:any)=>setFormData(p=>({...p,defCounterDefense1:v}))} />
-                            <TechNode label={t('def.solid_defense')+" I"} value={formData.defSolidDefense1} onChange={(v:any)=>setFormData(p=>({...p,defSolidDefense1:v}))} />
-                        </div>
-                        <div className="h-6 w-px bg-sky-500/30"></div>
-                        <TechNode label={t('def.fortifications')} value={formData.defFortifications} onChange={(v:any)=>setFormData(p=>({...p,defFortifications:v}))} hint="REQ: T1 Lv2" />
-                        <div className="h-6 w-px bg-sky-500/30"></div>
-                        <div className="flex gap-4">
-                            <TechNode label={t('def.infirmary_expansion')} value={formData.defInfirmaryExpansion1} onChange={(v:any)=>setFormData(p=>({...p,defInfirmaryExpansion1:v}))} hint="REQ: T2 Lv7" />
-                            <TechNode label={t('def.efficient_healing')} value={formData.defEfficientHealing} onChange={(v:any)=>setFormData(p=>({...p,defEfficientHealing:v}))} hint="REQ: T2 Lv7" />
-                        </div>
-                        <div className="h-6 w-px bg-sky-500/30"></div>
-                        <div className="flex gap-4">
-                            <TechNode label={t('def.hold_line')+" II"} value={formData.defHoldLine2} onChange={(v:any)=>setFormData(p=>({...p,defHoldLine2:v}))} hint="REQ: T3 Lv1" />
-                            <TechNode label={t('def.counter_defense')+" II"} value={formData.defCounterDefense2} onChange={(v:any)=>setFormData(p=>({...p,defCounterDefense2:v}))} hint="REQ: T3 Lv1" />
-                            <TechNode label={t('def.solid_defense')+" II"} value={formData.defSolidDefense2} onChange={(v:any)=>setFormData(p=>({...p,defSolidDefense2:v}))} hint="REQ: T3 Lv1" />
-                        </div>
-                        <div className="h-6 w-px bg-sky-500/30"></div>
-                        <div className="flex gap-4">
-                            <TechNode label={t('def.resource_protection')} value={formData.defResourceProtection} onChange={(v:any)=>setFormData(p=>({...p,defResourceProtection:v}))} hint="REQ: T4 Lv6" />
-                            <TechNode label={t('def.rapid_march')} value={formData.defRapidMarch1} onChange={(v:any)=>setFormData(p=>({...p,defRapidMarch1:v}))} hint="REQ: T5 Lv1" />
-                        </div>
-                        <div className="h-6 w-px bg-sky-500/30"></div>
-                        <div className="flex gap-4">
-                            <TechNode label={t('def.hold_line')+" III"} value={formData.defHoldLine3} onChange={(v:any)=>setFormData(p=>({...p,defHoldLine3:v}))} hint="REQ: T6 Lv4" />
-                            <TechNode label={t('def.counter_defense')+" III"} value={formData.defCounterDefense3} onChange={(v:any)=>setFormData(p=>({...p,defCounterDefense3:v}))} hint="REQ: T6 Lv4" />
-                            <TechNode label={t('def.solid_defense')+" III"} value={formData.defSolidDefense3} onChange={(v:any)=>setFormData(p=>({...p,defSolidDefense3:v}))} hint="REQ: T6 Lv4" />
-                        </div>
-                        <div className="h-6 w-px bg-sky-500/30"></div>
-                        <TechNode label={t('def.survival_skills')} value={formData.defSurvivalSkills} onChange={(v:any)=>setFormData(p=>({...p,defSurvivalSkills:v}))} hint="REQ: T7 Lv1" />
-                    </div>
-
-                    <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
-                        <div className="text-center">
-                            <span className="text-[10px] text-amber-500 block uppercase font-black tracking-widest">DEF GOLD</span>
-                            <span className="text-sm font-mono text-white font-bold">{fR(defResources.gold)}</span>
-                        </div>
-                        <div className="text-center border-x border-white/5 px-8">
-                            <span className="text-[10px] text-purple-400 block uppercase font-black tracking-widest">DEF VALOR</span>
-                            <span className="text-sm font-mono text-white font-bold">{defResources.valor.toLocaleString()}</span>
-                        </div>
-                        <div className="text-center">
-                            <span className="text-[10px] text-emerald-500 block uppercase font-black tracking-widest">DEF F/I</span>
-                            <span className="text-sm font-mono text-white font-bold">{fR(defResources.foodIron)}</span>
-                        </div>
-                    </div>
-                </div>
-            </Section>
-
-            <Section title="Mastery Protocol" color="amber" isOpen={openSections.mastery} onToggle={() => toggleSection('mastery')}>
-                <div className="space-y-4">
-                    <div className="flex gap-2">
-                        {(['air', 'tank', 'missile'] as const).map(tab => (
+                    {/* Step Navigation & Sync Footer */}
+                    <div className="flex flex-col sm:flex-row justify-between items-center bg-black/20 border-t border-white/5 pt-6 mt-12 gap-4">
+                        <div className="flex gap-2">
                             <button
-                                key={tab}
                                 type="button"
-                                onClick={() => setActiveMasteryTab(tab)}
-                                className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
-                                    ${activeMasteryTab === tab 
-                                        ? tab === 'air' ? 'bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.3)]'
-                                          : tab === 'tank' ? 'bg-sky-500 text-white shadow-[0_0_20px_rgba(14,165,233,0.3)]'
-                                          : 'bg-rose-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.3)]'
-                                        : 'bg-[#0f172a] text-slate-500 border border-white/5 hover:border-white/10 hover:text-slate-300'
-                                    }
-                                `}
+                                onClick={handlePrev}
+                                disabled={activeTabIndex === 0}
+                                className="px-4 py-2 bg-slate-900 border border-slate-800 hover:border-white/10 text-slate-300 disabled:opacity-30 disabled:pointer-events-none rounded-xl text-[10px] uppercase font-bold tracking-widest flex items-center gap-2 transition-all cursor-pointer"
                             >
-                                {tab}
+                                <ChevronLeft className="w-4 h-4" /> Previous
                             </button>
-                        ))}
+                            
+                            <button
+                                type="button"
+                                onClick={handleNext}
+                                disabled={activeTabIndex === TABS.length - 1}
+                                className="px-4 py-2 bg-slate-900 border border-slate-800 hover:border-white/10 text-sky-400 disabled:opacity-30 disabled:pointer-events-none rounded-xl text-[10px] uppercase font-bold tracking-widest flex items-center gap-2 transition-all cursor-pointer"
+                            >
+                                Next <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                        
+                        <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                            STEP {activeTabIndex + 1} OF {TABS.length} : {
+                                TABS[activeTabIndex].id === 'profile' ? t('tab.profile')
+                                : TABS[activeTabIndex].id === 'coreTech' ? t('tab.duel')
+                                : TABS[activeTabIndex].id === 'sts' ? t('tab.sts')
+                                : TABS[activeTabIndex].id === 'def' ? t('tab.def')
+                                : TABS[activeTabIndex].id === 'mastery' ? t('tab.mastery')
+                                : t('tab.buildings')
+                            }
+                        </span>
+
+                        <button 
+                            type="submit" 
+                            disabled={loading || !formData.name} 
+                            className="px-6 py-2 bg-sky-600 hover:bg-sky-500 text-white font-black uppercase tracking-[0.2em] rounded-xl text-[10px] flex items-center gap-2 transition-all shadow-[0_0_20px_rgba(14,165,233,0.3)] disabled:opacity-30"
+                        >
+                            {loading ? (
+                                <>
+                                    <div className="w-3.5 h-3.5 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    Broadcasting...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    {t('form.submit')}
+                                </>
+                            )}
+                        </button>
                     </div>
 
-                    <div className="animate-in fade-in zoom-in-95 duration-500">
-                        {activeMasteryTab === 'air' && <MasteryTree type="air" formData={formData} setFormData={setFormData} resources={airMasteryResources} fR={fR} />}
-                        {activeMasteryTab === 'tank' && <MasteryTree type="tank" formData={formData} setFormData={setFormData} resources={tankMasteryResources} fR={fR} />}
-                        {activeMasteryTab === 'missile' && <MasteryTree type="missile" formData={formData} setFormData={setFormData} resources={missileMasteryResources} fR={fR} />}
-                    </div>
                 </div>
-            </Section>
-
-            <Section title="Strategic Infrastructures" color="emerald" isOpen={openSections.buildings} onToggle={() => toggleSection('buildings')}>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-                    <FormInput label="Barracks" name="barracksLevel" val={formData.barracksLevel} change={(e:any)=>setFormData(p=>({...p,barracksLevel:e.target.value}))} suffix="lvl" type="number" />
-                    <FormInput label="Tech Center" name="techLevel" val={formData.techLevel} change={(e:any)=>setFormData(p=>({...p,techLevel:e.target.value}))} suffix="lvl" type="number" />
-                    <FormInput label="Tank" name="tankCenterLevel" val={formData.tankCenterLevel} change={(e:any)=>setFormData(p=>({...p,tankCenterLevel:e.target.value}))} suffix="lvl" type="number" />
-                    <FormInput label="Air" name="airCenterLevel" val={formData.airCenterLevel} change={(e:any)=>setFormData(p=>({...p,airCenterLevel:e.target.value}))} suffix="lvl" type="number" />
-                    <FormInput label="Missile" name="missileCenterLevel" val={formData.missileCenterLevel} change={(e:any)=>setFormData(p=>({...p,missileCenterLevel:e.target.value}))} suffix="lvl" type="number" />
-                </div>
-            </Section>
-
-            <div className="pt-10">
-                <button type="submit" disabled={loading} className="w-full py-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-black uppercase tracking-[0.3em] rounded-2xl shadow-[0_0_30px_rgba(14,165,233,0.3)] transition-all flex items-center justify-center gap-3">
-                    {loading ? (
-                        <>
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            {t('form.submit')}...
-                        </>
-                    ) : (
-                        <>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                            {t('form.submit')}
-                        </>
-                    )}
-                </button>
             </div>
         </form>
     </div>

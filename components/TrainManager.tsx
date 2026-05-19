@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Player } from '../types';
 import { MockApi, TrainApi } from '../services/mockBackend';
-import { calculateStsRemainingCost, calculateT10RemainingCost, calculateDefRemainingCost } from '../utils/gameLogic';
+import { calculateStsRemainingCost, calculateDefRemainingCost } from '../utils/gameLogic';
 import { useLanguage } from '../utils/i18n';
 import { useToast } from './Toast';
 
@@ -57,7 +57,7 @@ const PlayerSearchInput = ({ value, onChange, placeholder, candidates, onEnter }
     );
 };
 
-type TrainLogic = 'T10' | 'STS' | 'DEFENSE';
+type TrainLogic = 'STS' | 'DEFENSE';
 
 const TrainManager: React.FC = () => {
   const { t } = useLanguage();
@@ -129,8 +129,7 @@ const TrainManager: React.FC = () => {
           
           const enriched: EnrichedPlayer[] = res.items.map(p => {
               let cost;
-              if (logicMode === 'T10') cost = calculateT10RemainingCost(p as any);
-              else if (logicMode === 'DEFENSE') cost = calculateDefRemainingCost(p);
+              if (logicMode === 'DEFENSE') cost = calculateDefRemainingCost(p);
               else cost = calculateStsRemainingCost(p);
 
               return {
@@ -475,7 +474,7 @@ const TrainManager: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar no-scrollbar">
-                        {(['STS', 'T10', 'DEFENSE'] as TrainLogic[]).map(mode => (
+                        {(['STS', 'DEFENSE'] as TrainLogic[]).map(mode => (
                             <button
                                 key={mode}
                                 onClick={() => setLogicMode(mode)}
@@ -518,13 +517,6 @@ const TrainManager: React.FC = () => {
                                                     <span className="bg-sky-900/40 text-sky-400 px-1 rounded">{p.stsFinalStand1 || 0}</span>
                                                     <span className="bg-emerald-900/40 text-emerald-400 px-1 rounded">{p.stsFierceAssault1 || 0}</span>
                                                     <span className="bg-rose-900/40 text-rose-400 px-1 rounded">{p.stsVigilantFormation1 || 0}</span>
-                                                </>
-                                            )}
-                                            {logicMode === 'T10' && (
-                                                <>
-                                                    <span className="bg-sky-900/40 text-sky-400 px-1 rounded">{p.t10Protection || 0}</span>
-                                                    <span className="bg-emerald-900/40 text-emerald-400 px-1 rounded">{p.t10Hp || 0}</span>
-                                                    <span className="bg-rose-900/40 text-rose-400 px-1 rounded">{p.t10Atk || 0}</span>
                                                 </>
                                             )}
                                             {logicMode === 'DEFENSE' && (

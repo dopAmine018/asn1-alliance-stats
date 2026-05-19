@@ -109,7 +109,7 @@ const AdminDashboard: React.FC = () => {
         thirdSquadPower: normalizePower(editForm.thirdSquadPower),
         fourthSquadPower: normalizePower(editForm.fourthSquadPower),
         totalHeroPower: normalizePower(editForm.totalHeroPower),
-        heroPercent: Number(editForm.heroPercent), duelPercent: Number(editForm.duelPercent), unitsPercent: Number(editForm.unitsPercent),
+        heroPercent: 0, duelPercent: 0, unitsPercent: 0,
         t10Morale: Number(editForm.t10Morale), t10Protection: Number(editForm.t10Protection), t10Hp: Number(editForm.t10Hp),
         t10Atk: Number(editForm.t10Atk), t10Def: Number(editForm.t10Def), t10Elite: Number(editForm.t10Elite),
         stsPowerBoost1: Number(editForm.stsPowerBoost1 || 0),
@@ -308,11 +308,6 @@ const AdminDashboard: React.FC = () => {
 
                       <div className="space-y-5">
                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tech Stats & T10</label>
-                           <div className="grid grid-cols-3 gap-3">
-                              <div><label className="text-[9px] text-slate-600 font-bold block mb-1">HERO%</label><input type="number" className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white" value={editForm.heroPercent} onChange={e => setEditForm(p => ({...p, heroPercent: e.target.value}))} /></div>
-                              <div><label className="text-[9px] text-slate-600 font-bold block mb-1">DUEL%</label><input type="number" className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white" value={editForm.duelPercent} onChange={e => setEditForm(p => ({...p, duelPercent: e.target.value}))} /></div>
-                              <div><label className="text-[9px] text-slate-600 font-bold block mb-1">UNIT%</label><input type="number" className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white" value={editForm.unitsPercent} onChange={e => setEditForm(p => ({...p, unitsPercent: e.target.value}))} /></div>
-                           </div>
                            <div className="grid grid-cols-2 gap-3">
                               <div><label className="text-[9px] text-slate-600 font-bold block mb-1">MORALE</label><input type="number" className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white" value={editForm.t10Morale} onChange={e => setEditForm(p => ({...p, t10Morale: e.target.value}))} /></div>
                               <div><label className="text-[9px] text-slate-600 font-bold block mb-1">T10 ELITE</label><select className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white" value={editForm.t10Elite} onChange={e => setEditForm(p => ({...p, t10Elite: e.target.value}))}><option value="0">0 (Locked)</option><option value="10">10 (Max)</option></select></div>
