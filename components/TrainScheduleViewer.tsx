@@ -15,7 +15,7 @@ interface TrainDay {
 }
 
 const TrainScheduleViewer: React.FC<{ onBack: () => void }> = ({ onBack }) => {
-    const { t } = useLanguage();
+    const { t, dir } = useLanguage();
     const [schedule, setSchedule] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -76,7 +76,7 @@ const TrainScheduleViewer: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const formatPower = (val?: number) => val ? (val/1000000).toFixed(1) + 'M' : '-';
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-5xl mx-auto">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-5xl mx-auto" dir={dir}>
              {/* Header */}
              <div className="flex items-center justify-between mb-8 border-b border-white/10 pb-4">
                 <div className="flex items-center gap-4">
@@ -85,7 +85,7 @@ const TrainScheduleViewer: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     </button>
                     <div>
                         <h2 className="text-xl font-header font-bold text-white uppercase tracking-[0.2em]">{t('train.public_view')}</h2>
-                        <p className="text-[10px] text-slate-400 font-mono">Synced from Command HQ</p>
+                        <p className="text-[10px] text-slate-400 font-mono">{t('train.synced_hq')}</p>
                     </div>
                 </div>
             </div>
@@ -110,23 +110,23 @@ const TrainScheduleViewer: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center p-2 bg-slate-900/50 rounded border border-slate-800/50">
                                         <div>
-                                            <div className="text-[8px] text-slate-500 uppercase tracking-wider mb-0.5">Conductor</div>
+                                            <div className="text-[8px] text-slate-500 uppercase tracking-wider mb-0.5">{t('train.conductor')}</div>
                                             <div className="text-sm font-bold text-white">{day.conductorName}</div>
                                         </div>
                                         <div className="text-right">
                                             <div className="text-[10px] font-mono text-amber-500">{formatPower(day.conductorPower)}</div>
-                                            {day.defenderName === day.conductorName && <div className="text-[8px] text-sky-500 font-bold uppercase">Defending</div>}
+                                            {day.defenderName === day.conductorName && <div className="text-[8px] text-sky-500 font-bold uppercase">{t('train.defending')}</div>}
                                         </div>
                                     </div>
 
                                     <div className="flex justify-between items-center p-2 bg-slate-900/50 rounded border border-slate-800/50">
                                         <div>
-                                            <div className="text-[8px] text-slate-500 uppercase tracking-wider mb-0.5">{day.mode === 'VIP' ? 'Passenger' : 'Guardian'}</div>
+                                            <div className="text-[8px] text-slate-500 uppercase tracking-wider mb-0.5">{day.mode === 'VIP' ? t('train.vip') : t('train.guardian')}</div>
                                             <div className="text-sm font-bold text-white">{day.vipName}</div>
                                         </div>
                                         <div className="text-right">
                                             <div className="text-[10px] font-mono text-purple-500">{formatPower(day.vipPower)}</div>
-                                            {day.defenderName === day.vipName && <div className="text-[8px] text-sky-500 font-bold uppercase">Defending</div>}
+                                            {day.defenderName === day.vipName && <div className="text-[8px] text-sky-500 font-bold uppercase">{t('train.defending')}</div>}
                                         </div>
                                     </div>
                                 </div>
@@ -139,8 +139,8 @@ const TrainScheduleViewer: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center mb-4 text-slate-600">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </div>
-                    <p className="text-slate-500 font-mono text-xs uppercase tracking-widest">No Active Orders</p>
-                    <p className="text-slate-600 text-[10px] mt-1">Check back after command update.</p>
+                    <p className="text-slate-500 font-mono text-xs uppercase tracking-widest">{t('train.no_orders')}</p>
+                    <p className="text-slate-600 text-[10px] mt-1">{t('train.check_back')}</p>
                 </div>
             )}
         </div>

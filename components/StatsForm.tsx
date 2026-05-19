@@ -685,7 +685,6 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                                 <div className="hidden md:block">
                                     <h4 className="text-[10px] font-black uppercase tracking-wider">
                                         {tab.id === 'profile' ? t('tab.profile')
-                                         : tab.id === 'coreTech' ? t('tab.duel')
                                          : tab.id === 'sts' ? t('tab.sts')
                                          : tab.id === 'def' ? t('tab.def')
                                          : tab.id === 'mastery' ? t('tab.mastery')
@@ -693,7 +692,6 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                                     </h4>
                                     <p className="text-[7.5px] text-slate-500 uppercase tracking-tight leading-none truncate max-w-[130px]">
                                         {tab.id === 'profile' ? t('section.identity.desc')
-                                         : tab.id === 'coreTech' ? t('section.tech.desc')
                                          : tab.id === 'sts' ? t('sts.title')
                                          : tab.id === 'def' ? t('def.title')
                                          : tab.id === 'mastery' ? t('tab.mastery')
@@ -703,7 +701,6 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                                 <div className="md:hidden">
                                     <h4 className="text-[9px] font-black uppercase tracking-wider truncate">
                                         {tab.id === 'profile' ? t('tab.profile').split(' ')[0]
-                                         : tab.id === 'coreTech' ? t('tab.duel').split(' ')[0]
                                          : tab.id === 'sts' ? t('tab.sts').split(' ')[0]
                                          : tab.id === 'def' ? t('tab.def').split(' ')[0]
                                          : tab.id === 'mastery' ? t('tab.mastery').split(' ')[0]
@@ -1021,7 +1018,6 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                         <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">
                             STEP {activeTabIndex + 1} OF {TABS.length} : {
                                 TABS[activeTabIndex].id === 'profile' ? t('tab.profile')
-                                : TABS[activeTabIndex].id === 'coreTech' ? t('tab.duel')
                                 : TABS[activeTabIndex].id === 'sts' ? t('tab.sts')
                                 : TABS[activeTabIndex].id === 'def' ? t('tab.def')
                                 : TABS[activeTabIndex].id === 'mastery' ? t('tab.mastery')

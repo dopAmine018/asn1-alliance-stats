@@ -80,7 +80,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onHom
                                 <div className="flex items-center gap-1.5 mt-1">
                                     <div className={`w-1.5 h-1.5 rounded-full ${isConnected === true ? 'bg-emerald-500 shadow-[0_0_5px_#10b981]' : isConnected === false ? 'bg-rose-500 shadow-[0_0_5px_#f43f5e]' : 'bg-slate-500 animate-pulse'}`}></div>
                                     <span className={`text-[8px] font-mono font-bold uppercase tracking-widest ${isConnected === true ? 'text-emerald-500/70' : isConnected === false ? 'text-rose-500/70' : 'text-slate-500'}`}>
-                                        {isConnected === true ? 'Uplink: Active' : isConnected === false ? 'Uplink: Offline' : 'Uplink: Syncing'}
+                                        {isConnected === true ? t('uplink.active') : isConnected === false ? t('uplink.offline') : t('uplink.syncing')}
                                     </span>
                                 </div>
                             </div>
