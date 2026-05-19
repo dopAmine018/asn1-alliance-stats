@@ -53,6 +53,24 @@ export interface Player {
   stsVigilantFormation3: number;
   stsFatalStrike1: number;
   
+  // Defense Fortifications nodes
+  defExtraHospitals: number;
+  defHoldLine1: number;
+  defCounterDefense1: number;
+  defSolidDefense1: number;
+  defFortifications: number;
+  defInfirmaryExpansion1: number;
+  defEfficientHealing: number;
+  defHoldLine2: number;
+  defCounterDefense2: number;
+  defSolidDefense2: number;
+  defResourceProtection: number;
+  defRapidMarch1: number;
+  defHoldLine3: number;
+  defCounterDefense3: number;
+  defSolidDefense3: number;
+  defSurvivalSkills: number;
+  
   techLevel: number;
   barracksLevel: number;
   tankCenterLevel: number;

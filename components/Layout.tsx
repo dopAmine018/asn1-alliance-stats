@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../utils/i18n';
 import { Language } from '../types';
 import { CustomDropdown } from './CustomDropdown';
+import { MockApi } from '../services/mockBackend';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,17 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onHomeClick, showHomeBtn, onNavigate }) => {
   const { language, setLanguage, t, dir } = useLanguage();
   const [scrolled, setScrolled] = useState(false);
+  const [isConnected, setIsConnected] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkConn = async () => {
+        const ok = await MockApi.testConnection();
+        setIsConnected(ok);
+    };
+    checkConn();
+    const interval = setInterval(checkConn, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -62,9 +74,15 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onHom
                                 </div>
                             </div>
                             <div>
-                                <h1 className="text-xl font-header font-black tracking-widest text-white leading-none">
-                                    ASN1 <span className="text-sky-500">ALLIANCE</span>
+                                <h1 className="text-xl font-header font-black tracking-tighter text-white leading-none">
+                                    ASN1 <span className="text-sky-500">COMMAND</span>
                                 </h1>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${isConnected === true ? 'bg-emerald-500 shadow-[0_0_5px_#10b981]' : isConnected === false ? 'bg-rose-500 shadow-[0_0_5px_#f43f5e]' : 'bg-slate-500 animate-pulse'}`}></div>
+                                    <span className={`text-[8px] font-mono font-bold uppercase tracking-widest ${isConnected === true ? 'text-emerald-500/70' : isConnected === false ? 'text-rose-500/70' : 'text-slate-500'}`}>
+                                        {isConnected === true ? 'Uplink: Active' : isConnected === false ? 'Uplink: Offline' : 'Uplink: Syncing'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -143,7 +161,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onHom
             <div className="flex flex-col items-center gap-4">
                 <div className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
                     <span className="w-2 h-2 rounded-full bg-sky-500"></span>
-                    <span className="text-xs font-header font-bold tracking-[0.3em] uppercase text-white">ASN1 Alliance</span>
+                    <span className="text-xs font-header font-bold tracking-[0.3em] uppercase text-white">ASN1 Command</span>
                 </div>
 
                 <a href="https://discord.gg/4ZX87ya4JA" target="_blank" rel="noopener noreferrer" className="group flex items-center gap-2 px-4 py-2 bg-[#5865F2]/10 hover:bg-[#5865F2]/20 border border-[#5865F2]/30 hover:border-[#5865F2] rounded-full transition-all duration-300">

@@ -1,5 +1,6 @@
 {
-  "name": "ASN1 ALLIANCE",
-  "description": "A full-featured player statistics tracker with public submission and secured admin management.",
-  "requestFramePermissions": []
+  "name": "ASN1 Command",
+  "description": "Strategic management terminal for ASN1 Alliance statistics, train schedules, and Desert Storm coordination.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

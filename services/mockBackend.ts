@@ -15,8 +15,8 @@ const getEnv = (key: string): string => {
   return '';
 };
 
-const supabaseUrl = getEnv('VITE_SUPABASE_URL') || getEnv('REACT_APP_SUPABASE_URL') || PROVIDED_URL;
-const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('REACT_APP_SUPABASE_ANON_KEY') || PROVIDED_KEY;
+const supabaseUrl = getEnv('VITE_SUPABASE_URL') || PROVIDED_URL;
+const supabaseKey = getEnv('VITE_SUPABASE_SERVICE_ROLE_KEY') || getEnv('VITE_SUPABASE_ANON_KEY') || PROVIDED_KEY;
 
 const supabase = createClient(supabaseUrl.trim(), supabaseKey.trim(), {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
@@ -26,7 +26,7 @@ const MOCK_ALLIANCE: Alliance = {
   id: 'asn1',
   tag: 'ASN1',
   name: 'ASN1 Alliance',
-  adminPass: 'ASN1!1628@',
+  adminPass: 'Asn1!1628@',
   createdAt: '2025-01-01T00:00:00.000Z'
 };
 
@@ -38,9 +38,33 @@ const DEFAULT_STS = {
   stsFinalStand3: 0, stsFierceAssault3: 0, stsVigilantFormation3: 0, stsFatalStrike1: 0
 };
 
+const DEFAULT_DEFENSE = {
+    defExtraHospitals: 0, defHoldLine1: 0, defCounterDefense1: 0, defSolidDefense1: 0,
+    defFortifications: 0, defInfirmaryExpansion1: 0, defEfficientHealing: 0,
+    defHoldLine2: 0, defCounterDefense2: 0, defSolidDefense2: 0,
+    defResourceProtection: 0, defRapidMarch1: 0,
+    defHoldLine3: 0, defCounterDefense3: 0, defSolidDefense3: 0,
+    defSurvivalSkills: 0
+};
+
+const DEFAULT_MASTERY = {
+  masteryAirHp1: 0, masteryAirAtk1: 0, masteryAirDef1: 0, masteryAirDamage1: 0, masteryAirMarch1: 0,
+  masteryAirHp2: 0, masteryAirAtk2: 0, masteryAirDef2: 0, masteryAirDamage2: 0, masteryAirUltDef1: 0,
+  masteryAirHp3: 0, masteryAirAtk3: 0, masteryAirDef3: 0, masteryAirDamage3: 0, masteryAirMarch2: 0,
+  masteryAirHp4: 0, masteryAirAtk4: 0, masteryAirDef4: 0, masteryAirDamage4: 0, masteryAirUltDef2: 0,
+  masteryTankHp1: 0, masteryTankAtk1: 0, masteryTankDef1: 0, masteryTankDamage1: 0, masteryTankMarch1: 0,
+  masteryTankHp2: 0, masteryTankAtk2: 0, masteryTankDef2: 0, masteryTankDamage2: 0, masteryTankUltDef1: 0,
+  masteryTankHp3: 0, masteryTankAtk3: 0, masteryTankDef3: 0, masteryTankDamage3: 0, masteryTankMarch2: 0,
+  masteryTankHp4: 0, masteryTankAtk4: 0, masteryTankDef4: 0, masteryTankDamage4: 0, masteryTankUltDef2: 0,
+  masteryMissileHp1: 0, masteryMissileAtk1: 0, masteryMissileDef1: 0, masteryMissileDamage1: 0, masteryMissileMarch1: 0,
+  masteryMissileHp2: 0, masteryMissileAtk2: 0, masteryMissileDef2: 0, masteryMissileDamage2: 0, masteryMissileUltDef1: 0,
+  masteryMissileHp3: 0, masteryMissileAtk3: 0, masteryMissileDef3: 0, masteryMissileDamage3: 0, masteryMissileMarch2: 0,
+  masteryMissileHp4: 0, masteryMissileAtk4: 0, masteryMissileDef4: 0, masteryMissileDamage4: 0, masteryMissileUltDef2: 0,
+};
+
 const INITIAL_MOCK_PLAYERS: Player[] = [
-    { id: 'm1', allianceId: 'asn1', ...DEFAULT_STS, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), language: 'english', name: 'imAYAD', nameNormalized: 'imayad', firstSquadPower: 23200000, totalHeroPower: 18500000, heroPercent: 92, duelPercent: 88, unitsPercent: 85, t10Morale: 10, t10Protection: 10, t10Hp: 10, t10Atk: 10, t10Def: 10, t10Elite: 10, techLevel: 35, barracksLevel: 35, tankCenterLevel: 35, airCenterLevel: 35, missileCenterLevel: 35, active: true },
-    { id: 'm2', allianceId: 'asn1', ...DEFAULT_STS, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), language: 'turkish', name: 'TuyuLL', nameNormalized: 'tuyull', firstSquadPower: 23000000, totalHeroPower: 18100000, heroPercent: 90, duelPercent: 85, unitsPercent: 82, t10Morale: 10, t10Protection: 10, t10Hp: 10, t10Atk: 10, t10Def: 10, t10Elite: 10, techLevel: 35, barracksLevel: 35, tankCenterLevel: 35, airCenterLevel: 35, missileCenterLevel: 35, active: true },
+    { id: 'm1', allianceId: 'asn1', ...DEFAULT_STS, ...DEFAULT_DEFENSE, ...DEFAULT_MASTERY, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), language: 'english', name: 'imAYAD', nameNormalized: 'imayad', firstSquadPower: 23200000, totalHeroPower: 18500000, heroPercent: 92, duelPercent: 88, unitsPercent: 85, t10Morale: 10, t10Protection: 10, t10Hp: 10, t10Atk: 10, t10Def: 10, t10Elite: 10, techLevel: 35, barracksLevel: 35, tankCenterLevel: 35, airCenterLevel: 35, missileCenterLevel: 35, active: true },
+    { id: 'm2', allianceId: 'asn1', ...DEFAULT_STS, ...DEFAULT_DEFENSE, ...DEFAULT_MASTERY, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), language: 'turkish', name: 'TuyuLL', nameNormalized: 'tuyull', firstSquadPower: 23000000, totalHeroPower: 18100000, heroPercent: 90, duelPercent: 85, unitsPercent: 82, t10Morale: 10, t10Protection: 10, t10Hp: 10, t10Atk: 10, t10Def: 10, t10Elite: 10, techLevel: 35, barracksLevel: 35, tankCenterLevel: 35, airCenterLevel: 35, missileCenterLevel: 35, active: true },
 ];
 
 const getLocalMockData = <T>(key: string, initial: T): T => {
@@ -90,6 +114,22 @@ const mapPlayerFromDb = (row: any): Player => ({
   stsFierceAssault3: row.sts_fierce_assault_3 || 0,
   stsVigilantFormation3: row.sts_vigilant_formation_3 || 0,
   stsFatalStrike1: row.sts_fatal_strike_1 || 0,
+  defExtraHospitals: row.def_extra_hospitals || 0,
+  defHoldLine1: row.def_hold_line_1 || 0,
+  defCounterDefense1: row.def_counter_defense_1 || 0,
+  defSolidDefense1: row.def_solid_defense_1 || 0,
+  defFortifications: row.def_fortifications || 0,
+  defInfirmaryExpansion1: row.def_infirmary_expansion_1 || 0,
+  defEfficientHealing: row.def_efficient_healing || 0,
+  defHoldLine2: row.def_hold_line_2 || 0,
+  defCounterDefense2: row.def_counter_defense_2 || 0,
+  defSolidDefense2: row.def_solid_defense_2 || 0,
+  defResourceProtection: row.def_resource_protection || 0,
+  defRapidMarch1: row.def_rapid_march_1 || 0,
+  defHoldLine3: row.def_hold_line_3 || 0,
+  defCounterDefense3: row.def_counter_defense_3 || 0,
+  defSolidDefense3: row.def_solid_defense_3 || 0,
+  defSurvivalSkills: row.def_survival_skills || 0,
   techLevel: row.tech_level,
   barracksLevel: row.barracks_level,
   tankCenterLevel: row.tank_center_level,
@@ -193,6 +233,22 @@ const mapPlayerToDb = (p: Partial<Player>) => {
   if (p.stsFierceAssault3 !== undefined) out.sts_fierce_assault_3 = p.stsFierceAssault3;
   if (p.stsVigilantFormation3 !== undefined) out.sts_vigilant_formation_3 = p.stsVigilantFormation3;
   if (p.stsFatalStrike1 !== undefined) out.sts_fatal_strike_1 = p.stsFatalStrike1;
+  if (p.defExtraHospitals !== undefined) out.def_extra_hospitals = p.defExtraHospitals;
+  if (p.defHoldLine1 !== undefined) out.def_hold_line_1 = p.defHoldLine1;
+  if (p.defCounterDefense1 !== undefined) out.def_counter_defense_1 = p.defCounterDefense1;
+  if (p.defSolidDefense1 !== undefined) out.def_solid_defense_1 = p.defSolidDefense1;
+  if (p.defFortifications !== undefined) out.def_fortifications = p.defFortifications;
+  if (p.defInfirmaryExpansion1 !== undefined) out.def_infirmary_expansion_1 = p.defInfirmaryExpansion1;
+  if (p.defEfficientHealing !== undefined) out.def_efficient_healing = p.defEfficientHealing;
+  if (p.defHoldLine2 !== undefined) out.def_hold_line_2 = p.defHoldLine2;
+  if (p.defCounterDefense2 !== undefined) out.def_counter_defense_2 = p.defCounterDefense2;
+  if (p.defSolidDefense2 !== undefined) out.def_solid_defense_2 = p.defSolidDefense2;
+  if (p.defResourceProtection !== undefined) out.def_resource_protection = p.defResourceProtection;
+  if (p.defRapidMarch1 !== undefined) out.def_rapid_march_1 = p.defRapidMarch1;
+  if (p.defHoldLine3 !== undefined) out.def_hold_line_3 = p.defHoldLine3;
+  if (p.defCounterDefense3 !== undefined) out.def_counter_defense_3 = p.defCounterDefense3;
+  if (p.defSolidDefense3 !== undefined) out.def_solid_defense_3 = p.defSolidDefense3;
+  if (p.defSurvivalSkills !== undefined) out.def_survival_skills = p.defSurvivalSkills;
   if (p.techLevel !== undefined) out.tech_level = p.techLevel;
   if (p.barracksLevel !== undefined) out.barracks_level = p.barracksLevel;
   if (p.tankCenterLevel !== undefined) out.tank_center_level = p.tankCenterLevel;
@@ -264,7 +320,21 @@ const mapPlayerToDb = (p: Partial<Player>) => {
 };
 
 export const MockApi = {
-  initialize: () => console.log("Uplink Established"),
+  initialize: () => {
+      console.log("ASN1 Command Uplink Established");
+      console.log("Target URL:", supabaseUrl);
+  },
+
+  testConnection: async (): Promise<boolean> => {
+      try {
+          const { error } = await supabase.from('players').select('id').limit(1);
+          if (error) throw error;
+          return true;
+      } catch (e) {
+          console.error("Supabase Connection Test Failed:", e);
+          return false;
+      }
+  },
 
   getPlayers: async (filter: PlayerFilter): Promise<{ items: Player[]; total: number }> => {
       try {
@@ -279,45 +349,67 @@ export const MockApi = {
           else query = query.order('updated_at', { ascending: false });
           
           const { data, count, error } = await query.range(0, 9999);
-          if (error) throw error;
+          if (error) {
+              console.error("Supabase GetPlayers Error:", error);
+              throw new Error(`Supabase Error: ${error.message} (Code: ${error.code}). Make sure the 'players' table exists.`);
+          }
           return { items: (data || []).map(mapPlayerFromDb), total: count || 0 };
       } catch (e: any) {
-          const local = getLocalMockData<Player[]>('players', INITIAL_MOCK_PLAYERS);
-          let filtered = local;
-          if (filter.activeOnly) filtered = filtered.filter(p => p.active);
-          if (filter.language !== 'all') filtered = filtered.filter(p => p.language === filter.language);
-          if (filter.search) filtered = filtered.filter(p => p.nameNormalized.includes(filter.search.toLowerCase()));
-          return { items: filtered, total: filtered.length };
+          console.error("Supabase GetPlayers Catch Block:", e);
+          // Only fallback if it's a connection error or if we explicitly want local mode
+          // For now, let's throw so the user knows it's failing
+          throw e;
       }
   },
 
   upsertPlayer: async (playerData: Partial<Player>): Promise<ApiResponse<Player>> => {
       const nameNormalized = playerData.name?.trim().toLowerCase().replace(/\s+/g, ' ') || '';
       try {
-          const { data: existingMatch } = await supabase.from('players').select('id').eq('name_normalized', nameNormalized).maybeSingle();
+          // Check for existing player by name_normalized
+          const { data: existing, error: fetchError } = await supabase
+              .from('players')
+              .select('id')
+              .eq('name_normalized', nameNormalized)
+              .maybeSingle();
+
+          if (fetchError) {
+              console.error("Supabase Fetch Error:", fetchError);
+              throw new Error(`Supabase Fetch Error: ${fetchError.message}`);
+          }
+
           const payload = mapPlayerToDb({ ...playerData, nameNormalized });
+          
           let result;
-          if (existingMatch) result = await supabase.from('players').update(payload).eq('id', existingMatch.id).select().single();
-          else result = await supabase.from('players').insert(payload).select().single();
-          if (result.error) throw result.error;
+          if (existing) {
+              result = await supabase
+                  .from('players')
+                  .update(payload)
+                  .eq('id', existing.id)
+                  .select()
+                  .single();
+          } else {
+              // Default active to true for new players if not specified
+              if (payload.active === undefined) payload.active = true;
+              result = await supabase
+                  .from('players')
+                  .insert(payload)
+                  .select()
+                  .single();
+          }
+          
+          if (result.error) {
+              console.error("Supabase Operation Error:", result.error);
+              throw new Error(`Supabase Operation Error: ${result.error.message}`);
+          }
           return { success: true, data: mapPlayerFromDb(result.data) };
       } catch (e: any) {
-          const local = getLocalMockData<Player[]>('players', INITIAL_MOCK_PLAYERS);
-          const idx = local.findIndex(p => p.nameNormalized === nameNormalized);
-          const newPlayer: Player = {
-              ...(idx >= 0 ? local[idx] : { id: 'm' + Date.now(), createdAt: new Date().toISOString() }),
-              ...playerData,
-              updatedAt: new Date().toISOString(),
-              nameNormalized
-          } as Player;
-          if (idx >= 0) local[idx] = newPlayer; else local.push(newPlayer);
-          saveLocalMockData('players', local);
-          return { success: true, data: newPlayer };
+          console.error("Supabase Upsert Catch Block:", e);
+          throw e;
       }
   },
 
   login: async (username: string, password: string): Promise<ApiResponse<AuthResponse>> => {
-    if (password === 'ASN1!1628@') return { success: true, data: { token: 'mock-token', alliance: MOCK_ALLIANCE } };
+    if (password === 'Asn1!1628@') return { success: true, data: { token: 'mock-token', alliance: MOCK_ALLIANCE } };
     return { success: false, error: 'Access Denied' };
   },
 
@@ -375,7 +467,7 @@ export const VsApi = {
   },
   createWeek: async (name: string): Promise<VsWeek> => {
     const { data } = await supabase.from('vs_weeks').insert({ name, alliance_id: 'asn1' }).select().single();
-    return { id: data.id, allianceId: data.alliance_id, name: data.name, createdAt: data.created_at };
+    return { id: data.id, allianceId: data.alliance_id || 'asn1', name: data.name, createdAt: data.created_at };
   },
   getRecords: async (weekId: string): Promise<VsRecord[]> => {
       const { data } = await supabase.from('vs_records').select('*').eq('week_id', weekId);

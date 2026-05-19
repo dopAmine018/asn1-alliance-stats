@@ -115,6 +115,36 @@ export const calculateStsRemainingCost = (p: any) => {
     return { gold, valor, foodIron };
 };
 
+export const calculateDefRemainingCost = (p: any) => {
+    let gold = 0, valor = 0, foodIron = 0;
+    const sum = (curr: number, map: any, max: number = 10) => {
+        let g = 0, f = 0, v = 0;
+        for (let i = Number(curr) + 1; i <= max; i++) {
+            let k = i <= 3 ? 'lv1_3' : i <= 6 ? 'lv4_6' : 'lv7_10';
+            if (map['lv'+i]) k = 'lv'+i;
+            g += map[k].g; f += map[k].f; v += map[k].v;
+        }
+        return { g, f, v };
+    };
+    const add = (r: any) => { gold += r.g; foodIron += r.f; valor += r.v; };
+    const t1 = { lv1: {g:33.65e6,f:11.1e6,v:400}, lv2: {g:33.65e6,f:11.1e6,v:400}, lv3: {g:33.6e6,f:11.6e6,v:400}, lv4_6: {g:47.07e6,f:15.7e6,v:550}, lv7_10: {g:61.25e6,f:20.42e6,v:700} };
+    const t2 = { lv1_3: {g:33.6e6,f:11.6e6,v:400}, lv4_6: {g:47.07e6,f:15.7e6,v:550}, lv7_10: {g:61.25e6,f:20.42e6,v:700} };
+    const t4 = { lv1_3: {g:61.25e6,f:20.42e6,v:700}, lv4_6: {g:76.56e6,f:25.52e6,v:900}, lv7_10: {g:95.7e6,f:31.9e6,v:1100} };
+    const t6 = { lv1_3: {g:76.56e6,f:25.52e6,v:900}, lv4_6: {g:95.7e6,f:31.9e6,v:1100}, lv7_10: {g:162.7e6,f:54.23e6,v:1850} };
+    const t7 = { lv1_3: {g:95.7e6,f:31.9e6,v:1100}, lv4_6: {g:162.7e6,f:54.23e6,v:1850}, lv7_10: {g:227.78e6,f:75.93e6,v:2550} };
+
+    if (Number(p.defExtraHospitals||0)<1) { gold+=33.6e6; foodIron+=11.6e6; valor+=400; }
+    add(sum(p.defHoldLine1, t1)); add(sum(p.defCounterDefense1, t1)); add(sum(p.defSolidDefense1, t1));
+    add(sum(p.defFortifications, t1));
+    add(sum(p.defInfirmaryExpansion1, t4)); add(sum(p.defEfficientHealing, t4));
+    add(sum(p.defHoldLine2, t4)); add(sum(p.defCounterDefense2, t4)); add(sum(p.defSolidDefense2, t4));
+    add(sum(p.defResourceProtection, t6)); add(sum(p.defRapidMarch1, t6));
+    add(sum(p.defHoldLine3, t7)); add(sum(p.defCounterDefense3, t7)); add(sum(p.defSolidDefense3, t7));
+    add(sum(p.defSurvivalSkills, t7));
+
+    return { gold, valor, foodIron };
+};
+
 export const calculateMasteryRemainingCost = (p: any, prefix: 'Air' | 'Tank' | 'Missile') => {
     let gold = 0, valor = 0, foodIron = 0;
     

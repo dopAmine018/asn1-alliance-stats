@@ -59,7 +59,12 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
       setPlayers(uniqueItems);
       setErrorMsg(null);
     } catch (e: any) { 
+      console.error("StatsViewer Fetch Error:", e);
       setErrorMsg(e.message || "Connection Error");
+      // If it's a Supabase error, we might want to show a more helpful message
+      if (e.message?.includes('Supabase Error')) {
+          setErrorMsg(`${e.message}. Please ensure your Supabase tables are set up correctly using the provided SQL schema.`);
+      }
     } finally { 
       setLoading(false); 
     }

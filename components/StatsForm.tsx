@@ -4,7 +4,7 @@ import { Player, Language } from '../types';
 import { useLanguage } from '../utils/i18n';
 import { CustomDropdown } from './CustomDropdown';
 import { useToast } from './Toast';
-import { calculateT10RemainingCost, calculateStsRemainingCost, calculateAirMasteryRemainingCost, calculateTankMasteryRemainingCost, calculateMissileMasteryRemainingCost } from '../utils/gameLogic';
+import { calculateT10RemainingCost, calculateStsRemainingCost, calculateDefRemainingCost, calculateAirMasteryRemainingCost, calculateTankMasteryRemainingCost, calculateMissileMasteryRemainingCost } from '../utils/gameLogic';
 
 const defaultFormData = {
   name: '', firstSquadPower: '', secondSquadPower: '', thirdSquadPower: '', fourthSquadPower: '', totalHeroPower: '',
@@ -15,6 +15,12 @@ const defaultFormData = {
   stsFinalStand2: '0', stsFierceAssault2: '0', stsVigilantFormation2: '0',
   stsDrillGroundExpansion: '0', stsRapidMarch1: '0',
   stsFinalStand3: '0', stsFierceAssault3: '0', stsVigilantFormation3: '0', stsFatalStrike1: '0',
+  defExtraHospitals: '0', defHoldLine1: '0', defCounterDefense1: '0', defSolidDefense1: '0',
+  defFortifications: '0', defInfirmaryExpansion1: '0', defEfficientHealing: '0',
+  defHoldLine2: '0', defCounterDefense2: '0', defSolidDefense2: '0',
+  defResourceProtection: '0', defRapidMarch1: '0',
+  defHoldLine3: '0', defCounterDefense3: '0', defSolidDefense3: '0',
+  defSurvivalSkills: '0',
   techLevel: '', barracksLevel: '', tankCenterLevel: '', airCenterLevel: '', missileCenterLevel: '',
   masteryAirHp1: '0', masteryAirAtk1: '0', masteryAirDef1: '0', masteryAirDamage1: '0', masteryAirMarch1: '0',
   masteryAirHp2: '0', masteryAirAtk2: '0', masteryAirDef2: '0', masteryAirDamage2: '0', masteryAirUltDef1: '0',
@@ -258,6 +264,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
 
   const resourcesNeeded = useMemo(() => calculateT10RemainingCost(formData as any), [formData]);
   const stsResources = useMemo(() => calculateStsRemainingCost(formData), [formData]);
+  const defResources = useMemo(() => calculateDefRemainingCost(formData), [formData]);
   const airMasteryResources = useMemo(() => calculateAirMasteryRemainingCost(formData), [formData]);
   const tankMasteryResources = useMemo(() => calculateTankMasteryRemainingCost(formData), [formData]);
   const missileMasteryResources = useMemo(() => calculateMissileMasteryRemainingCost(formData), [formData]);
@@ -316,6 +323,22 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
           stsFierceAssault3: sV(match.stsFierceAssault3),
           stsVigilantFormation3: sV(match.stsVigilantFormation3),
           stsFatalStrike1: sV(match.stsFatalStrike1),
+          defExtraHospitals: sV(match.defExtraHospitals),
+          defHoldLine1: sV(match.defHoldLine1),
+          defCounterDefense1: sV(match.defCounterDefense1),
+          defSolidDefense1: sV(match.defSolidDefense1),
+          defFortifications: sV(match.defFortifications),
+          defInfirmaryExpansion1: sV(match.defInfirmaryExpansion1),
+          defEfficientHealing: sV(match.defEfficientHealing),
+          defHoldLine2: sV(match.defHoldLine2),
+          defCounterDefense2: sV(match.defCounterDefense2),
+          defSolidDefense2: sV(match.defSolidDefense2),
+          defResourceProtection: sV(match.defResourceProtection),
+          defRapidMarch1: sV(match.defRapidMarch1),
+          defHoldLine3: sV(match.defHoldLine3),
+          defCounterDefense3: sV(match.defCounterDefense3),
+          defSolidDefense3: sV(match.defSolidDefense3),
+          defSurvivalSkills: sV(match.defSurvivalSkills),
           techLevel: sV(match.techLevel),
           barracksLevel: sV(match.barracksLevel),
           tankCenterLevel: sV(match.tankCenterLevel),
@@ -422,6 +445,22 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
             stsFierceAssault3: Number(formData.stsFierceAssault3),
             stsVigilantFormation3: Number(formData.stsVigilantFormation3),
             stsFatalStrike1: Number(formData.stsFatalStrike1),
+            defExtraHospitals: Number(formData.defExtraHospitals),
+            defHoldLine1: Number(formData.defHoldLine1),
+            defCounterDefense1: Number(formData.defCounterDefense1),
+            defSolidDefense1: Number(formData.defSolidDefense1),
+            defFortifications: Number(formData.defFortifications),
+            defInfirmaryExpansion1: Number(formData.defInfirmaryExpansion1),
+            defEfficientHealing: Number(formData.defEfficientHealing),
+            defHoldLine2: Number(formData.defHoldLine2),
+            defCounterDefense2: Number(formData.defCounterDefense2),
+            defSolidDefense2: Number(formData.defSolidDefense2),
+            defResourceProtection: Number(formData.defResourceProtection),
+            defRapidMarch1: Number(formData.defRapidMarch1),
+            defHoldLine3: Number(formData.defHoldLine3),
+            defCounterDefense3: Number(formData.defCounterDefense3),
+            defSolidDefense3: Number(formData.defSolidDefense3),
+            defSurvivalSkills: Number(formData.defSurvivalSkills),
             techLevel: Number(formData.techLevel),
             barracksLevel: Number(formData.barracksLevel),
             tankCenterLevel: Number(formData.tankCenterLevel),
@@ -643,6 +682,63 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                         <div className="text-center">
                             <span className="text-[10px] text-emerald-500 block uppercase font-black tracking-widest">STS F/I</span>
                             <span className="text-sm font-mono text-white font-bold">{fR(stsResources.foodIron)}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Defense Fortifications Tree */}
+                <div className="bg-[#0a0f1e]/50 p-6 rounded-xl border border-sky-500/10 space-y-10 shadow-[inset_0_0_20px_rgba(14,165,233,0.05)]">
+                    <h4 className="text-[10px] font-black text-sky-500 uppercase tracking-[0.3em]">{t('def.title')}</h4>
+                    
+                    <div className="flex flex-col items-center gap-4">
+                        <TechNode label={t('def.extra_hospitals')} value={formData.defExtraHospitals} onChange={(v:any)=>setFormData(p=>({...p,defExtraHospitals:v}))} max={1} binary />
+                        <div className="h-6 w-px bg-sky-500/30"></div>
+                        <div className="flex gap-4">
+                            <TechNode label={t('def.hold_line')+" I"} value={formData.defHoldLine1} onChange={(v:any)=>setFormData(p=>({...p,defHoldLine1:v}))} />
+                            <TechNode label={t('def.counter_defense')+" I"} value={formData.defCounterDefense1} onChange={(v:any)=>setFormData(p=>({...p,defCounterDefense1:v}))} />
+                            <TechNode label={t('def.solid_defense')+" I"} value={formData.defSolidDefense1} onChange={(v:any)=>setFormData(p=>({...p,defSolidDefense1:v}))} />
+                        </div>
+                        <div className="h-6 w-px bg-sky-500/30"></div>
+                        <TechNode label={t('def.fortifications')} value={formData.defFortifications} onChange={(v:any)=>setFormData(p=>({...p,defFortifications:v}))} hint="REQ: T1 Lv2" />
+                        <div className="h-6 w-px bg-sky-500/30"></div>
+                        <div className="flex gap-4">
+                            <TechNode label={t('def.infirmary_expansion')} value={formData.defInfirmaryExpansion1} onChange={(v:any)=>setFormData(p=>({...p,defInfirmaryExpansion1:v}))} hint="REQ: T2 Lv7" />
+                            <TechNode label={t('def.efficient_healing')} value={formData.defEfficientHealing} onChange={(v:any)=>setFormData(p=>({...p,defEfficientHealing:v}))} hint="REQ: T2 Lv7" />
+                        </div>
+                        <div className="h-6 w-px bg-sky-500/30"></div>
+                        <div className="flex gap-4">
+                            <TechNode label={t('def.hold_line')+" II"} value={formData.defHoldLine2} onChange={(v:any)=>setFormData(p=>({...p,defHoldLine2:v}))} hint="REQ: T3 Lv1" />
+                            <TechNode label={t('def.counter_defense')+" II"} value={formData.defCounterDefense2} onChange={(v:any)=>setFormData(p=>({...p,defCounterDefense2:v}))} hint="REQ: T3 Lv1" />
+                            <TechNode label={t('def.solid_defense')+" II"} value={formData.defSolidDefense2} onChange={(v:any)=>setFormData(p=>({...p,defSolidDefense2:v}))} hint="REQ: T3 Lv1" />
+                        </div>
+                        <div className="h-6 w-px bg-sky-500/30"></div>
+                        <div className="flex gap-4">
+                            <TechNode label={t('def.resource_protection')} value={formData.defResourceProtection} onChange={(v:any)=>setFormData(p=>({...p,defResourceProtection:v}))} hint="REQ: T4 Lv6" />
+                            <TechNode label={t('def.rapid_march')} value={formData.defRapidMarch1} onChange={(v:any)=>setFormData(p=>({...p,defRapidMarch1:v}))} hint="REQ: T5 Lv1" />
+                        </div>
+                        <div className="h-6 w-px bg-sky-500/30"></div>
+                        <div className="flex gap-4">
+                            <TechNode label={t('def.hold_line')+" III"} value={formData.defHoldLine3} onChange={(v:any)=>setFormData(p=>({...p,defHoldLine3:v}))} hint="REQ: T6 Lv4" />
+                            <TechNode label={t('def.counter_defense')+" III"} value={formData.defCounterDefense3} onChange={(v:any)=>setFormData(p=>({...p,defCounterDefense3:v}))} hint="REQ: T6 Lv4" />
+                            <TechNode label={t('def.solid_defense')+" III"} value={formData.defSolidDefense3} onChange={(v:any)=>setFormData(p=>({...p,defSolidDefense3:v}))} hint="REQ: T6 Lv4" />
+                        </div>
+                        <div className="h-6 w-px bg-sky-500/30"></div>
+                        <TechNode label={t('def.survival_skills')} value={formData.defSurvivalSkills} onChange={(v:any)=>setFormData(p=>({...p,defSurvivalSkills:v}))} hint="REQ: T7 Lv1" />
+                    </div>
+
+                    {/* Defense Local Resource Summary */}
+                    <div className="bg-black/40 border border-slate-800 p-4 rounded-lg flex justify-around shadow-inner">
+                        <div className="text-center">
+                            <span className="text-[10px] text-amber-500 block uppercase font-black tracking-widest">DEF GOLD</span>
+                            <span className="text-sm font-mono text-white font-bold">{fR(defResources.gold)}</span>
+                        </div>
+                        <div className="text-center border-x border-white/5 px-8">
+                            <span className="text-[10px] text-purple-400 block uppercase font-black tracking-widest">DEF VALOR</span>
+                            <span className="text-sm font-mono text-white font-bold">{defResources.valor.toLocaleString()}</span>
+                        </div>
+                        <div className="text-center">
+                            <span className="text-[10px] text-emerald-500 block uppercase font-black tracking-widest">DEF F/I</span>
+                            <span className="text-sm font-mono text-white font-bold">{fR(defResources.foodIron)}</span>
                         </div>
                     </div>
                 </div>

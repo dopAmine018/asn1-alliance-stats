@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Player } from '../types';
 import { MockApi, TrainApi } from '../services/mockBackend';
-import { calculateStsRemainingCost } from '../utils/gameLogic';
+import { calculateStsRemainingCost, calculateT10RemainingCost, calculateDefRemainingCost } from '../utils/gameLogic';
 import { useLanguage } from '../utils/i18n';
 import { useToast } from './Toast';
 
@@ -57,9 +57,12 @@ const PlayerSearchInput = ({ value, onChange, placeholder, candidates, onEnter }
     );
 };
 
+type TrainLogic = 'T10' | 'STS' | 'DEFENSE';
+
 const TrainManager: React.FC = () => {
   const { t } = useLanguage();
   const { addToast } = useToast();
+  const [logicMode, setLogicMode] = useState<TrainLogic>('STS');
   const [candidates, setCandidates] = useState<EnrichedPlayer[]>([]);
   const [schedule, setSchedule] = useState<TrainDay[]>([]);
   const [loading, setLoading] = useState(false);
@@ -72,10 +75,10 @@ const TrainManager: React.FC = () => {
   const hasRestoredRef = useRef(false);
 
   useEffect(() => {
-      fetchAndAnalyze();
-      const interval = setInterval(fetchAndAnalyze, 15000);
-      return () => clearInterval(interval);
-  }, []);
+    fetchAndAnalyze();
+    const interval = setInterval(fetchAndAnalyze, 15000);
+    return () => clearInterval(interval);
+  }, [logicMode]);
 
   useEffect(() => {
       if (candidates.length > 0) {
@@ -125,7 +128,11 @@ const TrainManager: React.FC = () => {
           const res = await MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false });
           
           const enriched: EnrichedPlayer[] = res.items.map(p => {
-              const cost = calculateStsRemainingCost(p);
+              let cost;
+              if (logicMode === 'T10') cost = calculateT10RemainingCost(p as any);
+              else if (logicMode === 'DEFENSE') cost = calculateDefRemainingCost(p);
+              else cost = calculateStsRemainingCost(p);
+
               return {
                   ...p,
                   remainingGold: cost.gold,
@@ -196,12 +203,12 @@ const TrainManager: React.FC = () => {
 
   const handleAutoDeploy = async () => {
     if (!candidates.length) return;
-    if (!window.confirm("AUTO-DEPLOY ENGINE:\nThis will analyze current STS progress and squad power to generate the most efficient weekly rotation.\n\nOverwrite existing schedule?")) return;
+    if (!window.confirm(`AUTO-DEPLOY ENGINE:\nThis will analyze current ${logicMode} progress and squad power to generate the most efficient weekly rotation.\n\nOverwrite existing schedule?`)) return;
 
     setLoading(true);
     const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
     
-    // Algorithm: Find players who need STS, sort by closest (lowest gold)
+    // Algorithm: Find players who need nodes, sort by closest (lowest gold)
     // Only use active players
     const activeCandidates = candidates.filter(p => p.active);
     
@@ -214,7 +221,7 @@ const TrainManager: React.FC = () => {
     const newSchedule: TrainDay[] = [];
 
     for (let i = 0; i < 7; i++) {
-        // Simple rotation for the demo, but logic prioritized STS-seekers
+        // Simple rotation for the demo, but logic prioritized logic seekers
         const pairIndex = Math.floor(i / 2) % Math.max(1, Math.floor(activeCandidates.length / 2));
         const p1 = activeCandidates[pairIndex * 2];
         const p2 = activeCandidates[pairIndex * 2 + 1];
@@ -451,19 +458,36 @@ const TrainManager: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="bg-[#0f172a] border border-slate-700 rounded-xl overflow-hidden flex flex-col h-[600px]">
-                <div className="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center gap-2">
-                    <div className="flex flex-col">
-                        <h3 className="text-sm font-bold text-sky-500 uppercase tracking-widest">{t('train.candidates')}</h3>
-                        <div className="text-[10px] text-slate-500 font-mono">{candidates.length} Found</div>
+                <div className="p-4 bg-slate-900 border-b border-slate-800 space-y-3">
+                    <div className="flex justify-between items-center gap-2">
+                        <div className="flex flex-col">
+                            <h3 className="text-sm font-bold text-sky-500 uppercase tracking-widest">{t('train.candidates')}</h3>
+                            <div className="text-[10px] text-slate-500 font-mono">{candidates.length} Found</div>
+                        </div>
+                        <div className="relative">
+                            <input 
+                                type="text" 
+                                placeholder={t('train.search')} 
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:border-sky-500 outline-none w-32 sm:w-48 font-mono"
+                            />
+                        </div>
                     </div>
-                    <div className="relative">
-                        <input 
-                            type="text" 
-                            placeholder={t('train.search')} 
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:border-sky-500 outline-none w-32 sm:w-48 font-mono"
-                        />
+                    <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar no-scrollbar">
+                        {(['STS', 'T10', 'DEFENSE'] as TrainLogic[]).map(mode => (
+                            <button
+                                key={mode}
+                                onClick={() => setLogicMode(mode)}
+                                className={`flex-1 px-3 py-1.5 rounded text-[9px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
+                                    logicMode === mode 
+                                    ? 'bg-sky-500 text-white' 
+                                    : 'bg-slate-950 text-slate-500 border border-slate-800 hover:border-slate-700'
+                                }`}
+                            >
+                                {mode} SORT
+                            </button>
+                        ))}
                     </div>
                 </div>
                 
@@ -473,7 +497,7 @@ const TrainManager: React.FC = () => {
                             <tr>
                                 <th className="px-4 py-3">#</th>
                                 <th className="px-4 py-3">{t('admin.identity')}</th>
-                                <th className="px-4 py-3 text-center">STS Adv</th>
+                                <th className="px-4 py-3 text-center">{logicMode} Adv</th>
                                 <th className="px-4 py-3 text-right">Gold</th>
                             </tr>
                         </thead>
@@ -489,9 +513,27 @@ const TrainManager: React.FC = () => {
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <div className="flex justify-center gap-1 text-[9px] font-mono">
-                                            <span className="bg-sky-900/40 text-sky-400 px-1 rounded">{p.stsFinalStand1 || 0}</span>
-                                            <span className="bg-emerald-900/40 text-emerald-400 px-1 rounded">{p.stsFierceAssault1 || 0}</span>
-                                            <span className="bg-rose-900/40 text-rose-400 px-1 rounded">{p.stsVigilantFormation1 || 0}</span>
+                                            {logicMode === 'STS' && (
+                                                <>
+                                                    <span className="bg-sky-900/40 text-sky-400 px-1 rounded">{p.stsFinalStand1 || 0}</span>
+                                                    <span className="bg-emerald-900/40 text-emerald-400 px-1 rounded">{p.stsFierceAssault1 || 0}</span>
+                                                    <span className="bg-rose-900/40 text-rose-400 px-1 rounded">{p.stsVigilantFormation1 || 0}</span>
+                                                </>
+                                            )}
+                                            {logicMode === 'T10' && (
+                                                <>
+                                                    <span className="bg-sky-900/40 text-sky-400 px-1 rounded">{p.t10Protection || 0}</span>
+                                                    <span className="bg-emerald-900/40 text-emerald-400 px-1 rounded">{p.t10Hp || 0}</span>
+                                                    <span className="bg-rose-900/40 text-rose-400 px-1 rounded">{p.t10Atk || 0}</span>
+                                                </>
+                                            )}
+                                            {logicMode === 'DEFENSE' && (
+                                                <>
+                                                    <span className="bg-sky-900/40 text-sky-400 px-1 rounded">{p.defHoldLine1 || 0}</span>
+                                                    <span className="bg-emerald-900/40 text-emerald-400 px-1 rounded">{p.defCounterDefense1 || 0}</span>
+                                                    <span className="bg-rose-900/40 text-rose-400 px-1 rounded">{p.defSolidDefense1 || 0}</span>
+                                                </>
+                                            )}
                                         </div>
                                     </td>
                                     <td className={`px-4 py-3 text-right font-mono font-bold ${p.remainingGold === 0 ? 'text-emerald-500' : 'text-amber-500'}`}>
