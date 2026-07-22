@@ -34,7 +34,7 @@ type TranslationKey =
   | 'day.mon' | 'day.tue' | 'day.wed' | 'day.thu' | 'day.fri' | 'day.sat' | 'day.sun'
   | 'tab.profile' | 'tab.duel' | 'tab.t10' | 'tab.sts' | 'tab.def' | 'tab.mastery' | 'tab.buildings'
   | 'mastery.air' | 'mastery.tank' | 'mastery.missile'
-  | 'storm.title' | 'storm.desc' | 'storm.join' | 'storm.tactical_copy' | 'storm.applying_open' | 'storm.registration_closed' | 'storm.your_time' | 'storm.net_power'
+  | 'storm.title' | 'storm.desc' | 'storm.join' | 'storm.tactical_copy' | 'storm.applying_open' | 'storm.registration_closed' | 'storm.your_time' | 'storm.net_power' | 'storm.squad_power'
   | 'storm.main_offensive' | 'storm.reserves' | 'storm.identify_profile' | 'storm.enter_commander' | 'storm.clear' | 'storm.select_time'
   | 'storm.either_time' | 'storm.submit_app' | 'storm.apply_slot' | 'storm.team' | 'uplink.active' | 'uplink.offline' | 'uplink.syncing'
   | 'train.synced_hq' | 'train.defending' | 'train.no_orders' | 'train.check_back'
@@ -220,6 +220,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'storm.registration_closed': 'Registration Closed',
     'storm.your_time': 'Your Time',
     'storm.net_power': 'Net Power',
+    'storm.squad_power': 'First Squad Power',
     'storm.main_offensive': 'Squad 1 (Main Offensive)',
     'storm.reserves': 'Squad 1 (Reserves)',
     'storm.identify_profile': 'Identify Your Profile',
@@ -417,6 +418,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'storm.registration_closed': 'التسجيل مغلق',
     'storm.your_time': 'توقيتك',
     'storm.net_power': 'القوة الصافية',
+    'storm.squad_power': 'قوة القوة الأولى',
     'storm.main_offensive': 'الفريق 1 (الهجوم الرئيسي)',
     'storm.reserves': 'الفريق 1 (الاحتياط)',
     'storm.identify_profile': 'التعريف بملفك الشخصي',
@@ -614,6 +616,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'storm.registration_closed': 'Kayıtlar Kapalı',
     'storm.your_time': 'Senin Saatin',
     'storm.net_power': 'Net Güç',
+    'storm.squad_power': '1. Takım Gücü',
     'storm.main_offensive': 'Manga 1 (Ana Saldırı)',
     'storm.reserves': 'Manga 1 (Yedekler)',
     'storm.identify_profile': 'Profilini Tanımla',
@@ -811,6 +814,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     'storm.registration_closed': 'Pendaftaran Ditutup',
     'storm.your_time': 'Waktu Anda',
     'storm.net_power': 'Kekuatan Bersih',
+    'storm.squad_power': 'Kekuatan Skuad Utama',
     'storm.main_offensive': 'Pasukan 1 (Ofensif Utama)',
     'storm.reserves': 'Pasukan 1 (Cadangan)',
     'storm.identify_profile': 'Identifikasi Profil Anda',

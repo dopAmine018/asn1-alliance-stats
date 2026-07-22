@@ -26,6 +26,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
     
     const [showRegister, setShowRegister] = useState(false);
     const [regName, setRegName] = useState('');
+    const [regPower, setRegPower] = useState<string>('');
     const [regTime, setRegTime] = useState<'14:00' | '23:00' | 'ANY'>('ANY');
     const [searchCandidates, setSearchCandidates] = useState<Player[]>([]);
     const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -107,6 +108,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
     const handleSearch = async (val: string) => {
         setRegName(val);
         setSelectedPlayer(null);
+        setRegPower('');
         if (val.length >= 2) {
             const res = await MockApi.getPlayers({ search: val, language: 'all', sort: 'power_desc', activeOnly: true });
             setSearchCandidates(res.items.slice(0, 8));
@@ -120,12 +122,29 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
             addToast('error', 'Select your profile');
             return;
         }
+
+        const numVal = parseFloat(regPower.replace(/,/g, '.'));
+        if (isNaN(numVal) || numVal <= 0) {
+            addToast('error', 'Please enter a valid First Squad Power');
+            return;
+        }
+
         try {
+            const updatedPower = numVal < 10000 ? Math.round(numVal * 1000000) : Math.round(numVal);
+
+            // Automatically update player's first squad power in database
+            await MockApi.upsertPlayer({
+                ...selectedPlayer,
+                firstSquadPower: updatedPower
+            });
+
             await DesertStormApi.register(selectedPlayer.id, regTime);
-            addToast('success', `Applied: ${selectedPlayer.name}`);
+            addToast('success', `Applied & Power Updated: ${selectedPlayer.name}`);
             setShowRegister(false);
             setRegName('');
+            setRegPower('');
             setSelectedPlayer(null);
+            fetchTeams();
         } catch (e: any) {
             addToast('error', 'Sync Failed');
         }
@@ -258,18 +277,36 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                 {selectedPlayer ? (
                                     <div className="bg-sky-500/10 border border-sky-500/30 p-3 rounded-xl flex justify-between items-center">
                                         <span className="text-sm font-bold text-white uppercase">{selectedPlayer.name}</span>
-                                        <button onClick={() => setSelectedPlayer(null)} className="text-[9px] font-black text-slate-500 hover:text-rose-500 uppercase">{t('storm.clear')}</button>
+                                        <button onClick={() => { setSelectedPlayer(null); setRegPower(''); }} className="text-[9px] font-black text-slate-500 hover:text-rose-500 uppercase">{t('storm.clear')}</button>
                                     </div>
                                 ) : searchCandidates.length > 0 && (
                                     <div className="bg-slate-950 border border-slate-800 rounded-xl mt-1 divide-y divide-slate-800 max-h-40 overflow-y-auto">
                                         {searchCandidates.map(p => (
-                                            <button key={p.id} onClick={() => { setSelectedPlayer(p); setRegName(p.name); setSearchCandidates([]); }} className="w-full px-4 py-3 hover:bg-sky-500/10 text-left flex justify-between">
+                                            <button key={p.id} onClick={() => { setSelectedPlayer(p); setRegName(p.name); setRegPower((p.firstSquadPower / 1000000).toFixed(1)); setSearchCandidates([]); }} className="w-full px-4 py-3 hover:bg-sky-500/10 text-left flex justify-between">
                                                 <span className="text-xs text-slate-300 font-bold">{p.name}</span>
                                                 <span className="text-[10px] text-sky-500 font-mono">{(p.firstSquadPower/1000000).toFixed(1)}M</span>
                                             </button>
                                         ))}
                                     </div>
                                 )}
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('storm.squad_power')}</label>
+                                <div className="relative">
+                                    <input 
+                                        type="number"
+                                        step="0.1"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-sky-500 outline-none transition-all placeholder-slate-700 text-sm font-mono pr-12"
+                                        value={regPower}
+                                        onChange={(e) => setRegPower(e.target.value)}
+                                        placeholder="e.g. 25.5"
+                                    />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-sky-500 font-mono pointer-events-none">
+                                        M
+                                    </div>
+                                </div>
+                                <p className="text-[9px] text-slate-500 font-mono">Updates database profile automatically upon submission.</p>
                             </div>
                             <div className="space-y-4">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('storm.select_time')}</label>
