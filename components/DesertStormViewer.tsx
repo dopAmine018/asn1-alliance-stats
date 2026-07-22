@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DesertStormApi, MockApi } from '../services/mockBackend';
-import { Player } from '../types';
+import { Player, DesertStormRegistration } from '../types';
 import { useLanguage } from '../utils/i18n';
 import { useToast } from './Toast';
 
@@ -21,6 +21,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
     const { t, dir } = useLanguage();
     const { addToast } = useToast();
     const [data, setData] = useState<HydratedTeam>({ teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] });
+    const [registrations, setRegistrations] = useState<DesertStormRegistration[]>([]);
     const [loading, setLoading] = useState(true);
     const [allowRegistration, setAllowRegistration] = useState(initialAllowRegistration);
     
@@ -37,10 +38,11 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
 
     const fetchTeams = async () => {
         try {
-            const [teams, playersRes, settings] = await Promise.all([
+            const [teams, playersRes, settings, regs] = await Promise.all([
                 DesertStormApi.getTeams(),
                 MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false }),
-                MockApi.getSettings()
+                MockApi.getSettings(),
+                DesertStormApi.getRegistrations()
             ]);
             const allPlayers = playersRes.items;
 
@@ -53,6 +55,9 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                     teamBSubs: hydrate(teams.teamBSubs),
                 });
             }
+            if (regs) {
+                setRegistrations(regs);
+            }
             if (settings && typeof settings.allow_storm_registration === 'boolean') {
                 setAllowRegistration(settings.allow_storm_registration);
             }
@@ -62,6 +67,41 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
             setLoading(false);
         }
     };
+
+    // Capacity Logic: 30 for Team A (20 Main + 10 Subs), 30 for Team B (20 Main + 10 Subs) = 60 Total
+    const TEAM_A_CAPACITY = 30;
+    const TEAM_B_CAPACITY = 30;
+    const TOTAL_CAPACITY = 60;
+
+    const assignedA = data.teamAMain.length + data.teamASubs.length;
+    const assignedB = data.teamBMain.length + data.teamBSubs.length;
+
+    const regsA = registrations.filter(r => r.preference === '14:00').length;
+    const regsB = registrations.filter(r => r.preference === '23:00').length;
+
+    const uniqueParticipantIds = new Set([
+        ...data.teamAMain.map(p => p.id),
+        ...data.teamASubs.map(p => p.id),
+        ...data.teamBMain.map(p => p.id),
+        ...data.teamBSubs.map(p => p.id),
+        ...registrations.map(r => r.playerId)
+    ]);
+
+    const countA = Math.max(assignedA, regsA);
+    const countB = Math.max(assignedB, regsB);
+    const totalOccupied = uniqueParticipantIds.size;
+
+    const slotsLeftA = Math.max(0, TEAM_A_CAPACITY - countA);
+    const slotsLeftB = Math.max(0, TEAM_B_CAPACITY - countB);
+    const totalSlotsLeft = Math.max(0, TOTAL_CAPACITY - totalOccupied);
+
+    const isAlreadyRegistered = selectedPlayer ? (
+        registrations.some(r => r.playerId === selectedPlayer.id) ||
+        data.teamAMain.some(p => p.id === selectedPlayer.id) ||
+        data.teamASubs.some(p => p.id === selectedPlayer.id) ||
+        data.teamBMain.some(p => p.id === selectedPlayer.id) ||
+        data.teamBSubs.some(p => p.id === selectedPlayer.id)
+    ) : false;
 
     const getLocalTime = (gmt3Hour: number) => {
         const date = new Date();
@@ -134,6 +174,22 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
             return;
         }
 
+        // Validate slot limits if new application
+        if (!isAlreadyRegistered) {
+            if (regTime === '14:00' && slotsLeftA <= 0) {
+                addToast('error', 'Team A (14:00) is currently full (30/30 slots taken)');
+                return;
+            }
+            if (regTime === '23:00' && slotsLeftB <= 0) {
+                addToast('error', 'Team B (23:00) is currently full (30/30 slots taken)');
+                return;
+            }
+            if (regTime === 'ANY' && totalSlotsLeft <= 0) {
+                addToast('error', 'All Desert Storm slots are currently full (60/60 taken)');
+                return;
+            }
+        }
+
         try {
             const updatedPower = numVal < 10000 ? Math.round(numVal * 1000000) : Math.round(numVal);
 
@@ -192,10 +248,20 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                         <p className="text-[10px] text-slate-500 font-mono tracking-widest uppercase">{t('storm.desc')}</p>
                     </div>
                 </div>
-                <div className="flex gap-2 w-full sm:w-auto">
+                <div className="flex gap-2 w-full sm:w-auto items-center">
                     {allowRegistration ? (
-                        <button onClick={() => setShowRegister(true)} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-900/10 transition-all">
-                             {t('storm.join')}
+                        <button 
+                            onClick={() => setShowRegister(true)} 
+                            className={`flex-1 sm:flex-none px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                                totalSlotsLeft > 0 
+                                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl shadow-emerald-900/10' 
+                                    : 'bg-amber-600 hover:bg-amber-500 text-white shadow-xl'
+                            }`}
+                        >
+                            <span>{t('storm.join')}</span>
+                            <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-black/30 font-bold">
+                                {totalSlotsLeft}/60 {t('storm.slots_left')}
+                            </span>
                         </button>
                     ) : (
                         <div className="flex-1 sm:flex-none bg-rose-500/10 border border-rose-500/20 text-rose-400 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
@@ -224,10 +290,20 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                     <div className="bg-[#0f172a] rounded-2xl border border-amber-500/30 overflow-hidden shadow-2xl">
                          <div className="p-5 bg-gradient-to-r from-amber-500/10 to-transparent flex justify-between items-center border-b border-amber-500/20">
                             <div>
-                                <h3 className="text-2xl font-header font-black text-white">{t('storm.team')} A</h3>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-2xl font-header font-black text-white">{t('storm.team')} A</h3>
+                                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                                        slotsLeftA > 0 
+                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                                            : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                                    }`}>
+                                        {slotsLeftA > 0 ? `${slotsLeftA}/30 ${t('storm.slots_left')}` : t('storm.slots_full')}
+                                    </span>
+                                </div>
                                 <div className="flex items-center gap-2 mt-1">
                                     <span className="text-[10px] font-mono font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">14:00 GMT+3</span>
                                     <span className="text-[10px] font-mono font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded uppercase">{t('storm.your_time')}: {getLocalTime(14)}</span>
+                                    <span className="text-[9px] font-mono text-slate-500">({data.teamAMain.length}/20 Main, {data.teamASubs.length}/10 Subs)</span>
                                 </div>
                             </div>
                             <div className="text-right">
@@ -244,10 +320,20 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                     <div className="bg-[#0f172a] rounded-2xl border border-sky-500/30 overflow-hidden shadow-2xl">
                          <div className="p-5 bg-gradient-to-r from-sky-500/10 to-transparent flex justify-between items-center border-b border-sky-500/20">
                             <div>
-                                <h3 className="text-2xl font-header font-black text-white">{t('storm.team')} B</h3>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-2xl font-header font-black text-white">{t('storm.team')} B</h3>
+                                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                                        slotsLeftB > 0 
+                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                                            : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                                    }`}>
+                                        {slotsLeftB > 0 ? `${slotsLeftB}/30 ${t('storm.slots_left')}` : t('storm.slots_full')}
+                                    </span>
+                                </div>
                                 <div className="flex items-center gap-2 mt-1">
                                     <span className="text-[10px] font-mono font-bold text-sky-500 bg-sky-500/10 px-2 py-0.5 rounded">23:00 GMT+3</span>
                                     <span className="text-[10px] font-mono font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded uppercase">{t('storm.your_time')}: {getLocalTime(23)}</span>
+                                    <span className="text-[9px] font-mono text-slate-500">({data.teamBMain.length}/20 Main, {data.teamBSubs.length}/10 Subs)</span>
                                 </div>
                             </div>
                             <div className="text-right">
@@ -270,7 +356,35 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                             <h3 className="text-sm font-header font-black text-white uppercase tracking-widest">{t('storm.apply_slot')}</h3>
                             <button onClick={() => setShowRegister(false)} className="text-slate-500 hover:text-white transition-colors">✕</button>
                         </div>
-                        <div className="p-6 space-y-8">
+                        <div className="p-6 space-y-6">
+                            {/* Roster Capacity Breakdown Banner */}
+                            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider font-mono">Slot Availability</span>
+                                    <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded border ${
+                                        totalSlotsLeft > 0 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                                    }`}>
+                                        {totalSlotsLeft > 0 ? `${totalSlotsLeft} / 60 ${t('storm.slots_left')}` : t('storm.slots_full')}
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                                    <div className="bg-slate-900/80 p-2.5 rounded-lg border border-amber-500/20 flex flex-col gap-0.5">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-amber-400 font-bold">Team A (14:00)</span>
+                                            <span className="text-white font-bold">{slotsLeftA}/30</span>
+                                        </div>
+                                        <span className="text-[9px] text-slate-500">20 Main + 10 Subs</span>
+                                    </div>
+                                    <div className="bg-slate-900/80 p-2.5 rounded-lg border border-sky-500/20 flex flex-col gap-0.5">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sky-400 font-bold">Team B (23:00)</span>
+                                            <span className="text-white font-bold">{slotsLeftB}/30</span>
+                                        </div>
+                                        <span className="text-[9px] text-slate-500">20 Main + 10 Subs</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="space-y-3">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('storm.identify_profile')}</label>
                                 <input 
@@ -281,7 +395,14 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                 />
                                 {selectedPlayer ? (
                                     <div className="bg-sky-500/10 border border-sky-500/30 p-3 rounded-xl flex justify-between items-center">
-                                        <span className="text-sm font-bold text-white uppercase">{selectedPlayer.name}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold text-white uppercase">{selectedPlayer.name}</span>
+                                            {isAlreadyRegistered && (
+                                                <span className="text-[9px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 font-mono">
+                                                    Updating Application
+                                                </span>
+                                            )}
+                                        </div>
                                         <button onClick={() => { setSelectedPlayer(null); setRegPower(''); }} className="text-[9px] font-black text-slate-500 hover:text-rose-500 uppercase">{t('storm.clear')}</button>
                                     </div>
                                 ) : searchCandidates.length > 0 && (
@@ -317,31 +438,75 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                 </div>
                                 <p className="text-[9px] text-slate-400 font-mono">Updating your squad power is mandatory to register and will automatically update your profile in the database.</p>
                             </div>
-                            <div className="space-y-4">
+
+                            <div className="space-y-3">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('storm.select_time')}</label>
                                 <div className="grid grid-cols-1 gap-2">
                                     {[
-                                        { val: '14:00', label: `${t('storm.team')} A (${getLocalTime(14)} LOCAL)` },
-                                        { val: '23:00', label: `${t('storm.team')} B (${getLocalTime(23)} LOCAL)` },
-                                        { val: 'ANY', label: t('storm.either_time') }
-                                    ].map(opt => (
-                                        <button 
-                                            key={opt.val} 
-                                            onClick={() => setRegTime(opt.val as any)} 
-                                            className={`w-full py-4 px-4 rounded-xl border text-[10px] font-black transition-all flex justify-between items-center ${regTime === opt.val ? 'bg-sky-600 border-sky-400 text-white shadow-lg' : 'bg-slate-950 border-slate-800 text-slate-500'}`}
-                                        >
-                                            {opt.label}
-                                            {regTime === opt.val && <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
-                                        </button>
-                                    ))}
+                                        { val: '14:00', label: `${t('storm.team')} A (${getLocalTime(14)} LOCAL)`, slotsLeft: slotsLeftA, max: 30 },
+                                        { val: '23:00', label: `${t('storm.team')} B (${getLocalTime(23)} LOCAL)`, slotsLeft: slotsLeftB, max: 30 },
+                                        { val: 'ANY', label: t('storm.either_time'), slotsLeft: totalSlotsLeft, max: 60 }
+                                    ].map(opt => {
+                                        const isSelected = regTime === opt.val;
+                                        const isSlotFull = opt.slotsLeft <= 0 && !isAlreadyRegistered;
+
+                                        return (
+                                            <button 
+                                                key={opt.val} 
+                                                disabled={isSlotFull}
+                                                onClick={() => setRegTime(opt.val as any)} 
+                                                className={`w-full py-3.5 px-4 rounded-xl border text-[10px] font-black transition-all flex justify-between items-center ${
+                                                    isSlotFull 
+                                                        ? 'bg-slate-950/50 border-rose-900/30 text-slate-600 cursor-not-allowed' 
+                                                        : isSelected 
+                                                            ? 'bg-sky-600 border-sky-400 text-white shadow-lg' 
+                                                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <span>{opt.label}</span>
+                                                    {isSlotFull && (
+                                                        <span className="text-[8px] bg-rose-500/10 border border-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded font-mono font-bold">
+                                                            FULL
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-[9px] font-mono px-2 py-0.5 rounded font-bold ${
+                                                        isSelected ? 'bg-black/30 text-white' : 'bg-slate-900 text-slate-500'
+                                                    }`}>
+                                                        {opt.slotsLeft}/{opt.max} Left
+                                                    </span>
+                                                    {isSelected && <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
-                        <div className="p-6 bg-slate-900/50 border-t border-white/5">
+                        <div className="p-6 bg-slate-900/50 border-t border-white/5 space-y-2">
+                            {((regTime === '14:00' && slotsLeftA <= 0) || (regTime === '23:00' && slotsLeftB <= 0) || (regTime === 'ANY' && totalSlotsLeft <= 0)) && !isAlreadyRegistered && (
+                                <p className="text-[10px] text-rose-400 text-center font-bold font-mono">
+                                    Selected slot is currently full.
+                                </p>
+                            )}
                             <button 
                                 onClick={submitRegistration} 
-                                disabled={!selectedPlayer || !regPower || parseFloat(regPower) <= 0}
-                                className={`w-full py-4 rounded-xl font-header font-black uppercase tracking-widest text-xs transition-all ${selectedPlayer && regPower && parseFloat(regPower) > 0 ? 'bg-sky-600 text-white shadow-lg hover:bg-sky-500' : 'bg-slate-800 text-slate-500 opacity-50 cursor-not-allowed'}`}
+                                disabled={
+                                    !selectedPlayer || 
+                                    !regPower || 
+                                    parseFloat(regPower) <= 0 || 
+                                    (((regTime === '14:00' && slotsLeftA <= 0) || (regTime === '23:00' && slotsLeftB <= 0) || (regTime === 'ANY' && totalSlotsLeft <= 0)) && !isAlreadyRegistered)
+                                }
+                                className={`w-full py-4 rounded-xl font-header font-black uppercase tracking-widest text-xs transition-all ${
+                                    selectedPlayer && 
+                                    regPower && 
+                                    parseFloat(regPower) > 0 && 
+                                    (isAlreadyRegistered || (regTime === '14:00' ? slotsLeftA > 0 : regTime === '23:00' ? slotsLeftB > 0 : totalSlotsLeft > 0))
+                                        ? 'bg-sky-600 text-white shadow-lg hover:bg-sky-500' 
+                                        : 'bg-slate-800 text-slate-500 opacity-50 cursor-not-allowed'
+                                }`}
                             >
                                 {t('storm.submit_app')}
                             </button>
