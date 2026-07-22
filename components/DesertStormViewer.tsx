@@ -123,9 +123,14 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
             return;
         }
 
+        if (!regPower || regPower.trim() === '') {
+            addToast('error', 'First Squad Power update is required to submit');
+            return;
+        }
+
         const numVal = parseFloat(regPower.replace(/,/g, '.'));
         if (isNaN(numVal) || numVal <= 0) {
-            addToast('error', 'Please enter a valid First Squad Power');
+            addToast('error', 'Please enter a valid First Squad Power (e.g. 25.5)');
             return;
         }
 
@@ -292,11 +297,15 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                             </div>
 
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('storm.squad_power')}</label>
+                                <div className="flex justify-between items-center">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('storm.squad_power')}</label>
+                                    <span className="text-[9px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">REQUIRED *</span>
+                                </div>
                                 <div className="relative">
                                     <input 
                                         type="number"
                                         step="0.1"
+                                        required
                                         className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-sky-500 outline-none transition-all placeholder-slate-700 text-sm font-mono pr-12"
                                         value={regPower}
                                         onChange={(e) => setRegPower(e.target.value)}
@@ -306,7 +315,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                         M
                                     </div>
                                 </div>
-                                <p className="text-[9px] text-slate-500 font-mono">Updates database profile automatically upon submission.</p>
+                                <p className="text-[9px] text-slate-400 font-mono">Updating your squad power is mandatory to register and will automatically update your profile in the database.</p>
                             </div>
                             <div className="space-y-4">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('storm.select_time')}</label>
@@ -331,8 +340,8 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                         <div className="p-6 bg-slate-900/50 border-t border-white/5">
                             <button 
                                 onClick={submitRegistration} 
-                                disabled={!selectedPlayer}
-                                className={`w-full py-4 rounded-xl font-header font-black uppercase tracking-widest text-xs transition-all ${selectedPlayer ? 'bg-sky-600 text-white shadow-lg' : 'bg-slate-800 text-slate-500 opacity-50 cursor-not-allowed'}`}
+                                disabled={!selectedPlayer || !regPower || parseFloat(regPower) <= 0}
+                                className={`w-full py-4 rounded-xl font-header font-black uppercase tracking-widest text-xs transition-all ${selectedPlayer && regPower && parseFloat(regPower) > 0 ? 'bg-sky-600 text-white shadow-lg hover:bg-sky-500' : 'bg-slate-800 text-slate-500 opacity-50 cursor-not-allowed'}`}
                             >
                                 {t('storm.submit_app')}
                             </button>
