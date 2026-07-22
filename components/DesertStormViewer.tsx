@@ -17,11 +17,12 @@ interface DesertStormViewerProps {
     allowRegistration?: boolean;
 }
 
-const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateProfile, allowRegistration = true }) => {
+const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateProfile, allowRegistration: initialAllowRegistration = true }) => {
     const { t, dir } = useLanguage();
     const { addToast } = useToast();
     const [data, setData] = useState<HydratedTeam>({ teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] });
     const [loading, setLoading] = useState(true);
+    const [allowRegistration, setAllowRegistration] = useState(initialAllowRegistration);
     
     const [showRegister, setShowRegister] = useState(false);
     const [regName, setRegName] = useState('');
@@ -35,8 +36,11 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
 
     const fetchTeams = async () => {
         try {
-            const teams = await DesertStormApi.getTeams();
-            const playersRes = await MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false });
+            const [teams, playersRes, settings] = await Promise.all([
+                DesertStormApi.getTeams(),
+                MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false }),
+                MockApi.getSettings()
+            ]);
             const allPlayers = playersRes.items;
 
             if (teams) {
@@ -47,6 +51,9 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                     teamBMain: hydrate(teams.teamBMain),
                     teamBSubs: hydrate(teams.teamBSubs),
                 });
+            }
+            if (settings && typeof settings.allow_storm_registration === 'boolean') {
+                setAllowRegistration(settings.allow_storm_registration);
             }
         } catch (e) {
             console.error(e);
@@ -162,10 +169,15 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                     </div>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
-                    {allowRegistration && (
+                    {allowRegistration ? (
                         <button onClick={() => setShowRegister(true)} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-900/10 transition-all">
                              {t('storm.join')}
                         </button>
+                    ) : (
+                        <div className="flex-1 sm:flex-none bg-rose-500/10 border border-rose-500/20 text-rose-400 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                             <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                             {t('storm.registration_closed')}
+                        </div>
                     )}
                     
                     <button 

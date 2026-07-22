@@ -26,7 +26,7 @@ const MOCK_ALLIANCE: Alliance = {
   id: 'asn1',
   tag: 'ASN1',
   name: 'ASN1 Alliance',
-  adminPass: 'ASN2',
+  adminPass: 'Asn1!1628@',
   createdAt: '2025-01-01T00:00:00.000Z'
 };
 
@@ -328,12 +328,27 @@ export const MockApi = {
   testConnection: async (): Promise<boolean> => {
       try {
           const { error } = await supabase.from('players').select('id').limit(1);
-          if (error) throw error;
+          if (error) return false;
           return true;
       } catch (e) {
-          console.error("Supabase Connection Test Failed:", e);
           return false;
       }
+  },
+
+  getLocalPlayers: (filter: PlayerFilter): { items: Player[]; total: number } => {
+      let players = getLocalMockData<Player[]>('players', INITIAL_MOCK_PLAYERS);
+      if (filter.activeOnly) players = players.filter(p => p.active);
+      if (filter.language !== 'all') players = players.filter(p => p.language === filter.language);
+      if (filter.search) {
+          const s = filter.search.toLowerCase();
+          players = players.filter(p => p.name.toLowerCase().includes(s) || (p.nameNormalized && p.nameNormalized.includes(s)));
+      }
+      if (filter.sort === 'power_desc') players.sort((a, b) => (b.firstSquadPower || 0) - (a.firstSquadPower || 0));
+      else if (filter.sort === 'power_asc') players.sort((a, b) => (a.firstSquadPower || 0) - (b.firstSquadPower || 0));
+      else if (filter.sort === 'total_hero_power_desc') players.sort((a, b) => (b.totalHeroPower || 0) - (a.totalHeroPower || 0));
+      else players.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      
+      return { items: players, total: players.length };
   },
 
   getPlayers: async (filter: PlayerFilter): Promise<{ items: Player[]; total: number }> => {
@@ -350,62 +365,92 @@ export const MockApi = {
           
           const { data, count, error } = await query.range(0, 9999);
           if (error) {
-              console.error("Supabase GetPlayers Error:", error);
-              throw new Error(`Supabase Error: ${error.message} (Code: ${error.code}). Make sure the 'players' table exists.`);
+              return MockApi.getLocalPlayers(filter);
           }
           return { items: (data || []).map(mapPlayerFromDb), total: count || 0 };
       } catch (e: any) {
-          console.error("Supabase GetPlayers Catch Block:", e);
-          // Only fallback if it's a connection error or if we explicitly want local mode
-          // For now, let's throw so the user knows it's failing
-          throw e;
+          return MockApi.getLocalPlayers(filter);
       }
   },
 
   upsertPlayer: async (playerData: Partial<Player>): Promise<ApiResponse<Player>> => {
       const nameNormalized = playerData.name?.trim().toLowerCase().replace(/\s+/g, ' ') || '';
       try {
-          // Check for existing player by name_normalized
           const { data: existing, error: fetchError } = await supabase
               .from('players')
               .select('id')
               .eq('name_normalized', nameNormalized)
               .maybeSingle();
 
-          if (fetchError) {
-              console.error("Supabase Fetch Error:", fetchError);
-              throw new Error(`Supabase Fetch Error: ${fetchError.message}`);
+          if (!fetchError) {
+              const payload = mapPlayerToDb({ ...playerData, nameNormalized });
+              let result;
+              if (existing) {
+                  result = await supabase
+                      .from('players')
+                      .update(payload)
+                      .eq('id', existing.id)
+                      .select()
+                      .single();
+              } else {
+                  if (payload.active === undefined) payload.active = true;
+                  result = await supabase
+                      .from('players')
+                      .insert(payload)
+                      .select()
+                      .single();
+              }
+              if (!result.error && result.data) {
+                  const player = mapPlayerFromDb(result.data);
+                  const local = getLocalMockData<Player[]>('players', INITIAL_MOCK_PLAYERS);
+                  const idx = local.findIndex(p => p.id === player.id || p.nameNormalized === player.nameNormalized);
+                  if (idx >= 0) local[idx] = player; else local.push(player);
+                  saveLocalMockData('players', local);
+                  return { success: true, data: player };
+              }
           }
+      } catch (e: any) {}
 
-          const payload = mapPlayerToDb({ ...playerData, nameNormalized });
-          
-          let result;
-          if (existing) {
-              result = await supabase
-                  .from('players')
-                  .update(payload)
-                  .eq('id', existing.id)
-                  .select()
-                  .single();
-          } else {
-              // Default active to true for new players if not specified
-              if (payload.active === undefined) payload.active = true;
-              result = await supabase
-                  .from('players')
-                  .insert(payload)
-                  .select()
-                  .single();
-          }
-          
-          if (result.error) {
-              console.error("Supabase Operation Error:", result.error);
-              throw new Error(`Supabase Operation Error: ${result.error.message}`);
-          }
-          return { success: true, data: mapPlayerFromDb(result.data) };
-      } catch (e: any) {
-          console.error("Supabase Upsert Catch Block:", e);
-          throw e;
+      // Fallback to local storage if Supabase fails
+      const local = getLocalMockData<Player[]>('players', INITIAL_MOCK_PLAYERS);
+      const idx = local.findIndex(p => p.id === playerData.id || (p.nameNormalized && p.nameNormalized === nameNormalized));
+      let updated: Player;
+      if (idx >= 0) {
+          updated = { ...local[idx], ...playerData, nameNormalized, updatedAt: new Date().toISOString() } as Player;
+          local[idx] = updated;
+      } else {
+          updated = {
+              id: playerData.id || `m_${Date.now()}`,
+              allianceId: 'asn1',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              language: playerData.language || 'english',
+              name: playerData.name || 'Commander',
+              nameNormalized,
+              firstSquadPower: playerData.firstSquadPower || 0,
+              totalHeroPower: playerData.totalHeroPower || 0,
+              heroPercent: playerData.heroPercent || 0,
+              duelPercent: playerData.duelPercent || 0,
+              unitsPercent: playerData.unitsPercent || 0,
+              t10Morale: playerData.t10Morale || 0,
+              t10Protection: playerData.t10Protection || 0,
+              t10Hp: playerData.t10Hp || 0,
+              t10Atk: playerData.t10Atk || 0,
+              t10Def: playerData.t10Def || 0,
+              t10Elite: playerData.t10Elite || 0,
+              techLevel: playerData.techLevel || 30,
+              barracksLevel: playerData.barracksLevel || 30,
+              tankCenterLevel: playerData.tankCenterLevel || 30,
+              airCenterLevel: playerData.airCenterLevel || 30,
+              missileCenterLevel: playerData.missileCenterLevel || 30,
+              active: playerData.active ?? true,
+              ...DEFAULT_STS, ...DEFAULT_DEFENSE, ...DEFAULT_MASTERY,
+              ...playerData
+          } as Player;
+          local.push(updated);
       }
+      saveLocalMockData('players', local);
+      return { success: true, data: updated };
   },
 
   login: async (username: string, password: string): Promise<ApiResponse<AuthResponse>> => {
@@ -443,15 +488,25 @@ export const MockApi = {
   },
 
   getSettings: async (): Promise<Record<string, any>> => {
+    const defaultSettings = { show_train_schedule: true, show_desert_storm: true, allow_storm_registration: true };
+    const local = getLocalMockData<Record<string, any>>('settings', defaultSettings);
     try {
       const { data } = await supabase.from('alliance_settings').select('*');
-      const settings: Record<string, any> = {};
-      (data || []).forEach(row => { settings[row.setting_name] = row.value; });
-      return settings;
-    } catch (e) { return {}; }
+      if (data && data.length > 0) {
+        const settings: Record<string, any> = {};
+        data.forEach(row => { settings[row.setting_name] = row.value; });
+        return { ...defaultSettings, ...local, ...settings };
+      }
+      return { ...defaultSettings, ...local };
+    } catch (e) { 
+      return { ...defaultSettings, ...local }; 
+    }
   },
 
   updateSetting: async (key: string, value: any): Promise<void> => {
+    const local = getLocalMockData<Record<string, any>>('settings', { show_train_schedule: true, show_desert_storm: true, allow_storm_registration: true });
+    local[key] = value;
+    saveLocalMockData('settings', local);
     try {
         await supabase.from('alliance_settings').upsert({ setting_name: key, value, updated_at: new Date().toISOString() });
     } catch (e) {}

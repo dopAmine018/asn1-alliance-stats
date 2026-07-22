@@ -254,7 +254,13 @@ const AdminDashboard: React.FC = () => {
                 <div className="overflow-x-auto custom-scrollbar">
                     <table className="w-full text-left text-sm text-slate-400">
                         <thead className="bg-slate-950 text-[9px] uppercase font-bold text-slate-600 tracking-widest border-b border-white/5">
-                            <tr> <th className="px-8 py-5">{t('admin.status')}</th> <th className="px-8 py-5">{t('label.name')}</th> <th className="px-8 py-5">Power Rating</th> <th className="px-8 py-5">Region</th> <th className="px-8 py-5 text-right">Action</th> </tr>
+                            <tr>
+                                <th className="px-8 py-5">{t('admin.status')}</th>
+                                <th className="px-8 py-5">{t('label.name')}</th>
+                                <th className="px-8 py-5">Power Rating</th>
+                                <th className="px-8 py-5">Region</th>
+                                <th className="px-8 py-5 text-right">Action</th>
+                            </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
                             {players.map(player => (

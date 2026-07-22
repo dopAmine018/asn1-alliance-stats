@@ -20,7 +20,7 @@ const ASN1_ALLIANCE: Alliance = {
   createdAt: '2025-01-01T00:00:00.000Z'
 };
 
-const ASN1Landing: React.FC<{ onView: (v: View) => void }> = ({ onView }) => {
+const ASN1Landing: React.FC<{ onView: (v: View) => void; allowStormRegistration: boolean }> = ({ onView, allowStormRegistration }) => {
   const { t } = useLanguage();
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -86,11 +86,18 @@ const ASN1Landing: React.FC<{ onView: (v: View) => void }> = ({ onView }) => {
               className="group relative bg-[#0a0a0f]/80 border border-white/5 p-10 rounded-3xl hover:border-purple-500/50 transition-all duration-500 text-left overflow-hidden shadow-2xl"
             >
                   <div className="absolute top-0 right-0 w-40 h-40 bg-purple-500/5 blur-[80px] -translate-y-1/2 translate-x-1/2 group-hover:bg-purple-500/10 transition-colors"></div>
-                  <div className="absolute top-6 right-6 px-3 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20">
-                      <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1.5">
-                          <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
-                          {t('storm.applying_open')}
-                      </span>
+                  <div className="absolute top-6 right-6">
+                      {allowStormRegistration ? (
+                        <span className="px-3 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[8px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
+                            {t('storm.applying_open')}
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 rounded-md bg-rose-500/10 border border-rose-500/20 text-[8px] font-bold text-rose-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <span className="w-1 h-1 rounded-full bg-rose-500"></span>
+                            {t('storm.registration_closed')}
+                        </span>
+                      )}
                   </div>
                   <div className="relative z-10 space-y-6">
                       <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
@@ -116,10 +123,23 @@ const ASN1Landing: React.FC<{ onView: (v: View) => void }> = ({ onView }) => {
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>('home');
+  const [allowStormRegistration, setAllowStormRegistration] = useState<boolean>(true);
 
   useEffect(() => {
     MockApi.initialize();
   }, []);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settings = await MockApi.getSettings();
+        if (typeof settings.allow_storm_registration === 'boolean') {
+          setAllowStormRegistration(settings.allow_storm_registration);
+        }
+      } catch (e) {}
+    };
+    fetchSettings();
+  }, [view]);
 
   return (
     <Layout 
@@ -130,7 +150,7 @@ const App: React.FC = () => {
         alliance={ASN1_ALLIANCE}
         onExitAlliance={() => {}}
     >
-      {view === 'home' && <ASN1Landing onView={setView} />}
+      {view === 'home' && <ASN1Landing onView={setView} allowStormRegistration={allowStormRegistration} />}
       
       {view === 'leaderboard' && (
         <StatsViewer 
@@ -153,7 +173,7 @@ const App: React.FC = () => {
       )}
 
       {view === 'storm' && (
-        <DesertStormViewer allianceId="asn1" onBack={() => setView('home')} />
+        <DesertStormViewer allianceId="asn1" onBack={() => setView('home')} allowRegistration={allowStormRegistration} />
       )}
       
       {view === 'admin' && (

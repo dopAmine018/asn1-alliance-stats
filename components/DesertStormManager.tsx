@@ -20,6 +20,7 @@ const DesertStormManager: React.FC = () => {
     const [registrations, setRegistrations] = useState<DesertStormRegistration[]>([]);
     const [teams, setTeams] = useState<TeamState>({ teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] });
     const [loading, setLoading] = useState(false);
+    const [allowRegistration, setAllowRegistration] = useState<boolean>(true);
     const [viewMode, setViewMode] = useState<'registered' | 'all'>('all');
     const [search, setSearch] = useState('');
     
@@ -36,19 +37,34 @@ const DesertStormManager: React.FC = () => {
             const playersRes = await MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false });
             setAllPlayers(playersRes.items);
             
-            const [savedTeams, regs] = await Promise.all([
+            const [savedTeams, regs, settings] = await Promise.all([
                 DesertStormApi.getTeams(),
-                DesertStormApi.getRegistrations()
+                DesertStormApi.getRegistrations(),
+                MockApi.getSettings()
             ]);
 
             if (savedTeams) setTeams(savedTeams);
             if (regs) setRegistrations(regs);
+            if (settings && typeof settings.allow_storm_registration === 'boolean') {
+                setAllowRegistration(settings.allow_storm_registration);
+            }
 
         } catch (e) {
             console.error(e);
             addToast('error', 'Failed to load initial data');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const toggleRegistration = async () => {
+        const nextState = !allowRegistration;
+        try {
+            await MockApi.updateSetting('allow_storm_registration', nextState);
+            setAllowRegistration(nextState);
+            addToast('success', nextState ? 'Registration OPENED' : 'Registration CLOSED');
+        } catch (e) {
+            addToast('error', 'Failed to update registration status');
         }
     };
 
@@ -107,23 +123,16 @@ const DesertStormManager: React.FC = () => {
         setActiveMoveMenu(null);
     };
 
-    // Special Logic: Put all Indonesian in Team A (Morning)
-    const handleIndoFirstBalance = async () => {
-        if (!window.confirm("INDO-MORNING STRATEGY:\n1. All Indonesian players forced to Team A (14:00).\n2. Registered players filled by power.\n3. Balance remaining slots.\n\nExecute?")) return;
+    // Standard Auto-Balance logic based on preferences and squad power
+    const handleAutoBalance = async () => {
+        if (!window.confirm("AUTO-BALANCE ROSTERS:\n1. Fill Team A and B based on player registrations & preferences.\n2. Fill remaining slots with top squad power.\n\nExecute?")) return;
 
         setLoading(true);
         let newTeams: TeamState = { teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] };
         const assignedIds = new Set<string>();
 
-        // 1. Prioritize ALL Indonesian to Team A
-        const indos = allPlayers.filter(p => p.language === 'indonesian' && p.active).sort((a,b) => b.firstSquadPower - a.firstSquadPower);
-        indos.forEach(p => {
-            if (newTeams.teamAMain.length < 20) { newTeams.teamAMain.push(p.id); assignedIds.add(p.id); }
-            else if (newTeams.teamASubs.length < 10) { newTeams.teamASubs.push(p.id); assignedIds.add(p.id); }
-        });
-
-        // 2. Handle registrations (respecting preference)
-        const regs = registrations.filter(r => !assignedIds.has(r.playerId))
+        // 1. Handle registrations (respecting preference)
+        const regs = registrations
             .map(r => ({ ...r, player: allPlayers.find(p => p.id === r.playerId) }))
             .filter(r => r.player && r.player.active)
             .sort((a,b) => (b.player?.firstSquadPower || 0) - (a.player?.firstSquadPower || 0));
@@ -137,27 +146,37 @@ const DesertStormManager: React.FC = () => {
                 if (newTeams.teamBMain.length < 20) newTeams.teamBMain.push(pid);
                 else if (newTeams.teamBSubs.length < 10) newTeams.teamBSubs.push(pid);
             } else {
-                // ANY preference - fill B first since Indos filled A
-                if (newTeams.teamBMain.length < 20) newTeams.teamBMain.push(pid);
-                else if (newTeams.teamAMain.length < 20) newTeams.teamAMain.push(pid);
-                else if (newTeams.teamBSubs.length < 10) newTeams.teamBSubs.push(pid);
-                else if (newTeams.teamASubs.length < 10) newTeams.teamASubs.push(pid);
+                // ANY preference - balance into whichever main team has fewer members
+                if (newTeams.teamAMain.length <= newTeams.teamBMain.length && newTeams.teamAMain.length < 20) {
+                    newTeams.teamAMain.push(pid);
+                } else if (newTeams.teamBMain.length < 20) {
+                    newTeams.teamBMain.push(pid);
+                } else if (newTeams.teamASubs.length <= newTeams.teamBSubs.length && newTeams.teamASubs.length < 10) {
+                    newTeams.teamASubs.push(pid);
+                } else if (newTeams.teamBSubs.length < 10) {
+                    newTeams.teamBSubs.push(pid);
+                }
             }
             assignedIds.add(pid);
         });
 
-        // 3. Fill remaining gaps with Top Power
+        // 2. Fill remaining gaps with Top Power
         const topPower = allPlayers.filter(p => p.active && !assignedIds.has(p.id)).sort((a,b) => b.firstSquadPower - a.firstSquadPower);
         topPower.forEach(p => {
-            if (newTeams.teamBMain.length < 20) newTeams.teamBMain.push(p.id);
-            else if (newTeams.teamAMain.length < 20) newTeams.teamAMain.push(p.id);
-            else if (newTeams.teamBSubs.length < 10) newTeams.teamBSubs.push(p.id);
-            else if (newTeams.teamASubs.length < 10) newTeams.teamASubs.push(p.id);
+            if (newTeams.teamAMain.length <= newTeams.teamBMain.length && newTeams.teamAMain.length < 20) {
+                newTeams.teamAMain.push(p.id);
+            } else if (newTeams.teamBMain.length < 20) {
+                newTeams.teamBMain.push(p.id);
+            } else if (newTeams.teamASubs.length <= newTeams.teamBSubs.length && newTeams.teamASubs.length < 10) {
+                newTeams.teamASubs.push(p.id);
+            } else if (newTeams.teamBSubs.length < 10) {
+                newTeams.teamBSubs.push(p.id);
+            }
         });
 
         setTeams(newTeams);
         setLoading(false);
-        addToast('success', 'Strategy Deployed: Indos prioritized for 14:00.');
+        addToast('success', 'Rosters auto-balanced by preferences and power.');
     };
 
     const getCandidates = () => {
@@ -209,7 +228,7 @@ const DesertStormManager: React.FC = () => {
                                 >
                                     <div className="truncate flex-1">
                                         <span className="text-xs font-bold text-white">{player.name}</span>
-                                        <div className="text-[8px] text-slate-500 font-mono">{(player.firstSquadPower/1000000).toFixed(1)}M {player.language === 'indonesian' && <span className="text-sky-500 ml-1">#INDO</span>}</div>
+                                        <div className="text-[8px] text-slate-500 font-mono">{(player.firstSquadPower/1000000).toFixed(1)}M</div>
                                     </div>
                                 </div>
                                 
@@ -236,9 +255,21 @@ const DesertStormManager: React.FC = () => {
                     <h2 className="text-2xl font-header font-black text-white uppercase tracking-[0.2em]">Storm Command</h2>
                     <p className="text-[10px] text-slate-500 font-mono mt-1">OPERATIONAL TACTICS & TEAM MANAGEMENT</p>
                 </div>
-                <div className="flex flex-wrap gap-2 justify-center">
-                    <button onClick={handleIndoFirstBalance} className="bg-sky-600 hover:bg-sky-500 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-sky-900/20 transition-all border border-sky-400/20">
-                         Priority: Indo 14:00
+                <div className="flex flex-wrap gap-2 justify-center items-center">
+                    <button 
+                        onClick={toggleRegistration} 
+                        className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border flex items-center gap-2 ${
+                            allowRegistration 
+                            ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-600/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]' 
+                            : 'bg-rose-600/20 border-rose-500/50 text-rose-400 hover:bg-rose-600/30'
+                        }`}
+                        title="Toggle registration availability on main menu"
+                    >
+                        <span className={`w-2 h-2 rounded-full ${allowRegistration ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
+                        Registration: {allowRegistration ? 'OPEN' : 'CLOSED'}
+                    </button>
+                    <button onClick={handleAutoBalance} className="bg-sky-600 hover:bg-sky-500 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-sky-900/20 transition-all border border-sky-400/20">
+                         Auto-Balance Roster
                     </button>
                     <button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-900/20 transition-all border border-emerald-400/20">
                         Sync Global
@@ -265,7 +296,7 @@ const DesertStormManager: React.FC = () => {
                                 <div className="flex justify-between items-center">
                                     <div className="min-w-0">
                                         <span className="text-xs font-black text-slate-200 block truncate">{p.name}</span>
-                                        <span className="text-[9px] font-mono text-slate-500">{(p.firstSquadPower/1000000).toFixed(1)}M {p.language === 'indonesian' && <span className="text-sky-500 font-black">#INDO</span>}</span>
+                                        <span className="text-[9px] font-mono text-slate-500">{(p.firstSquadPower/1000000).toFixed(1)}M</span>
                                     </div>
                                 </div>
                                 <div className="absolute inset-0 bg-slate-900/95 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 z-10 p-2 rounded-xl transition-opacity">
