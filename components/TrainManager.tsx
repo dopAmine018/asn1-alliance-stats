@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { toBlob } from 'html-to-image';
 import { Player } from '../types';
 import { MockApi, TrainApi } from '../services/mockBackend';
 import { calculateStsRemainingCost, calculateDefRemainingCost } from '../utils/gameLogic';
@@ -351,7 +352,71 @@ const TrainManager: React.FC = () => {
       fetchAndAnalyze();
   };
 
-  const copyTacticalOrders = async () => {
+  const posterRef = useRef<HTMLDivElement>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+
+  const copySchedulePng = async () => {
+      if (schedule.length === 0) {
+          addToast('error', 'No schedule available to copy');
+          return;
+      }
+
+      setIsCapturing(true);
+
+      try {
+          // Give DOM time to stabilize
+          await new Promise(r => setTimeout(r, 100));
+
+          if (!posterRef.current) {
+              throw new Error('Poster element missing');
+          }
+
+          const blob = await toBlob(posterRef.current, {
+              quality: 0.95,
+              pixelRatio: 2,
+              backgroundColor: '#0b1329',
+              cacheBust: true,
+          });
+
+          if (!blob) {
+              throw new Error('Could not render image blob');
+          }
+
+          let copiedToClipboard = false;
+
+          if (navigator.clipboard && window.ClipboardItem) {
+              try {
+                  const item = new ClipboardItem({ 'image/png': blob });
+                  await navigator.clipboard.write([item]);
+                  copiedToClipboard = true;
+              } catch (clipErr) {
+                  console.warn('Clipboard write failed, downloading image instead:', clipErr);
+              }
+          }
+
+          const url = URL.createObjectURL(blob);
+
+          if (copiedToClipboard) {
+              addToast('success', '📸 Schedule PNG copied to clipboard!');
+          } else {
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `ASN1_Train_Schedule_${new Date().toISOString().slice(0, 10)}.png`;
+              link.click();
+              addToast('success', '📥 Schedule PNG downloaded!');
+          }
+
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+      } catch (err) {
+          console.error('Failed to copy image:', err);
+          addToast('error', 'Failed PNG capture. Copying text orders...');
+          await copyTacticalOrdersText();
+      } finally {
+          setIsCapturing(false);
+      }
+  };
+
+  const copyTacticalOrdersText = async () => {
       if (schedule.length === 0) return;
       let report = `### 🚆 ASN1 Train Schedule\n\`\`\`\n`;
       
@@ -378,9 +443,9 @@ const TrainManager: React.FC = () => {
 
       try {
           await navigator.clipboard.writeText(report);
-          addToast('success', 'Tactical Orders Copied');
+          addToast('success', 'Text Orders Copied to Clipboard');
       } catch (err) {
-          addToast('error', 'Clipboard denied');
+          addToast('error', 'Clipboard access denied');
       }
   };
 
@@ -424,12 +489,107 @@ const TrainManager: React.FC = () => {
                     <span className="text-[10px] font-bold uppercase tracking-widest">Auto Deploy</span>
                 </button>
                 <button 
-                    onClick={copyTacticalOrders} 
-                    className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-sky-900/20 click-scale border border-sky-400/20"
+                    onClick={copySchedulePng} 
+                    disabled={isCapturing}
+                    className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-sky-900/20 click-scale border border-sky-400/20 disabled:opacity-50"
+                    title="Take a picture of the schedule in PNG format and copy to clipboard"
                 >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Tactical Copy</span>
+                    {isCapturing ? (
+                        <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    )}
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Copy PNG Schedule</span>
                 </button>
+                <button 
+                    onClick={copyTacticalOrdersText}
+                    className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all border border-slate-700"
+                    title="Copy text orders"
+                >
+                    <span className="text-[10px] font-bold uppercase">Text</span>
+                </button>
+            </div>
+        </div>
+
+        {/* Hidden Offscreen Schedule Poster Template for High-Res PNG Capture */}
+        <div className="fixed top-[-9999px] left-[-9999px] pointer-events-none opacity-0 z-[-9999]">
+            <div 
+                ref={posterRef} 
+                className="w-[850px] bg-[#0b1329] text-white p-8 border-2 border-amber-500/50 rounded-2xl shadow-2xl font-sans"
+            >
+                {/* Poster Header */}
+                <div className="flex items-center justify-between border-b-2 border-amber-500/30 pb-6 mb-6">
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border-2 border-amber-500/50 flex items-center justify-center text-amber-400 font-black text-2xl shadow-lg">
+                            🚆
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-black uppercase tracking-wider text-amber-400">ASN1 TRAIN SCHEDULE</h1>
+                            <p className="text-xs text-slate-400 font-mono tracking-widest uppercase">ALLIANCE TACTICAL DISTRIBUTION</p>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-xs font-mono text-sky-400 bg-sky-950/80 border border-sky-500/30 px-3 py-1.5 rounded-lg font-bold">
+                            COMMAND SYNCED
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-1.5 font-mono">
+                            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Poster Schedule Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                    {schedule.map((day, idx) => (
+                        <div key={idx} className="bg-slate-900/90 border border-slate-700/80 rounded-xl p-4 flex flex-col justify-between shadow-md">
+                            <div className="flex justify-between items-center mb-3 border-b border-slate-800 pb-2">
+                                <span className="text-sm font-bold text-white uppercase tracking-wider">
+                                    {t(`day.${day.dayName}` as any)}
+                                </span>
+                                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded border uppercase font-mono ${
+                                    day.mode === 'VIP' 
+                                        ? 'border-amber-500/50 bg-amber-500/10 text-amber-400' 
+                                        : 'border-sky-500/50 bg-sky-500/10 text-sky-400'
+                                }`}>
+                                    {day.mode === 'VIP' ? 'VIP MODE' : 'GUARDIAN MODE'}
+                                </span>
+                            </div>
+
+                            <div className="space-y-2 text-xs">
+                                <div className="flex justify-between items-center bg-slate-950/80 p-2.5 rounded-lg border border-slate-800">
+                                    <div>
+                                        <div className="text-[9px] text-amber-400 font-bold uppercase tracking-wider">Conductor</div>
+                                        <div className="font-bold text-white text-sm">{day.conductor?.name || 'TBD'}</div>
+                                    </div>
+                                    <div className="text-right font-mono text-amber-400 font-bold">
+                                        {day.conductor ? `${(day.conductor.firstSquadPower / 1000000).toFixed(1)}M` : '-'}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-center bg-slate-950/80 p-2.5 rounded-lg border border-slate-800">
+                                    <div>
+                                        <div className={`text-[9px] font-bold uppercase tracking-wider ${day.mode === 'Guardian' ? 'text-sky-400' : 'text-purple-400'}`}>
+                                            {day.mode === 'Guardian' ? 'Guardian' : 'Passenger'}
+                                        </div>
+                                        <div className="font-bold text-white text-sm">{day.vip?.name || 'TBD'}</div>
+                                    </div>
+                                    <div className="text-right font-mono text-purple-400 font-bold">
+                                        {day.vip ? `${(day.vip.firstSquadPower / 1000000).toFixed(1)}M` : '-'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Poster Footer */}
+                <div className="mt-6 pt-4 border-t border-slate-800 flex justify-between items-center text-[11px] text-slate-400 font-mono">
+                    <span>🛡️ ASN1 ALLIANCE COMMAND</span>
+                    <span>GENERATED PNG SCHEDULE</span>
+                </div>
             </div>
         </div>
 
