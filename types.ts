@@ -204,3 +204,21 @@ export interface DesertStormRegistration {
   preference: string;
   createdAt: string;
 }
+
+export type PlayerRoleInWeek = 'MAIN' | 'SUB' | 'DID_NOT_PLAY';
+
+export interface DesertStormWeek {
+  id: string;
+  allianceId: string;
+  weekNumber: number;
+  name: string;
+  createdAt: string;
+  isCurrent: boolean;
+  teams: {
+    teamAMain: string[];
+    teamASubs: string[];
+    teamBMain: string[];
+    teamBSubs: string[];
+  };
+  participation: Record<string, PlayerRoleInWeek>;
+}

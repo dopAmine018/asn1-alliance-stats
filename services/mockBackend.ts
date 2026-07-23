@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Player, PlayerFilter, ApiResponse, AuthResponse, VsWeek, VsRecord, Announcement, Alliance, DesertStormRegistration } from '../types';
+import { Player, PlayerFilter, ApiResponse, AuthResponse, VsWeek, VsRecord, Announcement, Alliance, DesertStormRegistration, DesertStormWeek, PlayerRoleInWeek } from '../types';
 
 const PROVIDED_URL = "https://fgrzuylyxfogejwmeakn.supabase.co";
 const PROVIDED_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZncnp1eWx5eGZvZ2Vqd21lYWtuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTEyNjEyNCwiZXhwIjoyMDgwNzAyMTI0fQ.3G3BaSOg6uzN_zn7Wf1Ebn4TjAeXsvKGBJO4STzsu8c";
@@ -595,19 +595,166 @@ export const TrainApi = {
 };
 
 export const DesertStormApi = {
+    getWeeks: async (): Promise<DesertStormWeek[]> => {
+        let weeks: DesertStormWeek[] = [];
+        try {
+            const { data } = await supabase.from('desert_storm_weeks').select('*').order('week_number', { ascending: false });
+            if (data && data.length > 0) {
+                weeks = data.map((w: any) => ({
+                    id: w.id,
+                    allianceId: w.alliance_id || 'asn1',
+                    weekNumber: w.week_number || 1,
+                    name: w.name || `Week ${w.week_number || 1}`,
+                    createdAt: w.created_at || new Date().toISOString(),
+                    isCurrent: !!w.is_current,
+                    teams: w.teams || { teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] },
+                    participation: w.participation || {}
+                }));
+            }
+        } catch (e) {}
+
+        if (weeks.length === 0) {
+            const local = getLocalMockData<DesertStormWeek[]>('desert_storm_weeks', [
+                {
+                    id: 'ds_w1',
+                    allianceId: 'asn1',
+                    weekNumber: 1,
+                    name: 'Week 1',
+                    createdAt: new Date().toISOString(),
+                    isCurrent: true,
+                    teams: { teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] },
+                    participation: {}
+                }
+            ]);
+            weeks = local;
+        }
+
+        // Ensure at least one current week is set
+        if (!weeks.some(w => w.isCurrent) && weeks.length > 0) {
+            weeks[0].isCurrent = true;
+        }
+
+        return weeks;
+    },
+
+    getCurrentWeek: async (): Promise<DesertStormWeek> => {
+        const weeks = await DesertStormApi.getWeeks();
+        return weeks.find(w => w.isCurrent) || weeks[0];
+    },
+
+    saveWeek: async (week: DesertStormWeek): Promise<void> => {
+        const local = getLocalMockData<DesertStormWeek[]>('desert_storm_weeks', []);
+        const idx = local.findIndex(w => w.id === week.id);
+        if (idx >= 0) local[idx] = week;
+        else local.unshift(week);
+        saveLocalMockData('desert_storm_weeks', local);
+
+        try {
+            await supabase.from('desert_storm_weeks').upsert({
+                id: week.id,
+                alliance_id: week.allianceId || 'asn1',
+                week_number: week.weekNumber,
+                name: week.name,
+                created_at: week.createdAt,
+                is_current: week.isCurrent,
+                teams: week.teams,
+                participation: week.participation
+            });
+        } catch (e) {}
+    },
+
+    startNewWeek: async (customName?: string): Promise<DesertStormWeek> => {
+        const weeks = await DesertStormApi.getWeeks();
+        weeks.forEach(w => { w.isCurrent = false; });
+
+        const maxNum = weeks.reduce((max, w) => Math.max(max, w.weekNumber || 0), 0);
+        const nextNum = maxNum + 1;
+        
+        const newWeek: DesertStormWeek = {
+            id: `ds_w${nextNum}_${Date.now()}`,
+            allianceId: 'asn1',
+            weekNumber: nextNum,
+            name: customName || `Week ${nextNum}`,
+            createdAt: new Date().toISOString(),
+            isCurrent: true,
+            teams: { teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] },
+            participation: {}
+        };
+
+        weeks.unshift(newWeek);
+        saveLocalMockData('desert_storm_weeks', weeks);
+
+        try {
+            await supabase.from('desert_storm_weeks').update({ is_current: false }).neq('id', newWeek.id);
+            await supabase.from('desert_storm_weeks').insert({
+                id: newWeek.id,
+                alliance_id: 'asn1',
+                week_number: newWeek.weekNumber,
+                name: newWeek.name,
+                created_at: newWeek.createdAt,
+                is_current: true,
+                teams: newWeek.teams,
+                participation: newWeek.participation
+            });
+        } catch (e) {}
+
+        // Reset weekly registrations for the new week
+        await DesertStormApi.resetRegistrations();
+
+        return newWeek;
+    },
+
+    resetRegistrations: async (): Promise<void> => {
+        saveLocalMockData('desert_storm_registrations', []);
+        try {
+            await supabase.from('desert_storm_registrations').delete().neq('id', 'keep_schema_valid');
+        } catch (e) {}
+    },
+
     getTeams: async () => {
-        const { data } = await supabase.from('desert_storm_teams').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle();
-        return data?.team_data || null;
+        const current = await DesertStormApi.getCurrentWeek();
+        return current?.teams || { teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] };
     },
-    saveTeams: async (data: any) => {
-        await supabase.from('desert_storm_teams').insert({ team_data: data });
+
+    saveTeams: async (teams: any, participation?: Record<string, PlayerRoleInWeek>) => {
+        const current = await DesertStormApi.getCurrentWeek();
+        if (current) {
+            current.teams = teams;
+            if (participation) {
+                current.participation = participation;
+            } else {
+                // Default participation mapping if not explicitly provided
+                const part: Record<string, PlayerRoleInWeek> = { ...current.participation };
+                teams.teamAMain?.forEach((id: string) => { part[id] = part[id] || 'MAIN'; });
+                teams.teamBMain?.forEach((id: string) => { part[id] = part[id] || 'MAIN'; });
+                teams.teamASubs?.forEach((id: string) => { part[id] = part[id] || 'SUB'; });
+                teams.teamBSubs?.forEach((id: string) => { part[id] = part[id] || 'SUB'; });
+                current.participation = part;
+            }
+            await DesertStormApi.saveWeek(current);
+        }
     },
+
     register: async (playerId: string, preference: string) => {
-        await supabase.from('desert_storm_registrations').delete().eq('player_id', playerId);
-        await supabase.from('desert_storm_registrations').insert({ player_id: playerId, preference });
+        const local = getLocalMockData<DesertStormRegistration[]>('desert_storm_registrations', []);
+        const filtered = local.filter(r => r.playerId !== playerId);
+        const newReg = { id: `reg_${Date.now()}`, playerId, preference, createdAt: new Date().toISOString() };
+        filtered.push(newReg);
+        saveLocalMockData('desert_storm_registrations', filtered);
+
+        try {
+            await supabase.from('desert_storm_registrations').delete().eq('player_id', playerId);
+            await supabase.from('desert_storm_registrations').insert({ player_id: playerId, preference });
+        } catch (e) {}
     },
+
     getRegistrations: async (): Promise<DesertStormRegistration[]> => {
-        const { data } = await supabase.from('desert_storm_registrations').select('*');
-        return (data || []).map((r: any) => ({ id: r.id, playerId: r.player_id, preference: r.preference, createdAt: r.created_at }));
+        try {
+            const { data } = await supabase.from('desert_storm_registrations').select('*');
+            if (data && data.length > 0) {
+                return data.map((r: any) => ({ id: r.id, playerId: r.player_id, preference: r.preference, createdAt: r.created_at }));
+            }
+        } catch (e) {}
+        return getLocalMockData<DesertStormRegistration[]>('desert_storm_registrations', []);
     }
 };
