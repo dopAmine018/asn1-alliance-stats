@@ -214,10 +214,15 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
         try {
             const updatedPower = numVal < 10000 ? Math.round(numVal * 1000000) : Math.round(numVal);
 
-            await MockApi.upsertPlayer({
+            const res = await MockApi.upsertPlayer({
                 ...selectedPlayer,
                 firstSquadPower: updatedPower
             });
+
+            if (!res.success) {
+                addToast('error', res.error || 'Update failed');
+                return;
+            }
 
             const targetWeekId = selectedWeekId || currentWeek?.id;
             await DesertStormApi.register(selectedPlayer.id, regTime, targetWeekId);

@@ -235,3 +235,11 @@ export interface AuditLog {
   userAgent: string;
   details?: Record<string, any>;
 }
+
+export interface RosterSnapshot {
+  id: string;
+  label: string;
+  createdAt: string;
+  playerCount: number;
+  players: Player[];
+}

@@ -12,8 +12,10 @@ export const MasterMonitor: React.FC<MasterMonitorProps> = ({ addToast }) => {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
-  const [isUnlocked, setIsUnlocked] = useState(true);
+  const [isUnlocked, setIsUnlocked] = useState(false);
   const [masterPin, setMasterPin] = useState('');
+  const [pinAttempts, setPinAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState(0);
   const [pinError, setPinError] = useState(false);
 
   const fetchLogs = async () => {
@@ -33,13 +35,34 @@ export const MasterMonitor: React.FC<MasterMonitorProps> = ({ addToast }) => {
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
-    if (masterPin.trim().toUpperCase() === 'MR' || masterPin.trim() === '1234' || masterPin.trim().length > 0) {
+
+    if (Date.now() < lockoutUntil) {
+      const remainingSecs = Math.ceil((lockoutUntil - Date.now()) / 1000);
+      addToast('error', `TERMINAL LOCKED: Try again in ${remainingSecs}s`);
+      return;
+    }
+
+    const SECRET_PIN = '154111';
+    if (masterPin.trim() === SECRET_PIN) {
       setIsUnlocked(true);
       setPinError(false);
-      addToast('success', 'MASTER AUDIT ACCESS GRANTED');
+      setPinAttempts(0);
+      addToast('success', 'ACCESS GRANTED: ADMIN LOGS UNLOCKED');
+      AuditLogger.log('LOGIN', 'MR (Owner) Unlocked Admin Logs Terminal', 'MR (Owner)');
     } else {
+      const newAttempts = pinAttempts + 1;
+      setPinAttempts(newAttempts);
       setPinError(true);
-      addToast('error', 'INVALID MASTER PIN');
+      setMasterPin('');
+      AuditLogger.log('LOGIN', `Failed Admin Logs PIN Attempt (${newAttempts}/3)`, 'Unknown Guest');
+
+      if (newAttempts >= 3) {
+        const lockDuration = 15 * 60 * 1000; // 15 mins lockout
+        setLockoutUntil(Date.now() + lockDuration);
+        addToast('error', 'ACCESS DENIED: Maximum 3 attempts reached. Terminal locked for 15 minutes.');
+      } else {
+        addToast('error', `INVALID PIN: ${3 - newAttempts} attempt(s) remaining`);
+      }
     }
   };
 
@@ -113,6 +136,8 @@ export const MasterMonitor: React.FC<MasterMonitorProps> = ({ addToast }) => {
   };
 
   if (!isUnlocked) {
+    const isLockedOut = Date.now() < lockoutUntil;
+
     return (
       <div className="flex justify-center items-center min-h-[50vh] animate-in fade-in zoom-in-95 duration-500">
         <div className="bg-[#0f172a] p-8 rounded-3xl border border-rose-500/30 max-w-md w-full shadow-2xl relative overflow-hidden text-center">
@@ -127,15 +152,37 @@ export const MasterMonitor: React.FC<MasterMonitorProps> = ({ addToast }) => {
             Exclusive Site Audit & Admin Logs Terminal for MR. Enter PIN to unlock.
           </p>
           <form onSubmit={handleUnlock} className="space-y-4">
-            <input
-              type="password"
-              value={masterPin}
-              onChange={(e) => setMasterPin(e.target.value)}
-              placeholder="ENTER MASTER PIN"
-              className={`w-full bg-slate-950 border ${pinError ? 'border-rose-500' : 'border-white/10'} rounded-xl px-4 py-3 text-center text-white outline-none font-mono tracking-widest text-sm focus:border-rose-500 transition-all`}
-            />
-            <button className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-rose-900/30 transition-all">
-              UNLOCK ADMIN LOGS
+            <div>
+              <input
+                type="password"
+                value={masterPin}
+                onChange={(e) => setMasterPin(e.target.value)}
+                placeholder="ENTER SECURITY PIN"
+                disabled={isLockedOut}
+                className={`w-full bg-slate-950 border ${
+                  pinError ? 'border-rose-500 text-rose-400' : 'border-white/10 text-white'
+                } rounded-xl px-4 py-3 text-center outline-none font-mono tracking-widest text-sm focus:border-rose-500 transition-all ${
+                  isLockedOut ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              />
+              {pinAttempts > 0 && !isLockedOut && (
+                <div className="text-[11px] text-rose-400 font-mono mt-2">
+                  Failed attempts: {pinAttempts}/3 ({3 - pinAttempts} left)
+                </div>
+              )}
+              {isLockedOut && (
+                <div className="text-[11px] text-rose-500 font-mono font-bold mt-2">
+                  🚫 Terminal Locked due to 3 failed attempts
+                </div>
+              )}
+            </div>
+            <button
+              disabled={isLockedOut}
+              className={`w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-rose-900/30 transition-all ${
+                isLockedOut ? 'opacity-50 cursor-not-allowed bg-slate-800' : ''
+              }`}
+            >
+              {isLockedOut ? 'TERMINAL LOCKED' : 'UNLOCK ADMIN LOGS'}
             </button>
           </form>
         </div>

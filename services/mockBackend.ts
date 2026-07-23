@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Player, PlayerFilter, ApiResponse, AuthResponse, VsWeek, VsRecord, Announcement, Alliance, DesertStormRegistration, DesertStormWeek, PlayerRoleInWeek } from '../types';
+import { Player, PlayerFilter, ApiResponse, AuthResponse, VsWeek, VsRecord, Announcement, Alliance, DesertStormRegistration, DesertStormWeek, PlayerRoleInWeek, RosterSnapshot } from '../types';
 import { AuditLogger } from './auditLogger';
 
 const PROVIDED_URL = "https://fgrzuylyxfogejwmeakn.supabase.co";
@@ -386,8 +386,17 @@ export const MockApi = {
       }
   },
 
-  upsertPlayer: async (playerData: Partial<Player>): Promise<ApiResponse<Player>> => {
+  upsertPlayer: async (playerData: Partial<Player>, isAdmin: boolean = false): Promise<ApiResponse<Player>> => {
+      // Check Roster Lock Setting if not admin
+      if (!isAdmin) {
+          const settings = await MockApi.getSettings();
+          if (settings.lock_roster_editing) {
+              return { success: false, error: 'ROSTER LOCKED: Public editing is disabled by Master Admin. Only Admin can update player records.' };
+          }
+      }
+
       const nameNormalized = playerData.name?.trim().toLowerCase().replace(/\s+/g, ' ') || '';
+
       try {
           const { data: existing, error: fetchError } = await supabase
               .from('players')
@@ -540,7 +549,7 @@ export const MockApi = {
   },
 
   getSettings: async (): Promise<Record<string, any>> => {
-    const defaultSettings = { show_train_schedule: true, show_desert_storm: true, allow_storm_registration: true };
+    const defaultSettings = { show_train_schedule: true, show_desert_storm: true, allow_storm_registration: true, lock_roster_editing: false };
     const local = getLocalMockData<Record<string, any>>('settings', defaultSettings);
     try {
       const { data } = await supabase.from('alliance_settings').select('*');
@@ -557,13 +566,135 @@ export const MockApi = {
 
   updateSetting: async (key: string, value: any): Promise<void> => {
     AuditLogger.log('SYSTEM_SETTINGS', `Toggled System Protocol [${key}] to ${value ? 'ON' : 'OFF'}`, 'Master Admin');
-    const local = getLocalMockData<Record<string, any>>('settings', { show_train_schedule: true, show_desert_storm: true, allow_storm_registration: true });
+    const local = getLocalMockData<Record<string, any>>('settings', { show_train_schedule: true, show_desert_storm: true, allow_storm_registration: true, lock_roster_editing: false });
     local[key] = value;
     saveLocalMockData('settings', local);
     try {
         await supabase.from('alliance_settings').upsert({ setting_name: key, value, updated_at: new Date().toISOString() });
     } catch (e) {}
+  },
+
+  // Snapshot & Backup Management
+  createSnapshot: async (label: string): Promise<RosterSnapshot> => {
+    const playersRes = await MockApi.getPlayers({ search: '', language: 'all', sort: 'power_desc', activeOnly: false });
+    const players = playersRes.items;
+    const newSnapshot: RosterSnapshot = {
+      id: `snap_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      label: label.trim() || `Roster Backup (${new Date().toLocaleDateString()})`,
+      createdAt: new Date().toISOString(),
+      playerCount: players.length,
+      players
+    };
+
+    const currentSnaps = getLocalMockData<RosterSnapshot[]>('roster_snapshots', []);
+    const updatedSnaps = [newSnapshot, ...currentSnaps];
+    saveLocalMockData('roster_snapshots', updatedSnaps);
+
+    AuditLogger.log('SYSTEM_SETTINGS', `Created Roster Snapshot "${newSnapshot.label}" (${players.length} Commanders)`, 'Master Admin');
+    return newSnapshot;
+  },
+
+  getSnapshots: async (): Promise<RosterSnapshot[]> => {
+    return getLocalMockData<RosterSnapshot[]>('roster_snapshots', []);
+  },
+
+  restoreSnapshot: async (snapshotId: string): Promise<ApiResponse<void>> => {
+    const snaps = getLocalMockData<RosterSnapshot[]>('roster_snapshots', []);
+    const target = snaps.find(s => s.id === snapshotId);
+    if (!target) return { success: false, error: 'Snapshot not found' };
+
+    // Save current state as auto-backup before restoring
+    const currentRes = await MockApi.getPlayers({ search: '', language: 'all', sort: 'power_desc', activeOnly: false });
+    if (currentRes.items.length > 0) {
+      const autoBackup: RosterSnapshot = {
+        id: `auto_snap_${Date.now()}`,
+        label: `Auto-Backup before Restore (${new Date().toLocaleTimeString()})`,
+        createdAt: new Date().toISOString(),
+        playerCount: currentRes.items.length,
+        players: currentRes.items
+      };
+      saveLocalMockData('roster_snapshots', [autoBackup, ...snaps]);
+    }
+
+    // Overwrite local players
+    saveLocalMockData('players', target.players);
+
+    // Sync to Supabase
+    try {
+      for (const player of target.players) {
+        const payload = mapPlayerToDb(player);
+        await supabase.from('players').upsert(payload);
+      }
+    } catch (e) {}
+
+    AuditLogger.log('SYSTEM_SETTINGS', `RESTORED Roster Snapshot "${target.label}" (${target.playerCount} Commanders restored)`, 'Master Admin');
+    return { success: true };
+  },
+
+  deleteSnapshot: async (snapshotId: string): Promise<RosterSnapshot[]> => {
+    const snaps = getLocalMockData<RosterSnapshot[]>('roster_snapshots', []);
+    const filtered = snaps.filter(s => s.id !== snapshotId);
+    saveLocalMockData('roster_snapshots', filtered);
+    return filtered;
+  },
+
+  exportRosterBackup: async (): Promise<void> => {
+    const playersRes = await MockApi.getPlayers({ search: '', language: 'all', sort: 'power_desc', activeOnly: false });
+    const backupObj = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      playerCount: playersRes.items.length,
+      players: playersRes.items
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `asn1_alliance_roster_backup_${new Date().toISOString().slice(0, 10)}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+
+    AuditLogger.log('SYSTEM_SETTINGS', `Exported Full JSON Roster Backup (${playersRes.items.length} Commanders)`, 'Master Admin');
+  },
+
+  importRosterBackup: async (jsonContent: string): Promise<ApiResponse<number>> => {
+    try {
+      const parsed = JSON.parse(jsonContent);
+      const players = Array.isArray(parsed) ? parsed : (parsed.players || []);
+      if (!Array.isArray(players) || players.length === 0) {
+        return { success: false, error: 'INVALID BACKUP FILE: No valid player records found in JSON.' };
+      }
+
+      // Auto-backup current state
+      const currentRes = await MockApi.getPlayers({ search: '', language: 'all', sort: 'power_desc', activeOnly: false });
+      if (currentRes.items.length > 0) {
+        const autoBackup: RosterSnapshot = {
+          id: `auto_snap_pre_import_${Date.now()}`,
+          label: `Auto-Backup before JSON Import (${new Date().toLocaleTimeString()})`,
+          createdAt: new Date().toISOString(),
+          playerCount: currentRes.items.length,
+          players: currentRes.items
+        };
+        const currentSnaps = getLocalMockData<RosterSnapshot[]>('roster_snapshots', []);
+        saveLocalMockData('roster_snapshots', [autoBackup, ...currentSnaps]);
+      }
+
+      saveLocalMockData('players', players);
+
+      try {
+        for (const player of players) {
+          const payload = mapPlayerToDb(player);
+          await supabase.from('players').upsert(payload);
+        }
+      } catch (e) {}
+
+      AuditLogger.log('SYSTEM_SETTINGS', `Imported Roster Backup from File (${players.length} Commanders restored)`, 'Master Admin');
+      return { success: true, data: players.length };
+    } catch (e: any) {
+      return { success: false, error: 'JSON PARSE ERROR: Invalid file format.' };
+    }
   }
+
 };
 
 export const VsApi = {
