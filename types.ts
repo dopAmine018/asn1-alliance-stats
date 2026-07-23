@@ -5,7 +5,7 @@ export interface Alliance {
   tag: string; // Unique short code like 'ASN1'
   name: string;
   logoUrl?: string;
-  adminPass: string;
+  adminPass?: string;
   createdAt: string;
 }
 

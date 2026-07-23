@@ -51,23 +51,24 @@ const defaultFormData = {
 };
 
 const FormInput = ({ label, name, val, change, req, locked, type="text", loading, onBlur, autoComplete, suffix, children }: any) => (
-  <div className="relative group">
-      <div className="flex items-center">
+  <div className="relative group flex flex-col gap-1.5">
+      {label && (
+        <label className={`text-[10px] uppercase font-bold tracking-widest block ${locked ? 'text-amber-400' : 'text-sky-400/90'}`}>
+            {label} {req && <span className="text-rose-400">*</span>}
+        </label>
+      )}
+      <div className="relative flex items-center">
           <input 
-              type={type} name={name} value={val} onChange={change} required={req} placeholder=" " onBlur={onBlur} autoComplete={autoComplete}
-              className={`peer w-full bg-transparent border-b-2 py-2 px-1 text-sm text-white font-mono placeholder-transparent focus:outline-none transition-all
-                  ${locked ? 'border-amber-500/50 focus:border-amber-500 text-amber-100' : 'border-slate-700 focus:border-sky-500'}
+              type={type} name={name} value={val} onChange={change} required={req} onBlur={onBlur} autoComplete={autoComplete}
+              className={`w-full bg-slate-950/80 border rounded-xl py-2 px-3 text-xs text-white font-mono focus:outline-none transition-all
+                  ${locked 
+                      ? 'border-amber-500/40 focus:border-amber-400 text-amber-100 bg-amber-500/5' 
+                      : 'border-slate-800 focus:border-sky-500/80 focus:ring-1 focus:ring-sky-500/30'
+                  }
               `}
           />
-          {suffix && <span className="text-[10px] font-bold text-slate-500 ml-2 mt-1">{suffix}</span>}
+          {suffix && <span className="absolute right-3 text-[10px] font-mono font-bold text-slate-500">{suffix}</span>}
       </div>
-      <label className={`absolute left-0 -top-4 text-[10px] uppercase font-bold tracking-widest transition-all 
-          peer-placeholder-shown:text-xs peer-placeholder-shown:top-2 peer-placeholder-shown:text-slate-500
-          peer-focus:-top-4 peer-focus:text-[10px]
-          ${locked ? 'text-amber-500 peer-focus:text-amber-400' : 'text-sky-500 peer-focus:text-sky-400'}
-      `}>
-          {label} {req && '*'}
-      </label>
       {children}
   </div>
 );
@@ -731,7 +732,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                                 </div>
                                 <div className="space-y-6">
                                     <div className="space-y-4">
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('section.identity')}</label>
+                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('section.identity')}</h4>
                                         <div className="relative">
                                             <FormInput 
                                                 label={t('label.name')} 
@@ -757,7 +758,7 @@ const StatsForm: React.FC<{ onSuccess: () => void; onBack: () => void }> = ({ on
                                     </div>
 
                                     <div className="space-y-4 border-t border-white/5 pt-6">
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('section.power')}</label>
+                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('section.power')}</h4>
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                             <FormInput label={t('label.power')+"(M)"} name="firstSquadPower" val={formData.firstSquadPower} change={(e:any)=>setFormData(p=>({...p,firstSquadPower:e.target.value}))} req={true} type="number" />
                                             <FormInput label={t('label.squad2')+"(M)"} name="secondSquadPower" val={formData.secondSquadPower} change={(e:any)=>setFormData(p=>({...p,secondSquadPower:e.target.value}))} type="number" />

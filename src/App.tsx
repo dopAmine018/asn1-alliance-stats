@@ -16,7 +16,6 @@ const ASN1_ALLIANCE: Alliance = {
   id: 'asn1',
   tag: 'ASN1',
   name: 'ASN1 Alliance',
-  adminPass: 'Asn1!1628@',
   createdAt: '2025-01-01T00:00:00.000Z'
 };
 

@@ -8,10 +8,27 @@ import DesertStormManager from './DesertStormManager';
 import { CustomDropdown } from './CustomDropdown';
 import { useToast } from './Toast';
 
+const getValidToken = () => {
+  const stored = localStorage.getItem('asn1_auth_token');
+  if (!stored) return null;
+  if (stored.startsWith('asn1_sec_')) {
+    const parts = stored.split('_');
+    const timestamp = parseInt(parts[parts.length - 1], 10);
+    if (!isNaN(timestamp)) {
+      const TWELVE_HOURS = 12 * 60 * 60 * 1000;
+      if (Date.now() - timestamp > TWELVE_HOURS) {
+        localStorage.removeItem('asn1_auth_token');
+        return null;
+      }
+    }
+  }
+  return stored;
+};
+
 const AdminDashboard: React.FC = () => {
   const { t } = useLanguage();
   const { addToast } = useToast();
-  const [token, setToken] = useState(localStorage.getItem('asn1_auth_token'));
+  const [token, setToken] = useState<string | null>(getValidToken);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);

@@ -26,9 +26,21 @@ const MOCK_ALLIANCE: Alliance = {
   id: 'asn1',
   tag: 'ASN1',
   name: 'ASN1 Alliance',
-  adminPass: 'Asn1!1628@',
   createdAt: '2025-01-01T00:00:00.000Z'
 };
+
+// Secure Admin Authentication (SHA-256 Hashed Verification)
+const ADMIN_PASSWORD_HASH = "3a41fa5869ea0286a9ea0722ba9750e79d7f58ed33143659a02c30c3c559b736";
+let loginAttempts = 0;
+let lockoutExpiry = 0;
+
+async function hashPasswordInput(text: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 const DEFAULT_STS = {
   stsPowerBoost1: 0, stsFinalStand1: 0, stsFierceAssault1: 0, stsVigilantFormation1: 0,
@@ -454,8 +466,40 @@ export const MockApi = {
   },
 
   login: async (username: string, password: string): Promise<ApiResponse<AuthResponse>> => {
-    if (password === 'Asn1!1628@') return { success: true, data: { token: 'mock-token', alliance: MOCK_ALLIANCE } };
-    return { success: false, error: 'Access Denied' };
+    const now = Date.now();
+    if (lockoutExpiry > now) {
+      const waitMinutes = Math.ceil((lockoutExpiry - now) / 60000);
+      return { 
+        success: false, 
+        error: `SECURITY LOCKOUT: Too many failed attempts. Try again in ${waitMinutes} min.` 
+      };
+    }
+
+    // Artificial delay to neutralize timing side-channel attacks and brute-force bots
+    await new Promise(r => setTimeout(r, 500));
+
+    const hashedInput = await hashPasswordInput(password || '');
+    if (hashedInput === ADMIN_PASSWORD_HASH) {
+      loginAttempts = 0;
+      lockoutExpiry = 0;
+      const token = `asn1_sec_${crypto.randomUUID()}_${Date.now()}`;
+      return { success: true, data: { token, alliance: MOCK_ALLIANCE } };
+    }
+
+    loginAttempts++;
+    if (loginAttempts >= 5) {
+      lockoutExpiry = Date.now() + 15 * 60 * 1000; // 15 minute lockout
+      return { 
+        success: false, 
+        error: 'ACCESS DENIED: 5 failed attempts reached. Terminal locked for 15 minutes.' 
+      };
+    }
+
+    const remaining = 5 - loginAttempts;
+    return { 
+      success: false, 
+      error: `ACCESS DENIED: Invalid password. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.` 
+    };
   },
 
   logout: async () => { localStorage.removeItem('asn1_auth_token'); },

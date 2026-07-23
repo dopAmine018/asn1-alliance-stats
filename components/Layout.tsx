@@ -64,7 +64,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onHom
                                 <div className="absolute inset-0 bg-sky-500 blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
                                 <div className="relative bg-gradient-to-br from-slate-900 to-black p-1.5 rounded-xl border border-white/10 group-hover:border-sky-500/50 transition-colors overflow-hidden">
                                     <img 
-                                      src="/ASN_Logo-_1628.png" 
+                                      src="/alliance-logo.png" 
                                       alt="ASN1 Logo" 
                                       className="w-8 h-8 object-contain transition-transform duration-500 group-hover:scale-110"
                                       onError={(e) => {
