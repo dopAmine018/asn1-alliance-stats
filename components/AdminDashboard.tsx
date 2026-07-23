@@ -249,7 +249,7 @@ const AdminDashboard: React.FC = () => {
                  { id: 'train', label: t('admin.train'), color: 'bg-amber-600' },
                  { id: 'storm', label: 'Desert Storm', color: 'bg-purple-600' },
                  { id: 'settings', label: 'Systems', color: 'bg-slate-700' },
-                 { id: 'monitor', label: '👑 Master Monitor (MR)', color: 'bg-rose-700' }
+                 { id: 'monitor', label: '👑 Admin Logs (MR)', color: 'bg-rose-700' }
              ].map(tab => (
                  <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 sm:flex-none px-5 py-2.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all duration-300 ${activeTab === tab.id ? `${tab.color} text-white shadow-lg` : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}>
                      {tab.label}

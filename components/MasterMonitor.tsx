@@ -121,10 +121,10 @@ export const MasterMonitor: React.FC<MasterMonitorProps> = ({ addToast }) => {
             👑
           </div>
           <h2 className="text-xl font-header font-bold text-white tracking-widest uppercase mb-2">
-            MASTER MONITOR LOCK
+            ADMIN LOGS LOCK
           </h2>
           <p className="text-xs text-slate-400 font-mono mb-6">
-            Exclusive Site Audit Terminal for MR. Enter master PIN to unlock.
+            Exclusive Site Audit & Admin Logs Terminal for MR. Enter PIN to unlock.
           </p>
           <form onSubmit={handleUnlock} className="space-y-4">
             <input
@@ -135,7 +135,7 @@ export const MasterMonitor: React.FC<MasterMonitorProps> = ({ addToast }) => {
               className={`w-full bg-slate-950 border ${pinError ? 'border-rose-500' : 'border-white/10'} rounded-xl px-4 py-3 text-center text-white outline-none font-mono tracking-widest text-sm focus:border-rose-500 transition-all`}
             />
             <button className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-rose-900/30 transition-all">
-              UNLOCK MASTER TERMINAL
+              UNLOCK ADMIN LOGS
             </button>
           </form>
         </div>
@@ -151,7 +151,7 @@ export const MasterMonitor: React.FC<MasterMonitorProps> = ({ addToast }) => {
           <div className="flex items-center gap-3 mb-2">
             <span className="px-3 py-1 bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1.5 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-              👑 EXCLUSIVE MASTER MONITOR (MR)
+              👑 EXCLUSIVE ADMIN LOGS (MR)
             </span>
             <span className="px-2.5 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[9px] font-mono font-bold rounded-md flex items-center gap-1">
               <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
