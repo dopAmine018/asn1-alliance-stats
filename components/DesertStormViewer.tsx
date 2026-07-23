@@ -3,6 +3,7 @@ import { DesertStormApi, MockApi } from '../services/mockBackend';
 import { Player, DesertStormRegistration, DesertStormWeek, PlayerRoleInWeek } from '../types';
 import { useLanguage } from '../utils/i18n';
 import { useToast } from './Toast';
+import { getStalenessInfo } from '../utils/dateUtils';
 
 interface HydratedTeam {
     teamAMain: Player[];
@@ -438,9 +439,35 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                             {selectedPlayer && (
                                 <div className="space-y-4 animate-in fade-in duration-300 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
                                     <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                                        <span className="text-xs font-bold text-emerald-400">Selected: {selectedPlayer.name}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-bold text-emerald-400">Selected: {selectedPlayer.name}</span>
+                                            {(() => {
+                                                const info = getStalenessInfo(selectedPlayer.updatedAt);
+                                                return (
+                                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${info.badgeColor}`}>
+                                                        {info.statusText}
+                                                    </span>
+                                                );
+                                            })()}
+                                        </div>
                                         <button onClick={() => { setSelectedPlayer(null); setRegName(''); }} className="text-[10px] text-slate-500 hover:text-slate-300">Change</button>
                                     </div>
+
+                                    {(() => {
+                                        const info = getStalenessInfo(selectedPlayer.updatedAt);
+                                        if (info.isStale) {
+                                            return (
+                                                <div className="bg-amber-950/40 border border-amber-500/40 p-2.5 rounded-xl flex items-start gap-2">
+                                                    <span className="text-base">⚠️</span>
+                                                    <p className="text-[10px] text-amber-300 leading-tight">
+                                                        <span className="font-bold uppercase block mb-0.5">Profile Power Outdated!</span>
+                                                        Your last power update was <span className="font-mono font-bold text-white">{info.days} days ago</span>. Please enter your exact current First Squad Power below to sync your profile.
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
 
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">

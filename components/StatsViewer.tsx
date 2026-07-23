@@ -6,6 +6,7 @@ import { useLanguage } from '../utils/i18n';
 import { CustomDropdown } from './CustomDropdown';
 import { calculateStsRemainingCost, calculateDefRemainingCost } from '../utils/gameLogic';
 import { useToast } from './Toast';
+import { getStalenessInfo, generateOutdatedPowerReport } from '../utils/dateUtils';
 
 interface StatsViewerProps {
   refreshTrigger: number;
@@ -21,6 +22,7 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [extractMode, setExtractMode] = useState<ExtractMode>('power');
+  const [showOnlyOutdated, setShowOnlyOutdated] = useState<boolean>(false);
   
   const [filter, setFilter] = useState<PlayerFilter>({ language: 'all', search: '', sort: 'power_desc', activeOnly: false });
 
@@ -171,6 +173,64 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
             </div>
       </div>
 
+      {/* Database Freshness & Power Audit Bar */}
+      {(() => {
+        const outdatedCount = players.filter(p => getStalenessInfo(p.updatedAt).isStale).length;
+        const freshCount = players.length - outdatedCount;
+
+        const copyAuditNotice = async () => {
+          const report = generateOutdatedPowerReport(players);
+          try {
+            await navigator.clipboard.writeText(report);
+            addToast('success', 'Power Audit Reminder Copied to Clipboard!');
+          } catch (e) {
+            addToast('error', 'Clipboard denied');
+          }
+        };
+
+        return (
+          <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex flex-wrap justify-between items-center gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 font-mono text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <span className="font-bold text-slate-300">{freshCount} Fresh</span>
+              </div>
+              {outdatedCount > 0 ? (
+                <div className="flex items-center gap-1.5 font-mono text-xs">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                  <span className="font-bold text-amber-400">{outdatedCount} Need Power Update (&gt;14d)</span>
+                </div>
+              ) : (
+                <span className="text-xs font-bold text-emerald-400 font-mono">100% Data Synchronized</span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowOnlyOutdated(prev => !prev)}
+                className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all ${
+                  showOnlyOutdated
+                    ? 'bg-amber-600 border-amber-500 text-white shadow-lg'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                {showOnlyOutdated ? 'Showing Outdated Only' : 'Filter Outdated (>14d)'}
+              </button>
+
+              {outdatedCount > 0 && (
+                <button
+                  onClick={copyAuditNotice}
+                  className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-600 hover:bg-rose-500 text-white border border-rose-400/30 flex items-center gap-1.5 shadow-lg transition-all"
+                  title="Copy formatted notice for Discord/WhatsApp"
+                >
+                  <span>📢 Copy Audit Blast</span>
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="bg-[#020617]/50 backdrop-blur-md border border-white/5 p-2 rounded-2xl grid grid-cols-1 md:grid-cols-12 gap-2 shadow-2xl">
         <div className="md:col-span-3 relative group">
              <div className="absolute inset-y-0 start-0 ps-4 flex items-center pointer-events-none">
@@ -216,17 +276,32 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                {[1,2,3,4,5,6].map(i => <div key={i} className="h-64 rounded-2xl bg-[#0a0f1e] animate-pulse border border-white/5"></div>)}
           </div>
-        ) : players.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {players.map((p, index) => (
-              <PlayerCard key={p.id} player={p} rank={filter.sort === 'power_desc' ? index + 1 : undefined} />
-            ))}
-          </div>
-        ) : (
-          <div className="py-32 rounded-3xl border-2 border-dashed border-white/5 flex flex-col items-center justify-center text-center bg-slate-900/20">
-              <p className="text-slate-500 font-header text-sm uppercase tracking-[0.3em] font-bold">NO_PLAYERS_FOUND</p>
-          </div>
-        )}
+        ) : (() => {
+          const displayedPlayers = showOnlyOutdated
+            ? players.filter(p => getStalenessInfo(p.updatedAt).isStale)
+            : players;
+
+          if (displayedPlayers.length === 0) {
+            return (
+              <div className="py-24 rounded-3xl border-2 border-dashed border-white/5 flex flex-col items-center justify-center text-center bg-slate-900/20">
+                <p className="text-slate-400 font-header text-sm uppercase tracking-[0.2em] font-bold mb-1">
+                  {showOnlyOutdated ? '🎉 ALL COMMANDERS ARE UP TO DATE!' : 'NO_PLAYERS_FOUND'}
+                </p>
+                {showOnlyOutdated && (
+                  <p className="text-xs text-slate-500">No active commanders have power records older than 14 days.</p>
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {displayedPlayers.map((p, index) => (
+                <PlayerCard key={p.id} player={p} rank={filter.sort === 'power_desc' ? index + 1 : undefined} />
+              ))}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

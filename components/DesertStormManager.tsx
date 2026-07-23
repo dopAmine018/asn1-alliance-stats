@@ -3,6 +3,7 @@ import { Player, DesertStormRegistration, DesertStormWeek, PlayerRoleInWeek } fr
 import { MockApi, DesertStormApi } from '../services/mockBackend';
 import { useToast } from './Toast';
 import { useLanguage } from '../utils/i18n';
+import { getStalenessInfo } from '../utils/dateUtils';
 
 interface TeamState {
     teamAMain: string[];
@@ -781,15 +782,21 @@ const DesertStormManager: React.FC = () => {
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
                         {candidates.length > 0 ? candidates.map(p => {
                             const isReg = registrations.some(r => r.playerId === p.id);
+                            const info = getStalenessInfo(p.updatedAt);
                             return (
                                 <div key={p.id} className="group relative bg-slate-900/50 border border-slate-800 p-2.5 rounded-xl hover:border-sky-500/50 transition-all">
                                     <div className="flex justify-between items-start gap-2">
                                         <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-1.5">
+                                            <div className="flex items-center gap-1.5 flex-wrap">
                                                 <span className="text-xs font-bold text-slate-200 truncate">{p.name}</span>
                                                 {isReg && (
                                                     <span className="text-[8px] bg-sky-500/20 text-sky-400 px-1.5 py-0.2 rounded font-mono font-bold">
                                                         REG
+                                                    </span>
+                                                )}
+                                                {info.isStale && (
+                                                    <span className={`text-[7px] font-bold px-1 rounded border ${info.badgeColor}`}>
+                                                        {info.days}d old
                                                     </span>
                                                 )}
                                             </div>

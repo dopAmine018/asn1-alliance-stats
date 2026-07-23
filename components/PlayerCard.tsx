@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Player } from '../types';
 import { useLanguage } from '../utils/i18n';
 import { calculateStsRemainingCost, calculateDefRemainingCost } from '../utils/gameLogic';
+import { getStalenessInfo } from '../utils/dateUtils';
 
 interface PlayerCardProps {
   player: Player;
@@ -50,11 +51,24 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, rank }) => {
       {/* Header Info */}
       <div className="flex justify-between items-start mb-4">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
+          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
             <h3 className="text-base font-header font-black text-white truncate uppercase tracking-tight">{player.name}</h3>
             <span className="text-[8px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-black">{player.language.slice(0,3).toUpperCase()}</span>
           </div>
-          <p className="text-[9px] text-slate-500 font-mono tracking-widest uppercase">SYNCED: {new Date(player.updatedAt).toLocaleDateString()}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-[9px] text-slate-500 font-mono tracking-widest uppercase">SYNCED: {new Date(player.updatedAt).toLocaleDateString()}</p>
+            {(() => {
+              const info = getStalenessInfo(player.updatedAt);
+              if (info.isStale) {
+                return (
+                  <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded border ${info.badgeColor}`}>
+                    {info.statusText}
+                  </span>
+                );
+              }
+              return null;
+            })()}
+          </div>
         </div>
         {rank && (
           <div className={`w-8 h-8 flex items-center justify-center rounded-lg border font-header font-black text-sm ${rank <= 3 ? 'bg-white/5 text-white' : 'border-slate-800 text-slate-600'}`}>

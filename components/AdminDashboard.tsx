@@ -7,6 +7,7 @@ import TrainManager from './TrainManager';
 import DesertStormManager from './DesertStormManager';
 import { CustomDropdown } from './CustomDropdown';
 import { useToast } from './Toast';
+import { getStalenessInfo, generateOutdatedPowerReport } from '../utils/dateUtils';
 
 const getValidToken = () => {
   const stored = localStorage.getItem('asn1_auth_token');
@@ -272,30 +273,50 @@ const AdminDashboard: React.FC = () => {
                     <table className="w-full text-left text-sm text-slate-400">
                         <thead className="bg-slate-950 text-[9px] uppercase font-bold text-slate-600 tracking-widest border-b border-white/5">
                             <tr>
-                                <th className="px-8 py-5">{t('admin.status')}</th>
-                                <th className="px-8 py-5">{t('label.name')}</th>
-                                <th className="px-8 py-5">Power Rating</th>
-                                <th className="px-8 py-5">Region</th>
-                                <th className="px-8 py-5 text-right">Action</th>
+                                <th className="px-6 py-5">{t('admin.status')}</th>
+                                <th className="px-6 py-5">{t('label.name')}</th>
+                                <th className="px-6 py-5">Power Rating</th>
+                                <th className="px-6 py-5">Freshness</th>
+                                <th className="px-6 py-5">Region</th>
+                                <th className="px-6 py-5 text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
-                            {players.map(player => (
-                                <tr key={player.id} className="hover:bg-sky-500/[0.02] transition-colors group">
-                                    <td className="px-8 py-4">
-                                        <button onClick={async () => { await MockApi.adminUpdatePlayer(player.id, { active: !player.active }); fetchPlayers(); }} className={`w-8 h-4 rounded-full relative transition-colors ${player.active ? 'bg-emerald-600' : 'bg-slate-800'}`}>
-                                            <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${player.active ? 'translate-x-4' : ''}`}></div>
-                                        </button>
-                                    </td>
-                                    <td className="px-8 py-4 font-bold text-white group-hover:text-sky-400 transition-colors">{player.name}</td>
-                                    <td className="px-8 py-4 font-mono text-xs text-slate-300">{formatPower(player.firstSquadPower)}</td>
-                                    <td className="px-8 py-4"><span className="text-[9px] font-bold border border-white/5 px-2.5 py-1 rounded-lg bg-white/5 uppercase text-slate-500">{player.language}</span></td>
-                                    <td className="px-8 py-4 text-right space-x-3">
-                                        <button onClick={() => startEdit(player)} className="text-[10px] font-bold text-sky-500 hover:text-white uppercase tracking-widest">{t('admin.edit')}</button>
-                                        <button onClick={async () => { if(window.confirm('WIPE DATABASE ENTRY?')) { await MockApi.adminDeletePlayer(player.id); fetchPlayers(); } }} className="text-[10px] font-bold text-rose-500 hover:text-white uppercase tracking-widest">{t('admin.del')}</button>
-                                    </td>
-                                </tr>
-                            ))}
+                            {players.map(player => {
+                                const info = getStalenessInfo(player.updatedAt);
+                                return (
+                                    <tr key={player.id} className="hover:bg-sky-500/[0.02] transition-colors group">
+                                        <td className="px-6 py-4">
+                                            <button onClick={async () => { await MockApi.adminUpdatePlayer(player.id, { active: !player.active }); fetchPlayers(); }} className={`w-8 h-4 rounded-full relative transition-colors ${player.active ? 'bg-emerald-600' : 'bg-slate-800'}`}>
+                                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${player.active ? 'translate-x-4' : ''}`}></div>
+                                            </button>
+                                        </td>
+                                        <td className="px-6 py-4 font-bold text-white group-hover:text-sky-400 transition-colors">{player.name}</td>
+                                        <td className="px-6 py-4 font-mono text-xs text-slate-300">{formatPower(player.firstSquadPower)}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded border ${info.badgeColor}`}>
+                                                {info.statusText}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4"><span className="text-[9px] font-bold border border-white/5 px-2.5 py-1 rounded-lg bg-white/5 uppercase text-slate-500">{player.language}</span></td>
+                                        <td className="px-6 py-4 text-right space-x-2">
+                                            <button 
+                                                onClick={async () => {
+                                                    await MockApi.adminUpdatePlayer(player.id, { updatedAt: new Date().toISOString() });
+                                                    addToast('success', `Power record verified for ${player.name}`);
+                                                    fetchPlayers();
+                                                }} 
+                                                className="text-[9px] font-bold text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 bg-emerald-950/40 px-2 py-1 rounded-md uppercase tracking-wider transition-all"
+                                                title="Touch profile to mark power verified today"
+                                            >
+                                                ✓ Verify
+                                            </button>
+                                            <button onClick={() => startEdit(player)} className="text-[10px] font-bold text-sky-500 hover:text-white uppercase tracking-widest">{t('admin.edit')}</button>
+                                            <button onClick={async () => { if(window.confirm('WIPE DATABASE ENTRY?')) { await MockApi.adminDeletePlayer(player.id); fetchPlayers(); } }} className="text-[10px] font-bold text-rose-500 hover:text-white uppercase tracking-widest">{t('admin.del')}</button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
