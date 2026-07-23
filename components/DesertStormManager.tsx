@@ -4,6 +4,7 @@ import { MockApi, DesertStormApi } from '../services/mockBackend';
 import { useToast } from './Toast';
 import { useLanguage } from '../utils/i18n';
 import { getStalenessInfo } from '../utils/dateUtils';
+import { DesertStormMapPlanner } from './DesertStormMapPlanner';
 
 interface TeamState {
     teamAMain: string[];
@@ -32,6 +33,7 @@ const DesertStormManager: React.FC = () => {
     const [showStartWeekModal, setShowStartWeekModal] = useState(false);
     const [newWeekName, setNewWeekName] = useState('');
     const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+    const [showMapPlanner, setShowMapPlanner] = useState(false);
 
     // UI state for moving players
     const [activeMoveMenu, setActiveMoveMenu] = useState<{ id: string, from: keyof TeamState } | null>(null);
@@ -633,12 +635,33 @@ const DesertStormManager: React.FC = () => {
                             ⚡ Top 10 + Rotation
                         </button>
 
+                        <button 
+                            onClick={() => setShowMapPlanner(true)}
+                            className="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-900/20 transition-all border border-amber-400/30 flex items-center gap-1.5"
+                            title="Generate and customize tactical assignments on the Desert Storm map"
+                        >
+                            🗺️ Map Plan Generator
+                        </button>
+
                         <button onClick={() => handleSave(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-900/20 transition-all border border-emerald-400/20 flex items-center gap-1">
                             📋 Audit & Save
                         </button>
                     </div>
                 </div>
             </div>
+
+            {/* Tactical Map Planner Modal */}
+            {showMapPlanner && (
+                <DesertStormMapPlanner 
+                    teamAMain={teams.teamAMain.map(id => allPlayers.find(p => p.id === id)).filter(Boolean) as Player[]}
+                    teamASubs={teams.teamASubs.map(id => allPlayers.find(p => p.id === id)).filter(Boolean) as Player[]}
+                    teamBMain={teams.teamBMain.map(id => allPlayers.find(p => p.id === id)).filter(Boolean) as Player[]}
+                    teamBSubs={teams.teamBSubs.map(id => allPlayers.find(p => p.id === id)).filter(Boolean) as Player[]}
+                    allPlayers={allPlayers}
+                    sessionName={currentWeek?.name || 'Desert Storm Session'}
+                    onClose={() => setShowMapPlanner(false)}
+                />
+            )}
 
             {/* Attendance Audit Modal (Prompted before saving week) */}
             {showAttendanceModal && (
