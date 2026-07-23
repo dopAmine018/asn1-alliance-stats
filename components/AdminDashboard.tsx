@@ -97,6 +97,16 @@ const AdminDashboard: React.FC = () => {
     setTotalCount(res.total || res.items.length);
     setLoading(false); 
   };
+
+  const copyAuditNotice = async () => {
+    const report = generateOutdatedPowerReport(players);
+    try {
+      await navigator.clipboard.writeText(report);
+      addToast('success', 'Power Audit Reminder Copied to Clipboard!');
+    } catch (e) {
+      addToast('error', 'Clipboard denied');
+    }
+  };
   
   const formatPower = (val: number | undefined) => { if (val === undefined || val === null) return '-'; return (val / 1000000).toLocaleString(undefined, { maximumFractionDigits: 1 }) + 'M'; };
 
@@ -258,13 +268,20 @@ const AdminDashboard: React.FC = () => {
                         <input type="text" placeholder={t('admin.filter')} className="bg-slate-950 border border-white/5 rounded-xl pl-10 pr-4 py-3 text-[11px] text-white focus:border-sky-500 outline-none w-full font-mono transition-all" value={filter.search} onChange={(e) => setFilter(prev => ({...prev, search: e.target.value}))} />
                         <svg className="w-4 h-4 text-slate-700 absolute left-4 top-3.5 transition-colors group-focus-within:text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                      </div>
-                     <div className="flex gap-4 items-center">
+                     <div className="flex flex-wrap gap-4 items-center">
                         <div className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-widest">
                             TOTAL ASSETS: <span className="text-sky-500">{totalCount}</span>
                         </div>
                         <div className="w-px h-6 bg-slate-800"></div>
                         <button onClick={() => setFilter(prev => ({...prev, activeOnly: !prev.activeOnly}))} className={`px-4 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all ${filter.activeOnly ? 'bg-sky-500/10 border-sky-500 text-sky-400' : 'bg-transparent border-slate-800 text-slate-500 hover:text-slate-300'}`}>
                             {filter.activeOnly ? t('admin.active_only') : t('admin.all_records')}
+                        </button>
+                        <button
+                          onClick={copyAuditNotice}
+                          className="px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest bg-rose-600 hover:bg-rose-500 text-white border border-rose-400/30 flex items-center gap-1.5 shadow-lg transition-all"
+                          title="Copy formatted notice for Discord/WhatsApp"
+                        >
+                          <span>📢 Copy Audit Blast</span>
                         </button>
                      </div>
                 </div>

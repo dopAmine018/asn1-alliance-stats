@@ -216,16 +216,6 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
               >
                 {showOnlyOutdated ? 'Showing Outdated Only' : 'Filter Outdated (>14d)'}
               </button>
-
-              {outdatedCount > 0 && (
-                <button
-                  onClick={copyAuditNotice}
-                  className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-600 hover:bg-rose-500 text-white border border-rose-400/30 flex items-center gap-1.5 shadow-lg transition-all"
-                  title="Copy formatted notice for Discord/WhatsApp"
-                >
-                  <span>📢 Copy Audit Blast</span>
-                </button>
-              )}
             </div>
           </div>
         );
