@@ -60,7 +60,7 @@ const FormInput = ({ label, name, val, change, req, locked, type="text", loading
       <div className="relative flex items-center">
           <input 
               type={type} name={name} value={val} onChange={change} required={req} onBlur={onBlur} autoComplete={autoComplete}
-              className={`w-full bg-slate-950/80 border rounded-xl py-2 px-3 text-xs text-white font-mono focus:outline-none transition-all
+              className={`w-full bg-slate-950/80 border rounded-xl py-2.5 sm:py-2 px-3 text-sm sm:text-xs text-white font-mono focus:outline-none transition-all
                   ${locked 
                       ? 'border-amber-500/40 focus:border-amber-400 text-amber-100 bg-amber-500/5' 
                       : 'border-slate-800 focus:border-sky-500/80 focus:ring-1 focus:ring-sky-500/30'
@@ -89,16 +89,16 @@ const TechNode = ({ id, label, value, onChange, binary, hint, max=10, accentColo
     const c = colors[binary ? 'purple' : accentColor] || colors.sky;
 
     return (
-        <div className={`relative group bg-[#0f172a] rounded-xl border p-1 w-full max-w-[140px] transition-all z-10 ${c.border} ${c.hover} ${c.shadow} ${isMax ? c.maxBg + ' ring-1 ring-inset ' + c.ring : ''}`}>
+        <div className={`relative group bg-[#0f172a] rounded-xl border p-1 w-full max-w-[100px] sm:max-w-[140px] transition-all z-10 ${c.border} ${c.hover} ${c.shadow} ${isMax ? c.maxBg + ' ring-1 ring-inset ' + c.ring : ''}`}>
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                 <div className={`w-8 h-8 rounded-full bg-slate-900 border flex items-center justify-center shadow-lg transition-all ${c.iconBg} ${isMax ? 'scale-110 border-white/20' : ''}`}>
-                     <svg className={`w-4 h-4 transition-colors ${c.icon} ${isMax ? 'text-white' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                 <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-900 border flex items-center justify-center shadow-lg transition-all ${c.iconBg} ${isMax ? 'scale-110 border-white/20' : ''}`}>
+                     <svg className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${c.icon} ${isMax ? 'text-white' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                  </div>
             </div>
-            <div className="pt-6 pb-2 px-1 text-center">
-                <label className={`block text-[8px] font-bold uppercase mb-2 truncate px-1 transition-colors ${isMax ? c.maxText : 'text-slate-400'}`}>{label}</label>
-                <CustomDropdown value={value} onChange={onChange} options={options} disableSearch className={`text-xs ${isMax ? 'font-black' : ''}`} />
-                {hint && <div className="mt-1 text-[7px] font-mono text-slate-600 uppercase tracking-tighter leading-none">{hint}</div>}
+            <div className="pt-5 sm:pt-6 pb-2 px-0.5 sm:px-1 text-center">
+                <label className={`block text-[7px] sm:text-[8px] font-bold uppercase mb-1.5 sm:mb-2 truncate px-0.5 transition-colors ${isMax ? c.maxText : 'text-slate-400'}`}>{label}</label>
+                <CustomDropdown value={value} onChange={onChange} options={options} disableSearch className={`text-[11px] sm:text-xs ${isMax ? 'font-black' : ''}`} />
+                {hint && <div className="mt-1 text-[6px] sm:text-[7px] font-mono text-slate-600 uppercase tracking-tighter leading-none">{hint}</div>}
             </div>
             {isMax && (
                 <div className={`absolute -right-1 -top-1 w-4 h-4 rounded-full bg-emerald-500 border border-white/20 shadow-lg flex items-center justify-center z-20 animate-pulse`}>
@@ -148,12 +148,12 @@ const MasteryTree = ({ type, formData, setFormData, resources, fR }: any) => {
     const setVal = (key: string, v: any) => setFormData((p: any) => ({ ...p, [`mastery${prefix}${key}`]: v }));
 
     return (
-        <div className={`bg-[#0a0f1e]/50 p-8 rounded-xl border ${borderClasses[accentColor]} space-y-10 ${shadowClasses[accentColor]}`}>
+        <div className={`bg-[#0a0f1e]/50 p-4 sm:p-8 rounded-xl border ${borderClasses[accentColor]} space-y-8 sm:space-y-10 ${shadowClasses[accentColor]}`}>
             <h4 className={`text-[10px] font-black ${textClasses[accentColor]} uppercase tracking-[0.3em]`}>{displayTitle.toUpperCase()} MASTERY PROTOCOL</h4>
             
             <div className="flex flex-col items-center">
                 {/* Tier 1: Synergy I */}
-                <div className="flex gap-4">
+                <div className="flex gap-1.5 sm:gap-4 justify-center w-full">
                     <TechNode label={nodes[0].label} value={getVal(nodes[0].key)} onChange={(v:any)=>setVal(nodes[0].key, v)} accentColor={accentColor} />
                     <TechNode label={nodes[1].label} value={getVal(nodes[1].key)} onChange={(v:any)=>setVal(nodes[1].key, v)} accentColor={accentColor} />
                     <TechNode label={nodes[2].label} value={getVal(nodes[2].key)} onChange={(v:any)=>setVal(nodes[2].key, v)} accentColor={accentColor} />
@@ -175,7 +175,7 @@ const MasteryTree = ({ type, formData, setFormData, resources, fR }: any) => {
                 </div>
 
                 {/* Tier 4: Unit I */}
-                <div className="flex gap-4">
+                <div className="flex gap-1.5 sm:gap-4 justify-center w-full">
                     <TechNode label={nodes[5].label} value={getVal(nodes[5].key)} onChange={(v:any)=>setVal(nodes[5].key, v)} accentColor={accentColor} />
                     <TechNode label={nodes[6].label} value={getVal(nodes[6].key)} onChange={(v:any)=>setVal(nodes[6].key, v)} accentColor={accentColor} />
                     <TechNode label={nodes[7].label} value={getVal(nodes[7].key)} onChange={(v:any)=>setVal(nodes[7].key, v)} accentColor={accentColor} />
@@ -197,7 +197,7 @@ const MasteryTree = ({ type, formData, setFormData, resources, fR }: any) => {
                 </div>
 
                 {/* Tier 7: Synergy II */}
-                <div className="flex gap-4">
+                <div className="flex gap-1.5 sm:gap-4 justify-center w-full">
                     <TechNode label={nodes[10].label} value={getVal(nodes[10].key)} onChange={(v:any)=>setVal(nodes[10].key, v)} accentColor={accentColor} />
                     <TechNode label={nodes[11].label} value={getVal(nodes[11].key)} onChange={(v:any)=>setVal(nodes[11].key, v)} accentColor={accentColor} />
                     <TechNode label={nodes[12].label} value={getVal(nodes[12].key)} onChange={(v:any)=>setVal(nodes[12].key, v)} accentColor={accentColor} />
@@ -219,7 +219,7 @@ const MasteryTree = ({ type, formData, setFormData, resources, fR }: any) => {
                 </div>
 
                 {/* Tier 10: Unit II */}
-                <div className="flex gap-4">
+                <div className="flex gap-1.5 sm:gap-4 justify-center w-full">
                     <TechNode label={nodes[15].label} value={getVal(nodes[15].key)} onChange={(v:any)=>setVal(nodes[15].key, v)} accentColor={accentColor} />
                     <TechNode label={nodes[16].label} value={getVal(nodes[16].key)} onChange={(v:any)=>setVal(nodes[16].key, v)} accentColor={accentColor} />
                     <TechNode label={nodes[17].label} value={getVal(nodes[17].key)} onChange={(v:any)=>setVal(nodes[17].key, v)} accentColor={accentColor} />

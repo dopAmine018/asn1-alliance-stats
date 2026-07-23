@@ -85,3 +85,18 @@ body {
   letter-spacing: -0.02em;
   text-transform: uppercase;
 }
+
+/* Hide scrollbars for clean touch scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile tap optimizations */
+button, a, input, select {
+  -webkit-tap-highlight-color: transparent;
+}

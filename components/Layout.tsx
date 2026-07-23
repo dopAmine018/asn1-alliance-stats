@@ -18,6 +18,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onHomeClick, showHomeBtn, onNavigate }) => {
   const { language, setLanguage, t, dir } = useLanguage();
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -47,105 +48,139 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onHom
     <div className="min-h-screen flex flex-col relative" dir={dir}>
       
       {/* Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${scrolled ? 'py-2' : 'py-6'}`}>
-        <div className="container max-w-7xl mx-auto px-4">
-            <div className={`
-                relative backdrop-blur-xl border transition-all duration-500
-                ${scrolled 
-                    ? 'bg-[#020617]/90 border-slate-800/80 shadow-2xl rounded-2xl py-3 px-5' 
-                    : 'bg-transparent border-transparent py-2 px-0'}
-            `}>
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    
-                    {/* Brand */}
-                    <div className="flex items-center justify-between w-full sm:w-auto">
-                        <div className="flex items-center gap-4 group cursor-pointer" onClick={onHomeClick}>
-                            <div className="relative">
-                                <div className="absolute inset-0 bg-sky-500 blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
-                                <div className="relative bg-gradient-to-br from-slate-900 to-black p-1.5 rounded-xl border border-white/10 group-hover:border-sky-500/50 transition-colors overflow-hidden">
-                                    <img 
-                                      src="/alliance-logo.png" 
-                                      alt="ASN1 Logo" 
-                                      className="w-8 h-8 object-contain transition-transform duration-500 group-hover:scale-110"
-                                      onError={(e) => {
-                                        (e.target as any).style.display = 'none';
-                                      }}
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <h1 className="text-xl font-header font-black tracking-tighter text-white leading-none">
-                                    ASN1 <span className="text-sky-500">COMMAND</span>
-                                </h1>
-                                <div className="flex items-center gap-1.5 mt-1">
-                                    <div className={`w-1.5 h-1.5 rounded-full ${isConnected === true ? 'bg-emerald-500 shadow-[0_0_5px_#10b981]' : isConnected === false ? 'bg-rose-500 shadow-[0_0_5px_#f43f5e]' : 'bg-slate-500 animate-pulse'}`}></div>
-                                    <span className={`text-[8px] font-mono font-bold uppercase tracking-widest ${isConnected === true ? 'text-emerald-500/70' : isConnected === false ? 'text-rose-500/70' : 'text-slate-500'}`}>
-                                        {isConnected === true ? t('uplink.active') : isConnected === false ? t('uplink.offline') : t('uplink.syncing')}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Mobile Lang */}
-                        <div className="sm:hidden w-24">
-                            <CustomDropdown 
-                                value={language}
-                                onChange={(val) => setLanguage(val as Language)}
-                                options={languageOptions}
-                                className="text-xs"
+      <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${scrolled ? 'py-1.5 sm:py-2 bg-[#020617]/95 backdrop-blur-xl border-b border-white/5 shadow-2xl' : 'py-3 sm:py-6 bg-[#020617]/60 backdrop-blur-md'}`}>
+        <div className="container max-w-7xl mx-auto px-3 sm:px-4">
+            <div className="flex items-center justify-between gap-2">
+                
+                {/* Brand */}
+                <div className="flex items-center gap-2 sm:gap-3 group cursor-pointer" onClick={() => { setMobileMenuOpen(false); if (onHomeClick) onHomeClick(); }}>
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-sky-500 blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
+                        <div className="relative bg-gradient-to-br from-slate-900 to-black p-1 sm:p-1.5 rounded-xl border border-white/10 group-hover:border-sky-500/50 transition-colors overflow-hidden">
+                            <img 
+                              src="/alliance-logo.png" 
+                              alt="ASN1 Logo" 
+                              className="w-7 h-7 sm:w-8 sm:h-8 object-contain transition-transform duration-500 group-hover:scale-110"
+                              onError={(e) => {
+                                (e.target as any).style.display = 'none';
+                              }}
                             />
                         </div>
                     </div>
-
-                    {/* Desktop Actions */}
-                    <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                         {/* Public Nav Links (Desktop) */}
-                         {activeTab === 'public' && onNavigate && (
-                             <div className="hidden md:flex items-center gap-2 mr-4 border-r border-slate-800 pr-4">
-                                 <button onClick={() => onNavigate('train_public')} className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors">
-                                     {t('nav.train_public')}
-                                 </button>
-                             </div>
-                         )}
-
-                         {showHomeBtn && (
-                             <button onClick={onHomeClick} className="hidden sm:flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors border border-slate-800 hover:border-slate-600 px-4 py-2 rounded-lg bg-slate-900/50">
-                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                                 {t('nav.home')}
-                             </button>
-                         )}
-
-                         <div className="hidden sm:block w-28">
-                            <CustomDropdown 
-                                value={language}
-                                onChange={(val) => setLanguage(val as Language)}
-                                options={languageOptions}
-                            />
-                         </div>
-
-                         {activeTab === 'public' ? (
-                            <button
-                                onClick={() => onTabChange('admin')}
-                                className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-sky-400 transition-colors px-3"
-                            >
-                                {t('nav.admin')}
-                            </button>
-                         ) : (
-                             <button
-                                onClick={() => onTabChange('public')}
-                                className="text-[10px] font-bold uppercase tracking-widest text-sky-500 hover:text-sky-400 transition-colors px-3"
-                             >
-                                {t('nav.public')}
-                             </button>
-                         )}
+                    <div>
+                        <h1 className="text-base sm:text-xl font-header font-black tracking-tighter text-white leading-none">
+                            ASN1 <span className="text-sky-500">COMMAND</span>
+                        </h1>
+                        <div className="flex items-center gap-1.5 mt-0.5 sm:mt-1">
+                            <div className={`w-1.5 h-1.5 rounded-full ${isConnected === true ? 'bg-emerald-500 shadow-[0_0_5px_#10b981]' : isConnected === false ? 'bg-rose-500 shadow-[0_0_5px_#f43f5e]' : 'bg-slate-500 animate-pulse'}`}></div>
+                            <span className={`text-[7px] sm:text-[8px] font-mono font-bold uppercase tracking-widest ${isConnected === true ? 'text-emerald-500/80' : isConnected === false ? 'text-rose-500/80' : 'text-slate-500'}`}>
+                                {isConnected === true ? t('uplink.active') : isConnected === false ? t('uplink.offline') : t('uplink.syncing')}
+                            </span>
+                        </div>
                     </div>
                 </div>
+
+                {/* Mobile Right Quick Controls */}
+                <div className="flex sm:hidden items-center gap-2">
+                    <div className="w-20">
+                        <CustomDropdown 
+                            value={language}
+                            onChange={(val) => setLanguage(val as Language)}
+                            options={languageOptions}
+                            className="text-[10px]"
+                        />
+                    </div>
+
+                    <button
+                      onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                      className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-900 border border-white/10 text-white hover:border-sky-500/50 active:scale-95 transition-all"
+                      aria-label="Toggle Menu"
+                    >
+                      {mobileMenuOpen ? (
+                        <svg className="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" /></svg>
+                      )}
+                    </button>
+                </div>
+
+                {/* Desktop Actions */}
+                <div className="hidden sm:flex items-center gap-3 justify-end">
+                     {/* Public Nav Links (Desktop) */}
+                     {activeTab === 'public' && onNavigate && (
+                         <div className="flex items-center gap-2 mr-4 border-r border-slate-800 pr-4">
+                             <button onClick={() => onNavigate('train_public')} className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors">
+                                 {t('nav.train_public')}
+                             </button>
+                         </div>
+                     )}
+
+                     {showHomeBtn && (
+                         <button onClick={onHomeClick} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors border border-slate-800 hover:border-slate-600 px-4 py-2 rounded-lg bg-slate-900/50">
+                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                             {t('nav.home')}
+                         </button>
+                     )}
+
+                     <div className="w-28">
+                        <CustomDropdown 
+                            value={language}
+                            onChange={(val) => setLanguage(val as Language)}
+                            options={languageOptions}
+                        />
+                     </div>
+
+                     {activeTab === 'public' ? (
+                        <button
+                            onClick={() => onTabChange('admin')}
+                            className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-sky-400 transition-colors px-3 py-1.5 border border-slate-800 rounded-lg hover:border-sky-500/40 bg-slate-900/40"
+                        >
+                            {t('nav.admin')}
+                        </button>
+                     ) : (
+                         <button
+                            onClick={() => onTabChange('public')}
+                            className="text-[10px] font-bold uppercase tracking-widest text-sky-400 hover:text-sky-300 transition-colors px-3 py-1.5 border border-sky-500/30 rounded-lg bg-sky-500/10"
+                         >
+                            {t('nav.public')}
+                         </button>
+                     )}
+                </div>
             </div>
+
+            {/* Mobile Dropdown Drawer */}
+            {mobileMenuOpen && (
+              <div className="sm:hidden mt-3 pt-3 border-t border-white/10 space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                <div className="grid grid-cols-2 gap-2">
+                  {showHomeBtn && (
+                    <button 
+                      onClick={() => { setMobileMenuOpen(false); if (onHomeClick) onHomeClick(); }}
+                      className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-200 bg-slate-900 border border-white/10 py-2.5 rounded-xl active:bg-slate-800"
+                    >
+                      <svg className="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                      {t('nav.home')}
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); onTabChange(activeTab === 'public' ? 'admin' : 'public'); }}
+                    className={`flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl border ${
+                      activeTab === 'public' 
+                        ? 'bg-rose-950/40 text-rose-300 border-rose-500/30' 
+                        : 'bg-sky-950/40 text-sky-300 border-sky-500/30'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    {activeTab === 'public' ? t('nav.admin') : t('nav.public')}
+                  </button>
+                </div>
+              </div>
+            )}
         </div>
       </nav>
 
       {/* Spacer */}
-      <div className="h-32"></div>
+      <div className="h-20 sm:h-28"></div>
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col">

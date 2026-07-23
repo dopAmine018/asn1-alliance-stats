@@ -485,23 +485,23 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                     </div>
 
                                     <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">{t('storm.timePreference')}</label>
-                                        <div className="grid grid-cols-3 gap-2">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">{t('storm.timePreference')}</label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                             <button 
                                                 onClick={() => setRegTime('14:00')}
-                                                className={`p-2 rounded-xl text-xs font-bold border ${regTime === '14:00' ? 'bg-amber-600 border-amber-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-400'}`}
+                                                className={`p-2.5 sm:p-2 rounded-xl text-xs font-bold border transition-all text-center ${regTime === '14:00' ? 'bg-amber-600 border-amber-500 text-white shadow-md' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'}`}
                                             >
                                                 14:00 UTC ({slotsLeftA} {t('storm.slots_left')})
                                             </button>
                                             <button 
                                                 onClick={() => setRegTime('23:00')}
-                                                className={`p-2 rounded-xl text-xs font-bold border ${regTime === '23:00' ? 'bg-sky-600 border-sky-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-400'}`}
+                                                className={`p-2.5 sm:p-2 rounded-xl text-xs font-bold border transition-all text-center ${regTime === '23:00' ? 'bg-sky-600 border-sky-500 text-white shadow-md' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'}`}
                                             >
                                                 23:00 UTC ({slotsLeftB} {t('storm.slots_left')})
                                             </button>
                                             <button 
                                                 onClick={() => setRegTime('ANY')}
-                                                className={`p-2 rounded-xl text-xs font-bold border ${regTime === 'ANY' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-400'}`}
+                                                className={`p-2.5 sm:p-2 rounded-xl text-xs font-bold border transition-all text-center ${regTime === 'ANY' ? 'bg-emerald-600 border-emerald-500 text-white shadow-md' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'}`}
                                             >
                                                 {t('storm.anyTime')} ({totalSlotsLeft} {t('storm.slots_left')})
                                             </button>
