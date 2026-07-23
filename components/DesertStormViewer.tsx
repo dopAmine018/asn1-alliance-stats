@@ -283,7 +283,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                             <h2 className="text-xl font-header font-black text-white uppercase tracking-wider">{t('storm.title')}</h2>
                             {currentWeek?.isCurrent && (
                                 <span className="text-[8px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded font-mono font-bold uppercase">
-                                    Active Week
+                                    {t('storm.activeWeek')}
                                 </span>
                             )}
                         </div>
@@ -293,7 +293,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
 
                 {/* Week Selector Dropdown */}
                 <div className="flex items-center gap-2 shrink-0 bg-slate-900 border border-slate-800 p-2 rounded-xl">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Week:</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">{t('storm.weekLabel')}</span>
                     <select
                         value={selectedWeekId}
                         onChange={(e) => handleSelectWeek(e.target.value)}
@@ -301,7 +301,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                     >
                         {weeks.map(w => (
                             <option key={w.id} value={w.id}>
-                                {w.name} {w.isCurrent ? '(Current)' : ''}
+                                {w.name} {w.isCurrent ? `(${t('storm.current')})` : ''}
                             </option>
                         ))}
                     </select>
@@ -311,20 +311,20 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
             {/* Application Slot Counters Banner */}
             <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl mb-8">
                 <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-3 text-center">
-                    Weekly Application Slot Status
+                    {t('storm.slotStatus')}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center font-mono">
                     <div className="bg-amber-950/20 border border-amber-500/30 p-2.5 rounded-xl">
-                        <div className="text-[9px] text-amber-400 uppercase font-bold">Team A (14:00)</div>
-                        <div className="text-lg font-black text-white">{slotsLeftA} / 30 <span className="text-[10px] font-normal text-slate-400">slots left</span></div>
+                        <div className="text-[9px] text-amber-400 uppercase font-bold">{t('storm.teamA')}</div>
+                        <div className="text-lg font-black text-white">{slotsLeftA} / 30 <span className="text-[10px] font-normal text-slate-400">{t('storm.slots_left')}</span></div>
                     </div>
                     <div className="bg-sky-950/20 border border-sky-500/30 p-2.5 rounded-xl">
-                        <div className="text-[9px] text-sky-400 uppercase font-bold">Team B (23:00)</div>
-                        <div className="text-lg font-black text-white">{slotsLeftB} / 30 <span className="text-[10px] font-normal text-slate-400">slots left</span></div>
+                        <div className="text-[9px] text-sky-400 uppercase font-bold">{t('storm.teamB')}</div>
+                        <div className="text-lg font-black text-white">{slotsLeftB} / 30 <span className="text-[10px] font-normal text-slate-400">{t('storm.slots_left')}</span></div>
                     </div>
                     <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl">
-                        <div className="text-[9px] text-slate-400 uppercase font-bold">Total Operations Capacity</div>
-                        <div className="text-lg font-black text-emerald-400">{totalSlotsLeft} / 60 <span className="text-[10px] font-normal text-slate-400">slots left</span></div>
+                        <div className="text-[9px] text-slate-400 uppercase font-bold">{t('storm.totalCapacity')}</div>
+                        <div className="text-lg font-black text-emerald-400">{totalSlotsLeft} / 60 <span className="text-[10px] font-normal text-slate-400">{t('storm.slots_left')}</span></div>
                     </div>
                 </div>
             </div>
@@ -349,7 +349,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                             }`}
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                            {totalSlotsLeft > 0 ? t('storm.applyNow') : 'ALL SLOTS FULL'}
+                            {totalSlotsLeft > 0 ? t('storm.applyNow') : t('storm.allSlotsFull')}
                         </button>
                     )}
                 </div>
@@ -358,7 +358,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                     className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2"
                 >
                     <svg className="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
-                    Copy Intelligence
+                    {t('storm.copyIntel')}
                 </button>
             </div>
 
@@ -369,7 +369,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                         <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                             <div>
                                 <h3 className="text-sm font-black text-white uppercase tracking-wider">{t('storm.applyTitle')}</h3>
-                                <p className="text-[10px] text-slate-400 mt-0.5">Apply for weekly Desert Storm & keep alliance database power updated</p>
+                                <p className="text-[10px] text-slate-400 mt-0.5">{t('storm.applySub')}</p>
                             </div>
                             <button onClick={() => setShowRegister(false)} className="text-slate-500 hover:text-white">✕</button>
                         </div>
@@ -378,17 +378,17 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                             {/* Player search */}
                             <div>
                                 <div className="flex justify-between items-center mb-1">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">1. Identify Commander</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('storm.identifyCommander')}</label>
                                     {onCreateProfile && (
                                         <button onClick={onCreateProfile} className="text-[10px] font-bold text-sky-400 hover:underline">
-                                            + Register New Profile
+                                            {t('storm.registerNewProfile')}
                                         </button>
                                     )}
                                 </div>
                                 <input 
                                     type="text" 
                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-sky-500 outline-none"
-                                    placeholder="Search your in-game name..."
+                                    placeholder={t('storm.searchInGameName')}
                                     value={regName}
                                     onChange={(e) => handleSearch(e.target.value)}
                                 />
@@ -418,20 +418,20 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                     <div className="mt-3 bg-rose-950/40 border-2 border-rose-500/50 p-4 rounded-xl space-y-3 text-center animate-in fade-in">
                                         <div className="text-xl">⚠️</div>
                                         <div className="text-xs font-black text-rose-400 uppercase tracking-wider">
-                                            Commander Not Found in Alliance Database!
+                                            {t('storm.notFoundTitle')}
                                         </div>
                                         <p className="text-[11px] text-slate-300 leading-relaxed">
-                                            The name <span className="font-mono text-amber-400 font-bold">"{regName}"</span> does not exist in our website database.
+                                            "{regName}" {t('storm.notFoundDesc')}
                                         </p>
                                         <p className="text-[10px] text-slate-400">
-                                            To ensure accurate rankings and power records, you must register your Commander Profile first before applying for Desert Storm.
+                                            {t('storm.notFoundAction')}
                                         </p>
                                         {onCreateProfile && (
                                             <button
                                                 onClick={onCreateProfile}
                                                 className="w-full bg-rose-600 hover:bg-rose-500 text-white font-black text-xs py-2.5 px-4 rounded-xl shadow-lg transition-all uppercase tracking-wider border border-rose-400/30 flex items-center justify-center gap-2"
                                             >
-                                                <span>👤 Register Profile First</span>
+                                                <span>👤 {t('storm.registerProfileFirst')}</span>
                                                 <span>→</span>
                                             </button>
                                         )}
@@ -443,7 +443,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                 <div className="space-y-4 animate-in fade-in duration-300 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
                                     <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs font-bold text-emerald-400">Selected: {selectedPlayer.name}</span>
+                                            <span className="text-xs font-bold text-emerald-400">{t('storm.selected')} {selectedPlayer.name}</span>
                                             {(() => {
                                                 const info = getStalenessInfo(selectedPlayer.updatedAt);
                                                 return (
@@ -453,7 +453,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                                 );
                                             })()}
                                         </div>
-                                        <button onClick={() => { setSelectedPlayer(null); setRegName(''); }} className="text-[10px] text-slate-500 hover:text-slate-300">Change</button>
+                                        <button onClick={() => { setSelectedPlayer(null); setRegName(''); }} className="text-[10px] text-slate-500 hover:text-slate-300">{t('storm.change')}</button>
                                     </div>
 
                                     {(() => {
@@ -463,8 +463,8 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                                 <div className="bg-amber-950/40 border border-amber-500/40 p-2.5 rounded-xl flex items-start gap-2">
                                                     <span className="text-base">⚠️</span>
                                                     <p className="text-[10px] text-amber-300 leading-tight">
-                                                        <span className="font-bold uppercase block mb-0.5">Profile Power Outdated!</span>
-                                                        Your last power update was <span className="font-mono font-bold text-white">{info.days} days ago</span>. Please enter your exact current First Squad Power below to sync your profile.
+                                                        <span className="font-bold uppercase block mb-0.5">{t('storm.powerOutdatedTitle')}</span>
+                                                        {info.days} {t('storm.powerOutdatedDesc')}
                                                     </p>
                                                 </div>
                                             );
@@ -474,7 +474,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
 
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">
-                                            2. Confirm / Update First Squad Power (Millions) <span className="text-rose-500">*</span>
+                                            {t('storm.confirmPower')} <span className="text-rose-500">*</span>
                                         </label>
                                         <input 
                                             type="text" 
@@ -484,30 +484,30 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                             onChange={(e) => setRegPower(e.target.value)}
                                         />
                                         <p className="text-[9px] text-sky-400/80 mt-1">
-                                            ℹ️ This will update your profile power in the official alliance database automatically.
+                                            {t('storm.powerAutoUpdateHint')}
                                         </p>
                                     </div>
 
                                     <div>
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">3. Time Availability Preference</label>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">{t('storm.timePreference')}</label>
                                         <div className="grid grid-cols-3 gap-2">
                                             <button 
                                                 onClick={() => setRegTime('14:00')}
                                                 className={`p-2 rounded-xl text-xs font-bold border ${regTime === '14:00' ? 'bg-amber-600 border-amber-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-400'}`}
                                             >
-                                                14:00 UTC ({slotsLeftA} left)
+                                                14:00 UTC ({slotsLeftA} {t('storm.slots_left')})
                                             </button>
                                             <button 
                                                 onClick={() => setRegTime('23:00')}
                                                 className={`p-2 rounded-xl text-xs font-bold border ${regTime === '23:00' ? 'bg-sky-600 border-sky-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-400'}`}
                                             >
-                                                23:00 UTC ({slotsLeftB} left)
+                                                23:00 UTC ({slotsLeftB} {t('storm.slots_left')})
                                             </button>
                                             <button 
                                                 onClick={() => setRegTime('ANY')}
                                                 className={`p-2 rounded-xl text-xs font-bold border ${regTime === 'ANY' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-400'}`}
                                             >
-                                                ANY TIME ({totalSlotsLeft} left)
+                                                {t('storm.anyTime')} ({totalSlotsLeft} {t('storm.slots_left')})
                                             </button>
                                         </div>
                                     </div>
@@ -516,22 +516,22 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
 
                             {!selectedPlayer && onCreateProfile && regName.length < 2 && (
                                 <div className="text-center pt-2 bg-slate-950 p-3 rounded-xl border border-slate-800/80">
-                                    <p className="text-[10px] text-slate-400 mb-2">New to the alliance or not listed in our database yet?</p>
+                                    <p className="text-[10px] text-slate-400 mb-2">{t('storm.newToAlliance')}</p>
                                     <button onClick={onCreateProfile} className="text-xs font-bold text-sky-400 hover:text-sky-300 underline">
-                                        Create Alliance Profile First →
+                                        {t('storm.createProfileFirst')}
                                     </button>
                                 </div>
                             )}
                         </div>
 
                         <div className="flex justify-end gap-2 pt-4 border-t border-slate-800">
-                            <button onClick={() => setShowRegister(false)} className="px-4 py-2 text-xs font-bold text-slate-400">Cancel</button>
+                            <button onClick={() => setShowRegister(false)} className="px-4 py-2 text-xs font-bold text-slate-400">{t('storm.cancel')}</button>
                             <button 
                                 onClick={submitRegistration}
                                 disabled={!selectedPlayer}
                                 className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider ${selectedPlayer ? 'bg-sky-600 text-white shadow-lg shadow-sky-900/20 hover:bg-sky-500' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
                             >
-                                Submit Application & Update Power
+                                {t('storm.submitApp')}
                             </button>
                         </div>
                     </div>
@@ -544,28 +544,28 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                 <div className="bg-slate-900/80 border border-amber-500/20 rounded-2xl p-6 shadow-xl">
                     <div className="flex justify-between items-center border-b border-amber-500/30 pb-3 mb-6">
                         <div>
-                            <h3 className="text-sm font-black text-amber-500 uppercase tracking-widest">TEAM A (14:00 UTC)</h3>
-                            <div className="text-[10px] text-slate-500 font-mono mt-0.5">ESTIMATED COMBAT POWER</div>
+                            <h3 className="text-sm font-black text-amber-500 uppercase tracking-widest">{t('storm.teamA')}</h3>
+                            <div className="text-[10px] text-slate-500 font-mono mt-0.5">{t('storm.estPower')}</div>
                         </div>
                         <span className="text-lg font-mono font-black text-white">{getTotalPower([...data.teamAMain, ...data.teamASubs])}</span>
                     </div>
 
-                    <PlayerList players={data.teamAMain} title="MAIN COMBAT FORCE (20 MAX)" color="border-amber-500/30" />
-                    <PlayerList players={data.teamASubs} title="RESERVES (10 MAX)" color="border-amber-900/30" />
+                    <PlayerList players={data.teamAMain} title={t('storm.mainCombatForce')} color="border-amber-500/30" />
+                    <PlayerList players={data.teamASubs} title={t('storm.reservesMax')} color="border-amber-900/30" />
                 </div>
 
                 {/* Team B */}
                 <div className="bg-slate-900/80 border border-sky-500/20 rounded-2xl p-6 shadow-xl">
                     <div className="flex justify-between items-center border-b border-sky-500/30 pb-3 mb-6">
                         <div>
-                            <h3 className="text-sm font-black text-sky-400 uppercase tracking-widest">TEAM B (23:00 UTC)</h3>
-                            <div className="text-[10px] text-slate-500 font-mono mt-0.5">ESTIMATED COMBAT POWER</div>
+                            <h3 className="text-sm font-black text-sky-400 uppercase tracking-widest">{t('storm.teamB')}</h3>
+                            <div className="text-[10px] text-slate-500 font-mono mt-0.5">{t('storm.estPower')}</div>
                         </div>
                         <span className="text-lg font-mono font-black text-white">{getTotalPower([...data.teamBMain, ...data.teamBSubs])}</span>
                     </div>
 
-                    <PlayerList players={data.teamBMain} title="MAIN COMBAT FORCE (20 MAX)" color="border-sky-500/30" />
-                    <PlayerList players={data.teamBSubs} title="RESERVES (10 MAX)" color="border-sky-900/30" />
+                    <PlayerList players={data.teamBMain} title={t('storm.mainCombatForce')} color="border-sky-500/30" />
+                    <PlayerList players={data.teamBSubs} title={t('storm.reservesMax')} color="border-sky-900/30" />
                 </div>
             </div>
         </div>
