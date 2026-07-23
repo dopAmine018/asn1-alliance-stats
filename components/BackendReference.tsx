@@ -72,7 +72,18 @@ create table if not exists train_schedule (
   schedule_data jsonb not null
 );
 
--- 4. Create Desert Storm Table
+-- 4. Create Desert Storm Weeks & Teams
+create table if not exists desert_storm_weeks (
+  id text primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  alliance_id text default 'asn1',
+  week_number int default 1,
+  name text not null,
+  is_current boolean default false,
+  teams jsonb default '{"teamAMain":[], "teamASubs":[], "teamBMain":[], "teamBSubs":[]}'::jsonb,
+  participation jsonb default '{}'::jsonb
+);
+
 create table if not exists desert_storm_teams (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -83,9 +94,13 @@ create table if not exists desert_storm_teams (
 create table if not exists desert_storm_registrations (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  player_id uuid references players(id) on delete cascade,
-  preference text not null
+  player_id text not null,
+  preference text not null,
+  week_id text
 );
+
+-- Ensure week_id column exists if table was created previously
+alter table desert_storm_registrations add column if not exists week_id text;
 
 -- 6. Create Settings Table (Clean Slate version)
 drop table if exists alliance_settings;
@@ -100,6 +115,7 @@ alter table players enable row level security;
 alter table vs_weeks enable row level security;
 alter table vs_records enable row level security;
 alter table train_schedule enable row level security;
+alter table desert_storm_weeks enable row level security;
 alter table desert_storm_teams enable row level security;
 alter table desert_storm_registrations enable row level security;
 alter table alliance_settings enable row level security;
@@ -111,6 +127,7 @@ BEGIN
     DROP POLICY IF EXISTS "Public Access VS" ON vs_weeks;
     DROP POLICY IF EXISTS "Public Access Records" ON vs_records;
     DROP POLICY IF EXISTS "Public Access Train" ON train_schedule;
+    DROP POLICY IF EXISTS "Public Access Storm Weeks" ON desert_storm_weeks;
     DROP POLICY IF EXISTS "Public Access Storm" ON desert_storm_teams;
     DROP POLICY IF EXISTS "Public Access Reg" ON desert_storm_registrations;
     DROP POLICY IF EXISTS "Public Access Settings" ON alliance_settings;
@@ -120,6 +137,7 @@ create policy "Public Access" on players for all using (true) with check (true);
 create policy "Public Access VS" on vs_weeks for all using (true) with check (true);
 create policy "Public Access Records" on vs_records for all using (true) with check (true);
 create policy "Public Access Train" on train_schedule for all using (true) with check (true);
+create policy "Public Access Storm Weeks" on desert_storm_weeks for all using (true) with check (true);
 create policy "Public Access Storm" on desert_storm_teams for all using (true) with check (true);
 create policy "Public Access Reg" on desert_storm_registrations for all using (true) with check (true);
 create policy "Public Access Settings" on alliance_settings for all using (true) with check (true);

@@ -722,6 +722,7 @@ export const DesertStormApi = {
         try {
             if (activeWeekId) {
                 await supabase.from('desert_storm_registrations').delete().eq('week_id', activeWeekId);
+                await supabase.from('desert_storm_registrations').delete().is('week_id', null);
             } else {
                 await supabase.from('desert_storm_registrations').delete().neq('id', 'keep_schema_valid');
             }
@@ -760,7 +761,7 @@ export const DesertStormApi = {
         }
 
         const local = getLocalMockData<DesertStormRegistration[]>('desert_storm_registrations', []);
-        const filtered = local.filter(r => !(r.playerId === playerId && (r.weekId === activeWeekId || (!r.weekId && activeWeekId === local[0]?.weekId))));
+        const filtered = local.filter(r => !(r.playerId === playerId && (r.weekId === activeWeekId || !r.weekId)));
         const newReg: DesertStormRegistration = {
             id: `reg_${Date.now()}`,
             playerId,
@@ -773,6 +774,7 @@ export const DesertStormApi = {
 
         try {
             await supabase.from('desert_storm_registrations').delete().eq('player_id', playerId).eq('week_id', activeWeekId);
+            await supabase.from('desert_storm_registrations').delete().eq('player_id', playerId).is('week_id', null);
             await supabase.from('desert_storm_registrations').insert({
                 player_id: playerId,
                 preference,
@@ -837,9 +839,6 @@ export const DesertStormApi = {
 
         if (!activeWeekId) return allRegs;
 
-        const current = await DesertStormApi.getCurrentWeek();
-        const isCurrentWeek = current?.id === activeWeekId;
-
-        return allRegs.filter(r => r.weekId === activeWeekId || (!r.weekId && isCurrentWeek));
+        return allRegs.filter(r => r.weekId === activeWeekId);
     }
 };
