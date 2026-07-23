@@ -25,6 +25,7 @@ const DesertStormManager: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [allowRegistration, setAllowRegistration] = useState<boolean>(true);
     const [search, setSearch] = useState('');
+    const [showOnlyApplicants, setShowOnlyApplicants] = useState<boolean>(true);
     
     // Modal states
     const [showStartWeekModal, setShowStartWeekModal] = useState(false);
@@ -291,12 +292,19 @@ const DesertStormManager: React.FC = () => {
             return score;
         };
 
-        // Filter active players who registered or are available
+        // Strictly filter active players who submitted a weekly application for Desert Storm
         const registeredMap = new Map(registrations.map(r => [r.playerId, r.preference]));
+        const registeredPlayers = allPlayers.filter(p => p.active && registeredMap.has(p.id));
 
-        const poolA = allPlayers.filter(p => p.active && registeredMap.get(p.id) === '14:00');
-        const poolB = allPlayers.filter(p => p.active && registeredMap.get(p.id) === '23:00');
-        const poolAny = allPlayers.filter(p => p.active && (registeredMap.get(p.id) === 'ANY' || !registeredMap.has(p.id)));
+        if (registeredPlayers.length === 0) {
+            addToast('error', 'No commanders have applied/registered for Desert Storm this week yet!');
+            setLoading(false);
+            return;
+        }
+
+        const poolA = registeredPlayers.filter(p => registeredMap.get(p.id) === '14:00');
+        const poolB = registeredPlayers.filter(p => registeredMap.get(p.id) === '23:00');
+        const poolAny = registeredPlayers.filter(p => registeredMap.get(p.id) === 'ANY');
 
         // --- STEP 1: FIX TOP 10 POWER ANCHORS FOR TEAM A & TEAM B ---
         // Top 10 power players strictly assigned to slots 1-10 of Main
@@ -320,9 +328,9 @@ const DesertStormManager: React.FC = () => {
         });
 
         // --- STEP 2: ROTATION SLOTS (SLOTS 11-20 FOR MAIN & 1-10 FOR SUBS) ---
-        // Candidates for Team A rotation (remaining 14:00 + ANY)
-        const candidatesA = allPlayers
-            .filter(p => p.active && !assignedIds.has(p.id) && (registeredMap.get(p.id) === '14:00' || registeredMap.get(p.id) === 'ANY'))
+        // Candidates for Team A rotation from registered applicants ONLY
+        const candidatesA = registeredPlayers
+            .filter(p => !assignedIds.has(p.id) && (registeredMap.get(p.id) === '14:00' || registeredMap.get(p.id) === 'ANY'))
             .sort((a, b) => getRotationPriority(b) - getRotationPriority(a));
 
         candidatesA.forEach(p => {
@@ -337,9 +345,9 @@ const DesertStormManager: React.FC = () => {
             }
         });
 
-        // Candidates for Team B rotation (remaining 23:00 + ANY)
-        const candidatesB = allPlayers
-            .filter(p => p.active && !assignedIds.has(p.id) && (registeredMap.get(p.id) === '23:00' || registeredMap.get(p.id) === 'ANY'))
+        // Candidates for Team B rotation from registered applicants ONLY
+        const candidatesB = registeredPlayers
+            .filter(p => !assignedIds.has(p.id) && (registeredMap.get(p.id) === '23:00' || registeredMap.get(p.id) === 'ANY'))
             .sort((a, b) => getRotationPriority(b) - getRotationPriority(a));
 
         candidatesB.forEach(p => {
@@ -354,9 +362,9 @@ const DesertStormManager: React.FC = () => {
             }
         });
 
-        // Fallback fill for remaining empty slots from all active unassigned players
-        const remainingUnassigned = allPlayers
-            .filter(p => p.active && !assignedIds.has(p.id))
+        // Fallback fill for remaining empty slots from registered applicants ONLY
+        const remainingUnassigned = registeredPlayers
+            .filter(p => !assignedIds.has(p.id))
             .sort((a, b) => getRotationPriority(b) - getRotationPriority(a));
 
         remainingUnassigned.forEach(p => {
@@ -425,8 +433,15 @@ const DesertStormManager: React.FC = () => {
 
     const getCandidates = () => {
         const inTeamIds = new Set(Object.values(teams).flat());
+        const registeredIds = new Set(registrations.map(r => r.playerId));
+
         return allPlayers
-            .filter(p => !inTeamIds.has(p.id) && p.name.toLowerCase().includes(search.toLowerCase()))
+            .filter(p => {
+                if (inTeamIds.has(p.id)) return false;
+                if (!p.name.toLowerCase().includes(search.toLowerCase())) return false;
+                if (showOnlyApplicants && !registeredIds.has(p.id)) return false;
+                return true;
+            })
             .map(p => {
                 const reg = registrations.find(r => r.playerId === p.id);
                 return { ...p, regPref: reg?.preference };
@@ -740,6 +755,21 @@ const DesertStormManager: React.FC = () => {
                         <div className="flex justify-between items-center">
                             <h3 className="text-xs font-black text-sky-500 uppercase tracking-widest">Database Injector</h3>
                             <span className="text-[9px] font-mono text-slate-400">{candidates.length} Available</span>
+                        </div>
+                        {/* Toggle Pills */}
+                        <div className="flex gap-1 p-1 bg-slate-950 rounded-xl border border-slate-800 text-[10px]">
+                            <button 
+                                onClick={() => setShowOnlyApplicants(true)}
+                                className={`flex-1 py-1 rounded-lg font-bold transition-all ${showOnlyApplicants ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                Applicants ({registrations.filter(r => !Object.values(teams).flat().includes(r.playerId)).length})
+                            </button>
+                            <button 
+                                onClick={() => setShowOnlyApplicants(false)}
+                                className={`flex-1 py-1 rounded-lg font-bold transition-all ${!showOnlyApplicants ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                All Database ({allPlayers.filter(p => !Object.values(teams).flat().includes(p.id)).length})
+                            </button>
                         </div>
                         <input 
                             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:border-sky-500 outline-none transition-all placeholder-slate-700"

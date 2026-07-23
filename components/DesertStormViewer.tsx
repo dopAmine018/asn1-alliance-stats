@@ -361,16 +361,26 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
             {/* Modal for Application Registration */}
             {showRegister && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-                    <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl">
-                        <div className="flex justify-between items-center border-b border-slate-800 pb-4">
-                            <h3 className="text-sm font-black text-white uppercase tracking-wider">{t('storm.applyTitle')}</h3>
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
+                        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                            <div>
+                                <h3 className="text-sm font-black text-white uppercase tracking-wider">{t('storm.applyTitle')}</h3>
+                                <p className="text-[10px] text-slate-400 mt-0.5">Apply for weekly Desert Storm & keep alliance database power updated</p>
+                            </div>
                             <button onClick={() => setShowRegister(false)} className="text-slate-500 hover:text-white">✕</button>
                         </div>
 
                         <div className="space-y-4">
                             {/* Player search */}
                             <div>
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">1. Identify Commander</label>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">1. Identify Commander</label>
+                                    {onCreateProfile && (
+                                        <button onClick={onCreateProfile} className="text-[10px] font-bold text-sky-400 hover:underline">
+                                            + Register New Profile
+                                        </button>
+                                    )}
+                                </div>
                                 <input 
                                     type="text" 
                                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-sky-500 outline-none"
@@ -378,6 +388,7 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                     value={regName}
                                     onChange={(e) => handleSearch(e.target.value)}
                                 />
+
                                 {searchCandidates.length > 0 && !selectedPlayer && (
                                     <div className="mt-1 bg-slate-950 border border-slate-800 rounded-xl overflow-hidden max-h-40 overflow-y-auto">
                                         {searchCandidates.map(p => (
@@ -391,27 +402,60 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                                 }}
                                                 className="p-2.5 text-xs text-slate-300 hover:bg-slate-800 cursor-pointer flex justify-between border-b border-slate-900"
                                             >
-                                                <span>{p.name}</span>
-                                                <span className="font-mono text-sky-500">{(p.firstSquadPower/1000000).toFixed(1)}M</span>
+                                                <span className="font-bold text-white">{p.name}</span>
+                                                <span className="font-mono text-sky-400 font-bold">{(p.firstSquadPower/1000000).toFixed(1)}M</span>
                                             </div>
                                         ))}
+                                    </div>
+                                )}
+
+                                {/* NOT FOUND ALERT: Redirect to Profile Registration */}
+                                {regName.length >= 2 && searchCandidates.length === 0 && !selectedPlayer && (
+                                    <div className="mt-3 bg-rose-950/40 border-2 border-rose-500/50 p-4 rounded-xl space-y-3 text-center animate-in fade-in">
+                                        <div className="text-xl">⚠️</div>
+                                        <div className="text-xs font-black text-rose-400 uppercase tracking-wider">
+                                            Commander Not Found in Alliance Database!
+                                        </div>
+                                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                                            The name <span className="font-mono text-amber-400 font-bold">"{regName}"</span> does not exist in our website database.
+                                        </p>
+                                        <p className="text-[10px] text-slate-400">
+                                            To ensure accurate rankings and power records, you must register your Commander Profile first before applying for Desert Storm.
+                                        </p>
+                                        {onCreateProfile && (
+                                            <button
+                                                onClick={onCreateProfile}
+                                                className="w-full bg-rose-600 hover:bg-rose-500 text-white font-black text-xs py-2.5 px-4 rounded-xl shadow-lg transition-all uppercase tracking-wider border border-rose-400/30 flex items-center justify-center gap-2"
+                                            >
+                                                <span>👤 Register Profile First</span>
+                                                <span>→</span>
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
 
                             {selectedPlayer && (
-                                <div className="space-y-4 animate-in fade-in duration-300">
+                                <div className="space-y-4 animate-in fade-in duration-300 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                                    <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                                        <span className="text-xs font-bold text-emerald-400">Selected: {selectedPlayer.name}</span>
+                                        <button onClick={() => { setSelectedPlayer(null); setRegName(''); }} className="text-[10px] text-slate-500 hover:text-slate-300">Change</button>
+                                    </div>
+
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">
-                                            2. Update First Squad Power (Millions) <span className="text-rose-500">*</span>
+                                            2. Confirm / Update First Squad Power (Millions) <span className="text-rose-500">*</span>
                                         </label>
                                         <input 
                                             type="text" 
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-sky-500 outline-none font-mono"
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white focus:border-sky-500 outline-none font-mono"
                                             placeholder="e.g. 25.5"
                                             value={regPower}
                                             onChange={(e) => setRegPower(e.target.value)}
                                         />
+                                        <p className="text-[9px] text-sky-400/80 mt-1">
+                                            ℹ️ This will update your profile power in the official alliance database automatically.
+                                        </p>
                                     </div>
 
                                     <div>
@@ -419,19 +463,19 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                         <div className="grid grid-cols-3 gap-2">
                                             <button 
                                                 onClick={() => setRegTime('14:00')}
-                                                className={`p-2 rounded-xl text-xs font-bold border ${regTime === '14:00' ? 'bg-amber-600 border-amber-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}
+                                                className={`p-2 rounded-xl text-xs font-bold border ${regTime === '14:00' ? 'bg-amber-600 border-amber-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-400'}`}
                                             >
                                                 14:00 UTC ({slotsLeftA} left)
                                             </button>
                                             <button 
                                                 onClick={() => setRegTime('23:00')}
-                                                className={`p-2 rounded-xl text-xs font-bold border ${regTime === '23:00' ? 'bg-sky-600 border-sky-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}
+                                                className={`p-2 rounded-xl text-xs font-bold border ${regTime === '23:00' ? 'bg-sky-600 border-sky-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-400'}`}
                                             >
                                                 23:00 UTC ({slotsLeftB} left)
                                             </button>
                                             <button 
                                                 onClick={() => setRegTime('ANY')}
-                                                className={`p-2 rounded-xl text-xs font-bold border ${regTime === 'ANY' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}
+                                                className={`p-2 rounded-xl text-xs font-bold border ${regTime === 'ANY' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-400'}`}
                                             >
                                                 ANY TIME ({totalSlotsLeft} left)
                                             </button>
@@ -440,10 +484,11 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                                 </div>
                             )}
 
-                            {!selectedPlayer && onCreateProfile && (
-                                <div className="text-center pt-2">
-                                    <button onClick={onCreateProfile} className="text-xs text-sky-400 hover:underline">
-                                        Commander profile not found? Create Profile →
+                            {!selectedPlayer && onCreateProfile && regName.length < 2 && (
+                                <div className="text-center pt-2 bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+                                    <p className="text-[10px] text-slate-400 mb-2">New to the alliance or not listed in our database yet?</p>
+                                    <button onClick={onCreateProfile} className="text-xs font-bold text-sky-400 hover:text-sky-300 underline">
+                                        Create Alliance Profile First →
                                     </button>
                                 </div>
                             )}
@@ -454,9 +499,9 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                             <button 
                                 onClick={submitRegistration}
                                 disabled={!selectedPlayer}
-                                className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider ${selectedPlayer ? 'bg-sky-600 text-white shadow-lg shadow-sky-900/20' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
+                                className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider ${selectedPlayer ? 'bg-sky-600 text-white shadow-lg shadow-sky-900/20 hover:bg-sky-500' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}
                             >
-                                Submit Tactical Application
+                                Submit Application & Update Power
                             </button>
                         </div>
                     </div>

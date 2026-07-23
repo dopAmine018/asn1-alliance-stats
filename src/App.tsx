@@ -172,7 +172,7 @@ const App: React.FC = () => {
       )}
 
       {view === 'storm' && (
-        <DesertStormViewer allianceId="asn1" onBack={() => setView('home')} allowRegistration={allowStormRegistration} />
+        <DesertStormViewer allianceId="asn1" onBack={() => setView('home')} onCreateProfile={() => setView('update')} allowRegistration={allowStormRegistration} />
       )}
       
       {view === 'admin' && (
