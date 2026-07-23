@@ -202,17 +202,16 @@ const TrainManager: React.FC = () => {
 
   const handleAutoDeploy = async () => {
     if (!candidates.length) return;
-    if (!window.confirm(`AUTO-DEPLOY ENGINE:\nThis will analyze current ${logicMode} progress and squad power to generate the most efficient weekly rotation.\n\nOverwrite existing schedule?`)) return;
+    if (!window.confirm(`AUTO-DEPLOY ENGINE:\nThis will analyze current ${logicMode} progress and squad power to select the TOP 14 active players closest to completion (2 per day across 7 days).\n\nOverwrite existing schedule?`)) return;
 
     setLoading(true);
     const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
     
-    // Algorithm: Find players who need nodes, sort by closest (lowest gold)
-    // Only use active players
+    // Algorithm: Find active players sorted by closest to completion (lowest gold needed)
     const activeCandidates = candidates.filter(p => p.active);
     
-    if (activeCandidates.length < 2) {
-        addToast('error', 'Insufficient active agents for deployment');
+    if (activeCandidates.length === 0) {
+        addToast('error', 'No active agents available for deployment');
         setLoading(false);
         return;
     }
@@ -220,24 +219,24 @@ const TrainManager: React.FC = () => {
     const newSchedule: TrainDay[] = [];
 
     for (let i = 0; i < 7; i++) {
-        // Simple rotation for the demo, but logic prioritized logic seekers
-        const pairIndex = Math.floor(i / 2) % Math.max(1, Math.floor(activeCandidates.length / 2));
-        const p1 = activeCandidates[pairIndex * 2];
-        const p2 = activeCandidates[pairIndex * 2 + 1];
-
-        if (!p1 || !p2) {
-            newSchedule.push({ dayName: days[i], conductor: null, vip: null, mode: 'VIP', defender: null });
-            continue;
-        }
-
-        const isSwap = i % 2 !== 0; 
-        let conductor = isSwap ? p2 : p1;
-        let passenger = isSwap ? p1 : p2;
+        const conductor = activeCandidates[i * 2] || null;
+        const passenger = activeCandidates[i * 2 + 1] || null;
 
         let mode: 'VIP' | 'Guardian' = 'VIP';
         let defender = conductor;
 
-        if (conductor.firstSquadPower < passenger.firstSquadPower) {
+        if (conductor && passenger) {
+            if (conductor.firstSquadPower >= passenger.firstSquadPower) {
+                mode = 'VIP';
+                defender = conductor;
+            } else {
+                mode = 'Guardian';
+                defender = passenger;
+            }
+        } else if (conductor) {
+            mode = 'VIP';
+            defender = conductor;
+        } else if (passenger) {
             mode = 'Guardian';
             defender = passenger;
         }
@@ -253,7 +252,7 @@ const TrainManager: React.FC = () => {
 
     setSchedule(newSchedule);
     await pushScheduleToCloud(newSchedule);
-    addToast('success', 'Tactical Auto-Deployment Synchronized');
+    addToast('success', 'Top 14 Tactical Auto-Deployment Synchronized');
     setLoading(false);
   };
 
@@ -301,58 +300,36 @@ const TrainManager: React.FC = () => {
           return;
       }
 
-      let pairGroupIndices: number[] = [];
-      if (idx === 0 || idx === 1 || idx === 6) pairGroupIndices = [0, 1, 6];
-      else if (idx === 2 || idx === 3) pairGroupIndices = [2, 3];
-      else if (idx === 4 || idx === 5) pairGroupIndices = [4, 5];
-
-      const isSwapDay = idx % 2 !== 0; 
-      
-      let p1: EnrichedPlayer | null = null;
-      let p2: EnrichedPlayer | null = null;
-
-      if (!isSwapDay) {
-          p1 = userInputConductor;
-          p2 = userInputVip;
-      } else {
-          p1 = userInputVip;
-          p2 = userInputConductor;
-      }
-
       const newSchedule = [...schedule];
 
-      pairGroupIndices.forEach(dayIndex => {
-          const isThisDaySwap = dayIndex % 2 !== 0; 
-          
-          let dayConductor = isThisDaySwap ? p2 : p1;
-          let dayVip = isThisDaySwap ? p1 : p2;
+      let dayConductor = userInputConductor;
+      let dayVip = userInputVip;
 
-          let mode: 'VIP' | 'Guardian' = 'VIP';
-          let defender = null;
+      let mode: 'VIP' | 'Guardian' = 'VIP';
+      let defender = null;
 
-          if (dayConductor && dayVip) {
-              if (dayConductor.firstSquadPower >= dayVip.firstSquadPower) {
-                  mode = 'VIP';
-                  defender = dayConductor;
-              } else {
-                  mode = 'Guardian';
-                  defender = dayVip;
-              }
-          } else if (dayConductor) {
+      if (dayConductor && dayVip) {
+          if (dayConductor.firstSquadPower >= dayVip.firstSquadPower) {
+              mode = 'VIP';
               defender = dayConductor;
-          } else if (dayVip) {
+          } else {
               mode = 'Guardian';
               defender = dayVip;
           }
+      } else if (dayConductor) {
+          defender = dayConductor;
+      } else if (dayVip) {
+          mode = 'Guardian';
+          defender = dayVip;
+      }
 
-          newSchedule[dayIndex] = {
-              ...newSchedule[dayIndex],
-              conductor: dayConductor,
-              vip: dayVip,
-              mode,
-              defender
-          };
-      });
+      newSchedule[idx] = {
+          ...newSchedule[idx],
+          conductor: dayConductor,
+          vip: dayVip,
+          mode,
+          defender
+      };
 
       setSchedule(newSchedule);
       setIsManualMode(true);
