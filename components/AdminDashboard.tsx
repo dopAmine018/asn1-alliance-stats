@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { MockApi } from '../services/mockBackend';
 import { Player, PlayerFilter } from '../types';
 import { useLanguage } from '../utils/i18n';
-import VsTracker from './VsTracker';
 import TrainManager from './TrainManager';
 import DesertStormManager from './DesertStormManager';
 import { MasterMonitor } from './MasterMonitor';
@@ -35,7 +34,7 @@ const AdminDashboard: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<'db' | 'vs' | 'train' | 'storm' | 'monitor'>('db');
+  const [activeTab, setActiveTab] = useState<'db' | 'train' | 'storm' | 'monitor'>('db');
   
   const [players, setPlayers] = useState<Player[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -196,7 +195,6 @@ const AdminDashboard: React.FC = () => {
         <div className="flex items-center gap-1.5 p-1 bg-slate-950/50 rounded-xl w-full sm:w-auto overflow-x-auto no-scrollbar">
              {[
                  { id: 'db', label: t('admin.db'), color: 'bg-sky-600' },
-                 { id: 'vs', label: t('admin.vs'), color: 'bg-indigo-600' },
                  { id: 'train', label: t('admin.train'), color: 'bg-amber-600' },
                  { id: 'storm', label: 'Desert Storm', color: 'bg-purple-600' },
                  { id: 'monitor', label: '👑 Admin Logs (MR)', color: 'bg-rose-700' }
@@ -210,8 +208,7 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       <div className="min-h-[600px] animate-in slide-in-from-bottom-2 duration-500">
-      {activeTab === 'vs' ? ( <VsTracker /> ) : 
-       activeTab === 'train' ? ( <TrainManager /> ) :
+      {activeTab === 'train' ? ( <TrainManager /> ) :
        activeTab === 'storm' ? ( <DesertStormManager /> ) : 
        activeTab === 'monitor' ? ( <MasterMonitor addToast={addToast} /> ) : (
           <div className="bg-[#0f172a] rounded-3xl border border-white/5 flex flex-col shadow-2xl overflow-hidden">

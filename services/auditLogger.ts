@@ -54,39 +54,76 @@ export function getBrowserDetails(): { userAgent: string; location: string } {
 
 // Fetch IP address and location asynchronously
 export async function getIpAndLocation(): Promise<{ ip: string; location: string }> {
-  if (cachedIpInfo) return cachedIpInfo;
+  if (cachedIpInfo && cachedIpInfo.ip !== 'Session IP' && cachedIpInfo.ip !== '127.0.0.1') {
+    return cachedIpInfo;
+  }
 
   const browserMeta = getBrowserDetails();
+
+  // Primary attempt: ipify (extremely fast and reliable CORS-friendly API)
   try {
-    const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3000) });
+    const res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(2500) });
     if (res.ok) {
       const data = await res.json();
-      cachedIpInfo = {
-        ip: data.ip || '127.0.0.1',
-        location: `${data.city || 'Unknown'}, ${data.country_name || 'Global'} (${data.ip})`
-      };
-      return cachedIpInfo;
-    }
-  } catch (e) {
-    // Fallback to simple IP service if ipapi is rate-limited
-    try {
-      const res2 = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(2000) });
-      if (res2.ok) {
-        const data2 = await res2.json();
+      if (data && data.ip) {
         cachedIpInfo = {
-          ip: data2.ip || 'Local Network',
-          location: `${browserMeta.location} (${data2.ip})`
+          ip: data.ip,
+          location: `${browserMeta.location} (IP: ${data.ip})`
+        };
+
+        // Asynchronously enrich with location data from ipwho.is if possible
+        try {
+          const resLoc = await fetch(`https://ipwho.is/${data.ip}`, { signal: AbortSignal.timeout(2000) });
+          if (resLoc.ok) {
+            const locData = await resLoc.json();
+            if (locData.success) {
+              const cityCountry = [locData.city, locData.country].filter(Boolean).join(', ');
+              cachedIpInfo.location = `${cityCountry || 'Global'} (${data.ip})`;
+            }
+          }
+        } catch (e) {}
+
+        return cachedIpInfo;
+      }
+    }
+  } catch (e) {}
+
+  // Fallback attempt: ipwho.is direct
+  try {
+    const res = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(2500) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && data.ip) {
+        const cityCountry = [data.city, data.country].filter(Boolean).join(', ');
+        cachedIpInfo = {
+          ip: data.ip,
+          location: `${cityCountry || 'Global'} (${data.ip})`
         };
         return cachedIpInfo;
       }
-    } catch (err) {}
-  }
+    }
+  } catch (e) {}
 
-  cachedIpInfo = {
+  // Fallback attempt: ipapi.co
+  try {
+    const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(2500) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.ip) {
+        cachedIpInfo = {
+          ip: data.ip,
+          location: `${data.city || 'Unknown'}, ${data.country_name || 'Global'} (${data.ip})`
+        };
+        return cachedIpInfo;
+      }
+    }
+  } catch (e) {}
+
+  // Fallback if network blocks IP APIs
+  return {
     ip: 'Session IP',
     location: `${browserMeta.location}`
   };
-  return cachedIpInfo;
 }
 
 // Read local logs

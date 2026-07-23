@@ -512,7 +512,19 @@ export const MockApi = {
                   const idx = local.findIndex(p => p.id === player.id || p.nameNormalized === player.nameNormalized);
                   if (idx >= 0) local[idx] = player; else local.push(player);
                   saveLocalMockData('players', local);
-                  AuditLogger.log('MEMBER_UPDATE', `Updated Power to ${((player.firstSquadPower || 0) / 1000000).toFixed(1)}M`, player.name || 'Commander', { firstSquadPower: player.firstSquadPower });
+                  await AuditLogger.log(
+                      'MEMBER_UPDATE',
+                      `Updated Profile: ${player.name} (1st Squad: ${((player.firstSquadPower || 0) / 1000000).toFixed(1)}M, Total Hero: ${((player.totalHeroPower || 0) / 1000000).toFixed(1)}M)`,
+                      player.name || 'Commander',
+                      {
+                          id: player.id,
+                          name: player.name,
+                          language: player.language,
+                          firstSquadPower: player.firstSquadPower,
+                          totalHeroPower: player.totalHeroPower,
+                          updatedAt: player.updatedAt
+                      }
+                  );
                   return { success: true, data: player };
               }
           }
@@ -557,7 +569,19 @@ export const MockApi = {
           local.push(updated);
       }
       saveLocalMockData('players', local);
-      AuditLogger.log('MEMBER_UPDATE', `Updated Power to ${((updated.firstSquadPower || 0) / 1000000).toFixed(1)}M`, updated.name || 'Commander', { firstSquadPower: updated.firstSquadPower });
+      await AuditLogger.log(
+          'MEMBER_UPDATE',
+          `Updated Profile: ${updated.name} (1st Squad: ${((updated.firstSquadPower || 0) / 1000000).toFixed(1)}M, Total Hero: ${((updated.totalHeroPower || 0) / 1000000).toFixed(1)}M)`,
+          updated.name || 'Commander',
+          {
+              id: updated.id,
+              name: updated.name,
+              language: updated.language,
+              firstSquadPower: updated.firstSquadPower,
+              totalHeroPower: updated.totalHeroPower,
+              updatedAt: updated.updatedAt
+          }
+      );
       return { success: true, data: updated };
   },
 
