@@ -82,11 +82,58 @@ const INITIAL_MOCK_PLAYERS: Player[] = [
 
 const getLocalMockData = <T>(key: string, initial: T): T => {
     const saved = localStorage.getItem(`asn1_mock_${key}`);
-    return saved ? JSON.parse(saved) : initial;
+    let result: any = initial;
+    if (saved) {
+        try {
+            result = JSON.parse(saved);
+        } catch (e) {}
+    }
+
+    if (key === 'players') {
+        const playerMap = new Map<string, Player>();
+
+        // 1. Add initial mock base roster
+        if (Array.isArray(initial)) {
+            for (const p of initial as Player[]) {
+                const k = (p.nameNormalized || p.name || '').trim().toLowerCase();
+                if (k) playerMap.set(k, p);
+            }
+        }
+
+        // 2. Merge secondary vault backup if available
+        try {
+            const vault = localStorage.getItem('asn1_vault_players');
+            if (vault) {
+                const vaultParsed = JSON.parse(vault);
+                if (Array.isArray(vaultParsed)) {
+                    for (const p of vaultParsed) {
+                        const k = (p.nameNormalized || p.name || '').trim().toLowerCase();
+                        if (k) playerMap.set(k, p);
+                    }
+                }
+            }
+        } catch (e) {}
+
+        // 3. Merge current saved local storage entries (takes precedence)
+        if (Array.isArray(result)) {
+            for (const p of result as Player[]) {
+                const k = (p.nameNormalized || p.name || '').trim().toLowerCase();
+                if (k) playerMap.set(k, p);
+            }
+        }
+
+        return Array.from(playerMap.values()) as unknown as T;
+    }
+
+    return result;
 };
 
 const saveLocalMockData = (key: string, data: any) => {
     localStorage.setItem(`asn1_mock_${key}`, JSON.stringify(data));
+    // Keep secondary vault copy for data protection guarantee
+    if (key === 'players' && Array.isArray(data) && data.length > 0) {
+        localStorage.setItem(`asn1_vault_players`, JSON.stringify(data));
+    }
 };
 
 const mapPlayerFromDb = (row: any): Player => ({
@@ -336,6 +383,9 @@ export const MockApi = {
   initialize: () => {
       console.log("ASN1 Command Uplink Established");
       console.log("Target URL:", supabaseUrl);
+      setTimeout(() => {
+          MockApi.checkAndTriggerAutoBackup();
+      }, 2000);
   },
 
   testConnection: async (): Promise<boolean> => {
@@ -365,8 +415,9 @@ export const MockApi = {
   },
 
   getPlayers: async (filter: PlayerFilter): Promise<{ items: Player[]; total: number }> => {
+      let dbPlayers: Player[] = [];
       try {
-          let query = supabase.from('players').select('*', { count: 'exact' });
+          let query = supabase.from('players').select('*');
           if (filter.activeOnly) query = query.eq('active', true);
           if (filter.language !== 'all') query = query.eq('language', filter.language);
           if (filter.search) query = query.ilike('name_normalized', `%${filter.search}%`);
@@ -376,14 +427,47 @@ export const MockApi = {
           else if (filter.sort === 'total_hero_power_desc') query = query.order('total_hero_power', { ascending: false });
           else query = query.order('updated_at', { ascending: false });
           
-          const { data, count, error } = await query.range(0, 9999);
-          if (error) {
-              return MockApi.getLocalPlayers(filter);
+          const { data, error } = await query.range(0, 9999);
+          if (!error && data && data.length > 0) {
+              dbPlayers = data.map(mapPlayerFromDb);
           }
-          return { items: (data || []).map(mapPlayerFromDb), total: count || 0 };
-      } catch (e: any) {
-          return MockApi.getLocalPlayers(filter);
+      } catch (e: any) {}
+
+      // Retrieve local mock storage and secondary vault players
+      const localRes = MockApi.getLocalPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false });
+      const localPlayers = localRes.items;
+
+      // Merge DB and local storage players seamlessly without duplicates
+      const playerMap = new Map<string, Player>();
+
+      // Populate local players first
+      for (const p of localPlayers) {
+          const key = (p.nameNormalized || p.name || '').trim().toLowerCase();
+          if (key) playerMap.set(key, p);
       }
+
+      // Merge DB players (fresher DB entries take precedence)
+      for (const p of dbPlayers) {
+          const key = (p.nameNormalized || p.name || '').trim().toLowerCase();
+          if (key) playerMap.set(key, p);
+      }
+
+      let merged = Array.from(playerMap.values());
+
+      // Apply filter conditions to merged dataset
+      if (filter.activeOnly) merged = merged.filter(p => p.active !== false);
+      if (filter.language !== 'all') merged = merged.filter(p => p.language === filter.language);
+      if (filter.search) {
+          const s = filter.search.toLowerCase();
+          merged = merged.filter(p => p.name.toLowerCase().includes(s) || (p.nameNormalized && p.nameNormalized.includes(s)));
+      }
+
+      if (filter.sort === 'power_desc') merged.sort((a, b) => (b.firstSquadPower || 0) - (a.firstSquadPower || 0));
+      else if (filter.sort === 'power_asc') merged.sort((a, b) => (a.firstSquadPower || 0) - (b.firstSquadPower || 0));
+      else if (filter.sort === 'total_hero_power_desc') merged.sort((a, b) => (b.totalHeroPower || 0) - (a.totalHeroPower || 0));
+      else merged.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+
+      return { items: merged, total: merged.length };
   },
 
   upsertPlayer: async (playerData: Partial<Player>, isAdmin: boolean = false): Promise<ApiResponse<Player>> => {
@@ -692,6 +776,67 @@ export const MockApi = {
       return { success: true, data: players.length };
     } catch (e: any) {
       return { success: false, error: 'JSON PARSE ERROR: Invalid file format.' };
+    }
+  },
+
+  checkAndTriggerAutoBackup: async (force: boolean = false): Promise<boolean> => {
+    try {
+      const lastBackupStr = localStorage.getItem('asn1_last_auto_backup');
+      const now = Date.now();
+      const FOUR_HOURS = 4 * 60 * 60 * 1000;
+      
+      if (force || !lastBackupStr || (now - parseInt(lastBackupStr, 10)) > FOUR_HOURS) {
+        const playersRes = await MockApi.getPlayers({ search: '', language: 'all', sort: 'power_desc', activeOnly: false });
+        if (playersRes.items && playersRes.items.length > 0) {
+          const nowObj = new Date();
+          const timeLabel = `${nowObj.toLocaleDateString()} ${nowObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+          const autoSnap: RosterSnapshot = {
+            id: `auto_snap_${now}`,
+            label: `🤖 Auto Protection Snapshot (${timeLabel})`,
+            createdAt: nowObj.toISOString(),
+            playerCount: playersRes.items.length,
+            players: playersRes.items
+          };
+          
+          const currentSnaps = getLocalMockData<RosterSnapshot[]>('roster_snapshots', []);
+          const updatedSnaps = [autoSnap, ...currentSnaps].slice(0, 25);
+          saveLocalMockData('roster_snapshots', updatedSnaps);
+          localStorage.setItem('asn1_last_auto_backup', now.toString());
+          
+          AuditLogger.log(
+            'SYSTEM_SETTINGS',
+            `🤖 Automated Data Protection Backup Created (${playersRes.items.length} Commanders safeguarded)`,
+            'System Guardian'
+          );
+          return true;
+        }
+      }
+    } catch (e) {}
+    return false;
+  },
+
+  restoreFromVault: async (): Promise<ApiResponse<number>> => {
+    try {
+      const vaultData = localStorage.getItem('asn1_vault_players');
+      if (!vaultData) {
+        return { success: false, error: 'VAULT EMPTY: No fail-safe vault backup found.' };
+      }
+      const players = JSON.parse(vaultData);
+      if (!Array.isArray(players) || players.length === 0) {
+        return { success: false, error: 'VAULT CORRUPTED: Vault data contains no commanders.' };
+      }
+
+      saveLocalMockData('players', players);
+      try {
+        for (const p of players) {
+          await supabase.from('players').upsert(mapPlayerToDb(p));
+        }
+      } catch (e) {}
+
+      AuditLogger.log('SYSTEM_SETTINGS', `🛡️ Emergency Vault Recovery Restored (${players.length} Commanders)`, 'Master Admin');
+      return { success: true, data: players.length };
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Vault recovery failed' };
     }
   }
 

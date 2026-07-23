@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MockApi } from '../services/mockBackend';
-import { Player, PlayerFilter, RosterSnapshot } from '../types';
+import { Player, PlayerFilter } from '../types';
 import { useLanguage } from '../utils/i18n';
 import VsTracker from './VsTracker';
 import TrainManager from './TrainManager';
@@ -35,18 +35,11 @@ const AdminDashboard: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<'db' | 'vs' | 'train' | 'storm' | 'settings' | 'monitor'>('db');
+  const [activeTab, setActiveTab] = useState<'db' | 'vs' | 'train' | 'storm' | 'monitor'>('db');
   
   const [players, setPlayers] = useState<Player[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [filter, setFilter] = useState<PlayerFilter>({ language: 'all', search: '', sort: 'time_desc', activeOnly: false });
-  
-  // Settings & Snapshot State
-  const [settings, setSettings] = useState<Record<string, any>>({
-    show_train_schedule: true, show_desert_storm: true, allow_storm_registration: true, lock_roster_editing: false
-  });
-  const [snapshots, setSnapshots] = useState<RosterSnapshot[]>([]);
-  const [snapshotLabel, setSnapshotLabel] = useState('');
 
   // Edit State
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
@@ -55,85 +48,8 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => { 
     if (token) {
         if (activeTab === 'db') fetchPlayers();
-        if (activeTab === 'settings') fetchSettings();
     }
   }, [token, filter, activeTab]);
-
-  const fetchSettings = async () => {
-    setLoading(true);
-    try {
-        const data = await MockApi.getSettings();
-        setSettings(prev => ({ ...prev, ...data }));
-        const snaps = await MockApi.getSnapshots();
-        setSnapshots(snaps);
-    } catch (e) {} finally { setLoading(false); }
-  };
-
-  const handleUpdateSetting = async (key: string, value: any) => {
-    try {
-      await MockApi.updateSetting(key, value);
-      setSettings(prev => ({ ...prev, [key]: value }));
-      addToast('success', `SETTING UPDATED: ${key.toUpperCase()}`);
-    } catch (e: any) { addToast('error', `SYNC ERROR: ${e.message}`); }
-  };
-
-  const handleCreateSnapshot = async () => {
-    if (!snapshotLabel.trim()) {
-      addToast('error', 'Enter a label for the backup snapshot');
-      return;
-    }
-    const snap = await MockApi.createSnapshot(snapshotLabel);
-    setSnapshots(prev => [snap, ...prev]);
-    setSnapshotLabel('');
-    addToast('success', `Roster Snapshot Created (${snap.playerCount} Commanders)`);
-  };
-
-  const handleRestoreSnapshot = async (snap: RosterSnapshot) => {
-    if (window.confirm(`RESTORE ROSTER SNAPSHOT: "${snap.label}"?\n\nThis will restore ${snap.playerCount} commanders to their exact state on ${new Date(snap.createdAt).toLocaleString()}.\n\nAn auto-backup of your current roster will be saved first.`)) {
-      const res = await MockApi.restoreSnapshot(snap.id);
-      if (res.success) {
-        addToast('success', `ROSTER RESTORED: ${snap.playerCount} Commanders restored!`);
-        fetchPlayers();
-        const updatedSnaps = await MockApi.getSnapshots();
-        setSnapshots(updatedSnaps);
-      } else {
-        addToast('error', res.error || 'Restore failed');
-      }
-    }
-  };
-
-  const handleDeleteSnapshot = async (id: string) => {
-    const updated = await MockApi.deleteSnapshot(id);
-    setSnapshots(updated);
-    addToast('info', 'Snapshot deleted');
-  };
-
-  const handleExportBackup = async () => {
-    await MockApi.exportRosterBackup();
-    addToast('success', 'Full JSON Roster Backup exported!');
-  };
-
-  const handleImportBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const text = event.target?.result as string;
-      if (text) {
-        const res = await MockApi.importRosterBackup(text);
-        if (res.success) {
-          addToast('success', `ROSTER RESTORED FROM FILE: ${res.data} Commanders imported!`);
-          fetchPlayers();
-          const updatedSnaps = await MockApi.getSnapshots();
-          setSnapshots(updatedSnaps);
-        } else {
-          addToast('error', res.error || 'Import failed');
-        }
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  };
 
 
   const handleLogin = async (e: React.FormEvent) => { 
@@ -244,138 +160,6 @@ const AdminDashboard: React.FC = () => {
     } catch (e: any) { addToast('error', e.message); }
   };
 
-  const SettingsView = () => (
-    <div className="space-y-10 animate-in fade-in zoom-in-95 duration-500">
-      {/* System Protocols & Security Settings */}
-      <div className="bg-[#0f172a] rounded-3xl border border-white/5 p-8 shadow-2xl">
-          <h3 className="text-xl font-header font-bold text-white uppercase tracking-widest border-b border-white/5 pb-4 mb-8 flex items-center gap-3">
-              <div className="w-1.5 h-6 bg-sky-500 rounded-sm"></div>
-              System Protocols & Access Safeguards
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-                { k: 'show_train_schedule', l: 'Train Visibility', d: 'Enable train scheduler for public view.' },
-                { k: 'show_desert_storm', l: 'Desert Storm Visibility', d: 'Show Desert Storm tactical roster.' },
-                { k: 'allow_storm_registration', l: 'Recruitment Protocol', d: 'Allow operatives to apply for slots.' },
-                { k: 'lock_roster_editing', l: '🔒 Lock Roster Editing (Admin Only)', d: 'Prevent public users from modifying or overwriting player power. Only Admin can edit.' }
-            ].map(item => (
-                <div key={item.k} className={`p-6 rounded-2xl border flex items-center justify-between group transition-all duration-300 ${
-                  item.k === 'lock_roster_editing' && settings[item.k] 
-                    ? 'bg-rose-950/20 border-rose-500/40 shadow-[0_0_15px_rgba(244,63,94,0.15)]' 
-                    : 'bg-slate-950/40 border-white/5 hover:border-sky-500/20'
-                }`}>
-                    <div className="pr-4">
-                        <h4 className={`text-sm font-bold uppercase tracking-wider mb-1 ${item.k === 'lock_roster_editing' ? 'text-rose-400' : 'text-white'}`}>{item.l}</h4>
-                        <p className="text-[10px] text-slate-500 font-mono italic">{item.d}</p>
-                    </div>
-                    <button onClick={() => handleUpdateSetting(item.k, !settings[item.k])} className={`w-12 h-6 rounded-full relative transition-all duration-300 ${settings[item.k] ? (item.k === 'lock_roster_editing' ? 'bg-rose-600 shadow-[0_0_10px_#f43f5e]' : 'bg-emerald-600 shadow-[0_0_10px_#10b981]') : 'bg-slate-800'}`}>
-                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-300 ${settings[item.k] ? 'translate-x-6' : ''}`} />
-                    </button>
-                </div>
-            ))}
-          </div>
-      </div>
-
-      {/* Roster Protection, Snapshots & 1-Click Restore */}
-      <div className="bg-[#0f172a] rounded-3xl border border-sky-500/20 p-8 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
-          
-          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-white/5 pb-4 mb-8 gap-4">
-              <div>
-                  <h3 className="text-xl font-header font-bold text-white uppercase tracking-widest flex items-center gap-3">
-                      <div className="w-1.5 h-6 bg-emerald-500 rounded-sm"></div>
-                      🛡️ Roster Backups & Snapshot Restore
-                  </h3>
-                  <p className="text-xs text-slate-400 font-mono mt-1">
-                      Protect player data against accidental or unauthorized wipes. Create snapshots, export JSON backups, or restore at any time.
-                  </p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                  <button 
-                    onClick={handleExportBackup}
-                    className="bg-slate-900 hover:bg-slate-800 border border-sky-500/30 text-sky-400 hover:text-white px-4 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all flex items-center gap-2"
-                  >
-                      📥 Export Backup (JSON)
-                  </button>
-
-                  <label className="bg-slate-900 hover:bg-slate-800 border border-emerald-500/30 text-emerald-400 hover:text-white px-4 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all cursor-pointer flex items-center gap-2">
-                      📤 Import Backup
-                      <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
-                  </label>
-              </div>
-          </div>
-
-          {/* Create Snapshot Form */}
-          <div className="bg-slate-950/60 p-6 rounded-2xl border border-white/5 mb-8">
-              <h4 className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider mb-3">Create Point-In-Time Roster Snapshot</h4>
-              <div className="flex flex-col sm:flex-row gap-3">
-                  <input
-                    type="text"
-                    value={snapshotLabel}
-                    onChange={(e) => setSnapshotLabel(e.target.value)}
-                    placeholder="E.g. Pre-Desert Storm Week 12 Backup"
-                    className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white text-xs font-mono outline-none focus:border-sky-500 transition-all"
-                  />
-                  <button
-                    onClick={handleCreateSnapshot}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] shrink-0"
-                  >
-                      📸 Save Snapshot
-                  </button>
-              </div>
-          </div>
-
-          {/* Snapshots List */}
-          <div>
-              <h4 className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center justify-between">
-                  <span>Saved Roster Snapshots ({snapshots.length})</span>
-                  <span className="text-[10px] text-slate-500 font-normal">Click Restore to instantly recover all player data</span>
-              </h4>
-
-              {snapshots.length === 0 ? (
-                  <div className="text-center py-10 bg-slate-950/30 rounded-2xl border border-dashed border-white/10">
-                      <p className="text-xs text-slate-500 font-mono">No snapshots saved yet. Create a snapshot above to safeguard your roster!</p>
-                  </div>
-              ) : (
-                  <div className="space-y-3">
-                      {snapshots.map((snap) => (
-                          <div key={snap.id} className="p-4 bg-slate-950/60 rounded-2xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-sky-500/20 transition-all">
-                              <div>
-                                  <div className="flex items-center gap-3">
-                                      <h5 className="text-sm font-bold text-white font-mono">{snap.label}</h5>
-                                      <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded text-[10px] font-mono font-bold">
-                                          {snap.playerCount} Commanders
-                                      </span>
-                                  </div>
-                                  <p className="text-[10px] text-slate-500 font-mono mt-1">
-                                      Saved on: {new Date(snap.createdAt).toLocaleString()}
-                                  </p>
-                              </div>
-
-                              <div className="flex items-center gap-2 self-end sm:self-auto">
-                                  <button
-                                    onClick={() => handleRestoreSnapshot(snap)}
-                                    className="bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/40 text-emerald-400 hover:text-white px-4 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all"
-                                  >
-                                      🔄 Restore 1-Click
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteSnapshot(snap.id)}
-                                    className="bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white px-3 py-2 rounded-xl text-xs font-mono transition-all"
-                                  >
-                                      🗑️
-                                  </button>
-                              </div>
-                          </div>
-                      ))}
-                  </div>
-              )}
-          </div>
-      </div>
-    </div>
-  );
-
   if (!token) {
     return (
       <div className="flex justify-center items-center min-h-[60vh] animate-in fade-in zoom-in-95 duration-700">
@@ -415,7 +199,6 @@ const AdminDashboard: React.FC = () => {
                  { id: 'vs', label: t('admin.vs'), color: 'bg-indigo-600' },
                  { id: 'train', label: t('admin.train'), color: 'bg-amber-600' },
                  { id: 'storm', label: 'Desert Storm', color: 'bg-purple-600' },
-                 { id: 'settings', label: 'Systems', color: 'bg-slate-700' },
                  { id: 'monitor', label: '👑 Admin Logs (MR)', color: 'bg-rose-700' }
              ].map(tab => (
                  <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 sm:flex-none px-5 py-2.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all duration-300 ${activeTab === tab.id ? `${tab.color} text-white shadow-lg` : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}>
@@ -430,7 +213,6 @@ const AdminDashboard: React.FC = () => {
       {activeTab === 'vs' ? ( <VsTracker /> ) : 
        activeTab === 'train' ? ( <TrainManager /> ) :
        activeTab === 'storm' ? ( <DesertStormManager /> ) : 
-       activeTab === 'settings' ? ( <SettingsView /> ) :
        activeTab === 'monitor' ? ( <MasterMonitor addToast={addToast} /> ) : (
           <div className="bg-[#0f172a] rounded-3xl border border-white/5 flex flex-col shadow-2xl overflow-hidden">
                 <div className="p-6 border-b border-white/5 flex flex-col sm:flex-row gap-6 bg-slate-950/20 items-center">

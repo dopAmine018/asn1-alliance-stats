@@ -126,6 +126,13 @@ const App: React.FC = () => {
 
   useEffect(() => {
     MockApi.initialize();
+
+    // Automated Background Data Safeguard: Runs auto-backup check every 15 minutes
+    const interval = setInterval(() => {
+      MockApi.checkAndTriggerAutoBackup();
+    }, 15 * 60 * 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
