@@ -23,32 +23,35 @@ interface TrainDay {
 const PlayerSearchInput = ({ value, onChange, placeholder, candidates, onEnter }: { value: string, onChange: (v: string) => void, placeholder: string, candidates: EnrichedPlayer[], onEnter: () => void }) => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     
-    const suggestions = value.length > 1 
-        ? candidates.filter(p => p.name.toLowerCase().includes(value.toLowerCase())).slice(0, 5) 
-        : [];
+    const suggestions = value.trim().length > 0 
+        ? candidates.filter(p => p.name.toLowerCase().includes(value.toLowerCase())).slice(0, 8) 
+        : candidates.slice(0, 8);
 
     return (
-        <div className="relative w-full">
+        <div className="relative w-full z-50">
             <input 
                 type="text" 
                 value={value} 
                 onChange={(e) => { onChange(e.target.value); setShowSuggestions(true); }}
                 onFocus={() => setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 250)}
                 onKeyDown={(e) => e.key === 'Enter' && onEnter()}
                 placeholder={placeholder}
-                className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-xs text-white focus:border-sky-500 outline-none font-bold placeholder-slate-600"
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white focus:border-sky-500 outline-none font-bold placeholder-slate-600 shadow-inner"
             />
             {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute top-full left-0 w-full bg-[#0f172a] border border-slate-700 shadow-xl z-50 rounded-b max-h-40 overflow-y-auto">
+                <div className="absolute top-full left-0 w-full bg-[#0f172a] border border-sky-500/50 shadow-[0_10px_25px_rgba(0,0,0,0.8)] z-[100] rounded-b-xl max-h-52 overflow-y-auto mt-1 divide-y divide-slate-800">
                     {suggestions.map(s => (
                         <div 
                             key={s.id} 
-                            className="px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white cursor-pointer border-b border-slate-800 last:border-0 flex justify-between items-center"
-                            onMouseDown={() => { onChange(s.name); setShowSuggestions(false); }}
+                            className="px-3 py-2.5 text-xs text-slate-200 hover:bg-sky-900/50 hover:text-white cursor-pointer active:bg-sky-800 flex justify-between items-center touch-manipulation"
+                            onMouseDown={(e) => { e.preventDefault(); onChange(s.name); setShowSuggestions(false); }}
+                            onTouchStart={(e) => { e.preventDefault(); onChange(s.name); setShowSuggestions(false); }}
                         >
-                            <span className="font-bold">{s.name}</span>
-                            <span className="font-mono text-[9px] text-sky-500">{(s.firstSquadPower/1000000).toFixed(1)}M</span>
+                            <span className="font-bold text-white text-xs">{s.name}</span>
+                            <span className="font-mono text-[10px] text-sky-400 font-bold bg-sky-950/80 px-2 py-0.5 rounded border border-sky-500/30">
+                                {(s.firstSquadPower/1000000).toFixed(1)}M
+                            </span>
                         </div>
                     ))}
                 </div>
@@ -57,12 +60,12 @@ const PlayerSearchInput = ({ value, onChange, placeholder, candidates, onEnter }
     );
 };
 
-type TrainLogic = 'STS' | 'DEFENSE';
+type TrainLogic = 'DEFENSE';
 
 const TrainManager: React.FC = () => {
   const { t } = useLanguage();
   const { addToast } = useToast();
-  const [logicMode, setLogicMode] = useState<TrainLogic>('STS');
+  const [logicMode] = useState<TrainLogic>('DEFENSE');
   const [candidates, setCandidates] = useState<EnrichedPlayer[]>([]);
   const [schedule, setSchedule] = useState<TrainDay[]>([]);
   const [loading, setLoading] = useState(false);
@@ -128,9 +131,7 @@ const TrainManager: React.FC = () => {
           const res = await MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false });
           
           const enriched: EnrichedPlayer[] = res.items.map(p => {
-              let cost;
-              if (logicMode === 'DEFENSE') cost = calculateDefRemainingCost(p);
-              else cost = calculateStsRemainingCost(p);
+              const cost = calculateDefRemainingCost(p);
 
               return {
                   ...p,
@@ -450,21 +451,6 @@ const TrainManager: React.FC = () => {
                             />
                         </div>
                     </div>
-                    <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar no-scrollbar">
-                        {(['STS', 'DEFENSE'] as TrainLogic[]).map(mode => (
-                            <button
-                                key={mode}
-                                onClick={() => setLogicMode(mode)}
-                                className={`flex-1 px-3 py-1.5 rounded text-[9px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${
-                                    logicMode === mode 
-                                    ? 'bg-sky-500 text-white' 
-                                    : 'bg-slate-950 text-slate-500 border border-slate-800 hover:border-slate-700'
-                                }`}
-                            >
-                                {mode} SORT
-                            </button>
-                        ))}
-                    </div>
                 </div>
                 
                 <div className="overflow-y-auto custom-scrollbar flex-1">
@@ -473,8 +459,8 @@ const TrainManager: React.FC = () => {
                             <tr>
                                 <th className="px-4 py-3">#</th>
                                 <th className="px-4 py-3">{t('admin.identity')}</th>
-                                <th className="px-4 py-3 text-center">{logicMode} Adv</th>
-                                <th className="px-4 py-3 text-right">Gold</th>
+                                <th className="px-4 py-3 text-center">DEF Adv</th>
+                                <th className="px-4 py-3 text-right">Gold Needed</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800 text-sm">
@@ -489,20 +475,9 @@ const TrainManager: React.FC = () => {
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <div className="flex justify-center gap-1 text-[9px] font-mono">
-                                            {logicMode === 'STS' && (
-                                                <>
-                                                    <span className="bg-sky-900/40 text-sky-400 px-1 rounded">{p.stsFinalStand1 || 0}</span>
-                                                    <span className="bg-emerald-900/40 text-emerald-400 px-1 rounded">{p.stsFierceAssault1 || 0}</span>
-                                                    <span className="bg-rose-900/40 text-rose-400 px-1 rounded">{p.stsVigilantFormation1 || 0}</span>
-                                                </>
-                                            )}
-                                            {logicMode === 'DEFENSE' && (
-                                                <>
-                                                    <span className="bg-sky-900/40 text-sky-400 px-1 rounded">{p.defHoldLine1 || 0}</span>
-                                                    <span className="bg-emerald-900/40 text-emerald-400 px-1 rounded">{p.defCounterDefense1 || 0}</span>
-                                                    <span className="bg-rose-900/40 text-rose-400 px-1 rounded">{p.defSolidDefense1 || 0}</span>
-                                                </>
-                                            )}
+                                            <span className="bg-sky-900/40 text-sky-400 px-1 rounded">{p.defHoldLine1 || 0}</span>
+                                            <span className="bg-emerald-900/40 text-emerald-400 px-1 rounded">{p.defCounterDefense1 || 0}</span>
+                                            <span className="bg-rose-900/40 text-rose-400 px-1 rounded">{p.defSolidDefense1 || 0}</span>
                                         </div>
                                     </td>
                                     <td className={`px-4 py-3 text-right font-mono font-bold ${p.remainingGold === 0 ? 'text-emerald-500' : 'text-amber-500'}`}>
@@ -523,17 +498,24 @@ const TrainManager: React.FC = () => {
                     </button>
                  </div>
 
-                 <div className="overflow-y-auto custom-scrollbar flex-1 space-y-4 pr-2">
+                 <div className="overflow-y-auto custom-scrollbar flex-1 space-y-4 pr-2 pb-36">
                      {schedule.map((day, idx) => (
-                        <div key={idx} className={`bg-[#0f172a] border rounded-xl overflow-hidden relative transition-colors ${editingDayIdx === idx ? 'border-sky-500 shadow-[0_0_20px_rgba(14,165,233,0.2)]' : 'border-slate-700'}`}>
-                            <div className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-b ${day.mode === 'VIP' ? 'from-amber-500 to-amber-700' : 'from-sky-500 to-indigo-500'}`}></div>
+                        <div 
+                            key={idx} 
+                            className={`bg-[#0f172a] border rounded-xl relative transition-all ${
+                                editingDayIdx === idx 
+                                    ? 'border-sky-500 shadow-[0_0_25px_rgba(14,165,233,0.3)] z-30 overflow-visible' 
+                                    : 'border-slate-700 overflow-hidden z-1'
+                            }`}
+                        >
+                            <div className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-b ${day.mode === 'VIP' ? 'from-amber-500 to-amber-700' : 'from-sky-500 to-indigo-500'} rounded-l-xl`}></div>
                             
                             <div className="p-3 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
                                 <h4 className="text-xs font-header font-bold text-white uppercase tracking-widest">{t(`day.${day.dayName}` as any)}</h4>
                                 {editingDayIdx === idx ? (
                                     <div className="flex gap-2">
-                                        <button onClick={() => saveEdit(idx)} className="text-[9px] font-bold bg-emerald-600 text-white px-3 py-1 rounded">SAVE</button>
-                                        <button onClick={cancelEdit} className="text-[9px] font-bold bg-slate-700 text-slate-300 px-3 py-1 rounded">CANCEL</button>
+                                        <button onClick={() => saveEdit(idx)} className="text-[10px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded">SAVE</button>
+                                        <button onClick={cancelEdit} className="text-[10px] font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1 rounded">CANCEL</button>
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-2">
@@ -547,15 +529,15 @@ const TrainManager: React.FC = () => {
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-2 divide-x divide-slate-800">
-                                <div className="p-3 flex flex-col gap-1 relative overflow-hidden">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-800">
+                                <div className="p-3 flex flex-col gap-1 relative overflow-visible">
                                     <span className="text-[8px] font-bold text-amber-500 uppercase tracking-widest mb-1">CONDUCTOR</span>
                                     {editingDayIdx === idx ? (
                                         <PlayerSearchInput 
                                             value={editForm.conductorName} 
                                             onChange={(v) => setEditForm(prev => ({...prev, conductorName: v}))}
                                             onEnter={() => saveEdit(idx)}
-                                            placeholder="Name..."
+                                            placeholder="Type or select conductor..."
                                             candidates={candidates}
                                         />
                                     ) : (
@@ -565,7 +547,7 @@ const TrainManager: React.FC = () => {
                                         </div>
                                     )}
                                 </div>
-                                <div className="p-3 flex flex-col gap-1 relative overflow-hidden">
+                                <div className="p-3 flex flex-col gap-1 relative overflow-visible">
                                     <span className={`text-[8px] font-bold uppercase tracking-widest mb-1 ${day.mode === 'Guardian' ? 'text-sky-400' : 'text-purple-500'}`}>
                                         {day.mode === 'Guardian' ? 'GUARDIAN' : 'PASSENGER'}
                                     </span>
@@ -574,7 +556,7 @@ const TrainManager: React.FC = () => {
                                             value={editForm.vipName} 
                                             onChange={(v) => setEditForm(prev => ({...prev, vipName: v}))}
                                             onEnter={() => saveEdit(idx)}
-                                            placeholder="Name..."
+                                            placeholder="Type or select passenger..."
                                             candidates={candidates}
                                         />
                                     ) : (
