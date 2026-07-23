@@ -748,6 +748,26 @@ export const DesertStormApi = {
         } catch (e) {}
     },
 
+    deleteWeek: async (weekId: string): Promise<DesertStormWeek[]> => {
+        let local = getLocalMockData<DesertStormWeek[]>('desert_storm_weeks', []);
+        local = local.filter(w => w.id !== weekId);
+        
+        // Ensure at least one remaining week is set as current if needed
+        if (local.length > 0 && !local.some(w => w.isCurrent)) {
+            local[0].isCurrent = true;
+        }
+        saveLocalMockData('desert_storm_weeks', local);
+
+        try {
+            await supabase.from('desert_storm_weeks').delete().eq('id', weekId);
+            if (local.length > 0 && local[0].isCurrent) {
+                await supabase.from('desert_storm_weeks').update({ is_current: true }).eq('id', local[0].id);
+            }
+        } catch (e) {}
+
+        return DesertStormApi.getWeeks();
+    },
+
     getRegistrations: async (): Promise<DesertStormRegistration[]> => {
         try {
             const { data } = await supabase.from('desert_storm_registrations').select('*');

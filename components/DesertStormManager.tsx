@@ -26,9 +26,10 @@ const DesertStormManager: React.FC = () => {
     const [allowRegistration, setAllowRegistration] = useState<boolean>(true);
     const [search, setSearch] = useState('');
     
-    // Start New Week modal state
+    // Modal states
     const [showStartWeekModal, setShowStartWeekModal] = useState(false);
     const [newWeekName, setNewWeekName] = useState('');
+    const [showAttendanceModal, setShowAttendanceModal] = useState(false);
 
     // UI state for moving players
     const [activeMoveMenu, setActiveMoveMenu] = useState<{ id: string, from: keyof TeamState } | null>(null);
@@ -90,7 +91,6 @@ const DesertStormManager: React.FC = () => {
 
         try {
             setLoading(true);
-            // Save current week state first
             if (currentWeek) {
                 await DesertStormApi.saveWeek({
                     ...currentWeek,
@@ -99,7 +99,6 @@ const DesertStormManager: React.FC = () => {
                 });
             }
 
-            // Create new week and reset registrations
             const createdWeek = await DesertStormApi.startNewWeek(newWeekName.trim());
             const updatedWeeks = await DesertStormApi.getWeeks();
             setWeeks(updatedWeeks);
@@ -113,6 +112,32 @@ const DesertStormManager: React.FC = () => {
         } catch (e) {
             console.error(e);
             addToast('error', 'Failed to start new week');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteWeek = async () => {
+        if (!currentWeek) return;
+        if (!window.confirm(`DELETE SESSION:\nAre you sure you want to permanently delete "${currentWeek.name}"?`)) return;
+
+        try {
+            setLoading(true);
+            const updatedWeeks = await DesertStormApi.deleteWeek(currentWeek.id);
+            setWeeks(updatedWeeks);
+            if (updatedWeeks.length > 0) {
+                const active = updatedWeeks.find(w => w.isCurrent) || updatedWeeks[0];
+                setSelectedWeekId(active.id);
+                setTeams(active.teams || { teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] });
+                setParticipation(active.participation || {});
+            } else {
+                setSelectedWeekId('');
+                setTeams({ teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] });
+                setParticipation({});
+            }
+            addToast('success', `Deleted "${currentWeek.name}"`);
+        } catch (e) {
+            addToast('error', 'Failed to delete week');
         } finally {
             setLoading(false);
         }
@@ -140,7 +165,12 @@ const DesertStormManager: React.FC = () => {
         }
     };
 
-    const handleSave = async () => {
+    const handleSave = async (showModalIfPossible = true) => {
+        if (showModalIfPossible) {
+            setShowAttendanceModal(true);
+            return;
+        }
+
         try {
             if (!currentWeek) return;
             const updatedWeek: DesertStormWeek = {
@@ -150,9 +180,9 @@ const DesertStormManager: React.FC = () => {
             };
             await DesertStormApi.saveWeek(updatedWeek);
             
-            // Update local state list
             setWeeks(prev => prev.map(w => w.id === updatedWeek.id ? updatedWeek : w));
-            addToast('success', `${currentWeek.name} roster & player roles saved!`);
+            setShowAttendanceModal(false);
+            addToast('success', `${currentWeek.name} roster & attendance saved!`);
         } catch (e: any) {
             addToast('error', 'Sync failed');
         }
@@ -169,7 +199,8 @@ const DesertStormManager: React.FC = () => {
         const currentRole = participation[playerId] || 'DID_NOT_PLAY';
         let nextRole: PlayerRoleInWeek = 'MAIN';
         if (currentRole === 'MAIN') nextRole = 'SUB';
-        else if (currentRole === 'SUB') nextRole = 'DID_NOT_PLAY';
+        else if (currentRole === 'SUB') nextRole = 'ABSENT';
+        else if (currentRole === 'ABSENT') nextRole = 'DID_NOT_PLAY';
         else nextRole = 'MAIN';
 
         setPlayerRole(playerId, nextRole);
@@ -178,7 +209,6 @@ const DesertStormManager: React.FC = () => {
     const addToTeam = (playerId: string, listKey: keyof TeamState) => {
         const newTeams = { ...teams };
         
-        // Remove from everywhere first
         (Object.keys(newTeams) as Array<keyof TeamState>).forEach(k => {
             newTeams[k] = newTeams[k].filter(id => id !== playerId);
         });
@@ -202,7 +232,6 @@ const DesertStormManager: React.FC = () => {
         newTeams[finalKey].push(playerId);
         setTeams(newTeams);
         
-        // Set default participation role
         const defaultRole: PlayerRoleInWeek = finalKey.includes('Main') ? 'MAIN' : 'SUB';
         setPlayerRole(playerId, defaultRole);
 
@@ -218,16 +247,13 @@ const DesertStormManager: React.FC = () => {
         setActiveMoveMenu(null);
     };
 
-    // Rotation-Aware Auto-Balance algorithm
+    // Advanced Rotation Algorithm with Fixed Top 10 Anchors + Fair Rotation
     const handleAutoBalance = async () => {
-        if (!window.confirm("SMART ROTATION AUTO-BALANCE:\n1. Respects user registration preferences.\n2. Prioritizes players who were SUB or DID NOT PLAY in previous weeks so everyone rotates to MAIN!\n3. Fills remaining slots with top power.\n\nExecute auto-balance?")) return;
+        if (!window.confirm("TOP 10 ANCHOR & FAIR ROTATION AUTO-BALANCE:\n\n1. Top 10 highest power commanders in Team A and Team B are FIXED as Core Anchors.\n2. Slots 11-20 in Main are filled by rotation priority:\n   - Players who were SUB, DID NOT PLAY, or newly registered get TOP PRIORITY for Main!\n   - Players marked ABSENT / NO-SHOW last week are PENALIZED & excluded from Main.\n   - Players who were Main last week rotate to Sub if others are waiting.\n3. User time preferences (14:00 vs 23:00) are strictly respected.\n\nExecute Smart Rotation?")) return;
 
         setLoading(true);
-        let newTeams: TeamState = { teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] };
-        let newParticipation: Record<string, PlayerRoleInWeek> = { ...participation };
-        const assignedIds = new Set<string>();
 
-        // Get past weeks (excluding current) to determine who played MAIN last week
+        // Get previous week records for rotation history
         const pastWeeks = weeks.filter(w => w.id !== selectedWeekId).sort((a,b) => b.weekNumber - a.weekNumber);
         const lastWeek = pastWeeks[0];
 
@@ -241,99 +267,130 @@ const DesertStormManager: React.FC = () => {
             return 'DID_NOT_PLAY';
         };
 
-        // Sort registered players by Rotation Priority (SUB / DID_NOT_PLAY from last week get top priority for MAIN)
-        const regs = registrations
-            .map(r => ({
-                ...r,
-                player: allPlayers.find(p => p.id === r.playerId),
-                lastRole: getLastWeekRole(r.playerId)
-            }))
-            .filter(r => r.player && r.player.active)
-            .sort((a, b) => {
-                // Priority order for lastRole: 'DID_NOT_PLAY' (0) > 'SUB' (1) > 'MAIN' (2)
-                const roleWeight = { 'DID_NOT_PLAY': 0, 'SUB': 1, 'MAIN': 2 };
-                const weightDiff = roleWeight[a.lastRole] - roleWeight[b.lastRole];
-                if (weightDiff !== 0) return weightDiff;
-                return (b.player?.firstSquadPower || 0) - (a.player?.firstSquadPower || 0);
-            });
+        const assignedIds = new Set<string>();
+        const newTeams: TeamState = { teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] };
+        const newParticipation: Record<string, PlayerRoleInWeek> = {};
 
-        regs.forEach(r => {
-            const pid = r.playerId;
-            if (r.preference === '14:00') {
-                if (newTeams.teamAMain.length < 20) {
-                    newTeams.teamAMain.push(pid);
-                    newParticipation[pid] = 'MAIN';
-                } else if (newTeams.teamASubs.length < 10) {
-                    newTeams.teamASubs.push(pid);
-                    newParticipation[pid] = 'SUB';
-                }
-            } else if (r.preference === '23:00') {
-                if (newTeams.teamBMain.length < 20) {
-                    newTeams.teamBMain.push(pid);
-                    newParticipation[pid] = 'MAIN';
-                } else if (newTeams.teamBSubs.length < 10) {
-                    newTeams.teamBSubs.push(pid);
-                    newParticipation[pid] = 'SUB';
-                }
-            } else {
-                if (newTeams.teamAMain.length <= newTeams.teamBMain.length && newTeams.teamAMain.length < 20) {
-                    newTeams.teamAMain.push(pid);
-                    newParticipation[pid] = 'MAIN';
-                } else if (newTeams.teamBMain.length < 20) {
-                    newTeams.teamBMain.push(pid);
-                    newParticipation[pid] = 'MAIN';
-                } else if (newTeams.teamASubs.length <= newTeams.teamBSubs.length && newTeams.teamASubs.length < 10) {
-                    newTeams.teamASubs.push(pid);
-                    newParticipation[pid] = 'SUB';
-                } else if (newTeams.teamBSubs.length < 10) {
-                    newTeams.teamBSubs.push(pid);
-                    newParticipation[pid] = 'SUB';
-                }
+        // Helper to score players for rotation (Higher score = higher priority for Main slot)
+        const getRotationPriority = (p: Player) => {
+            const lastRole = getLastWeekRole(p.id);
+            let score = 0;
+
+            if (lastRole === 'ABSENT') {
+                score = -1000; // Penalize no-shows
+            } else if (lastRole === 'DID_NOT_PLAY') {
+                score = 100; // High priority to get a chance to play!
+            } else if (lastRole === 'SUB') {
+                score = 50;  // Rotate from sub to main!
+            } else if (lastRole === 'MAIN') {
+                score = 10;  // Played main last week
             }
-            assignedIds.add(pid);
+
+            // Tie breaker with power (higher power slightly preferred within same tier)
+            score += (p.firstSquadPower / 1000000000);
+            return score;
+        };
+
+        // Filter active players who registered or are available
+        const registeredMap = new Map(registrations.map(r => [r.playerId, r.preference]));
+
+        const poolA = allPlayers.filter(p => p.active && registeredMap.get(p.id) === '14:00');
+        const poolB = allPlayers.filter(p => p.active && registeredMap.get(p.id) === '23:00');
+        const poolAny = allPlayers.filter(p => p.active && (registeredMap.get(p.id) === 'ANY' || !registeredMap.has(p.id)));
+
+        // --- STEP 1: FIX TOP 10 POWER ANCHORS FOR TEAM A & TEAM B ---
+        // Top 10 power players strictly assigned to slots 1-10 of Main
+        const sortedAByPower = [...poolA, ...poolAny].sort((a, b) => b.firstSquadPower - a.firstSquadPower);
+        const top10A = sortedAByPower.slice(0, 10);
+
+        top10A.forEach(p => {
+            newTeams.teamAMain.push(p.id);
+            newParticipation[p.id] = 'MAIN';
+            assignedIds.add(p.id);
         });
 
-        // Fill remaining slots with top squad power unassigned players
-        const remainingPlayers = allPlayers
-            .filter(p => p.active && !assignedIds.has(p.id))
-            .sort((a,b) => {
-                const aRole = getLastWeekRole(a.id);
-                const bRole = getLastWeekRole(b.id);
-                const roleWeight = { 'DID_NOT_PLAY': 0, 'SUB': 1, 'MAIN': 2 };
-                const weightDiff = roleWeight[aRole] - roleWeight[bRole];
-                if (weightDiff !== 0) return weightDiff;
-                return b.firstSquadPower - a.firstSquadPower;
-            });
+        const availableForB = [...poolB, ...poolAny.filter(p => !assignedIds.has(p.id))];
+        const sortedBByPower = availableForB.sort((a, b) => b.firstSquadPower - a.firstSquadPower);
+        const top10B = sortedBByPower.slice(0, 10);
 
-        remainingPlayers.forEach(p => {
-            const pid = p.id;
-            if (newTeams.teamAMain.length <= newTeams.teamBMain.length && newTeams.teamAMain.length < 20) {
-                newTeams.teamAMain.push(pid);
-                newParticipation[pid] = 'MAIN';
-            } else if (newTeams.teamBMain.length < 20) {
-                newTeams.teamBMain.push(pid);
-                newParticipation[pid] = 'MAIN';
-            } else if (newTeams.teamASubs.length <= newTeams.teamBSubs.length && newTeams.teamASubs.length < 10) {
-                newTeams.teamASubs.push(pid);
-                newParticipation[pid] = 'SUB';
+        top10B.forEach(p => {
+            newTeams.teamBMain.push(p.id);
+            newParticipation[p.id] = 'MAIN';
+            assignedIds.add(p.id);
+        });
+
+        // --- STEP 2: ROTATION SLOTS (SLOTS 11-20 FOR MAIN & 1-10 FOR SUBS) ---
+        // Candidates for Team A rotation (remaining 14:00 + ANY)
+        const candidatesA = allPlayers
+            .filter(p => p.active && !assignedIds.has(p.id) && (registeredMap.get(p.id) === '14:00' || registeredMap.get(p.id) === 'ANY'))
+            .sort((a, b) => getRotationPriority(b) - getRotationPriority(a));
+
+        candidatesA.forEach(p => {
+            if (newTeams.teamAMain.length < 20) {
+                newTeams.teamAMain.push(p.id);
+                newParticipation[p.id] = 'MAIN';
+                assignedIds.add(p.id);
+            } else if (newTeams.teamASubs.length < 10) {
+                newTeams.teamASubs.push(p.id);
+                newParticipation[p.id] = 'SUB';
+                assignedIds.add(p.id);
+            }
+        });
+
+        // Candidates for Team B rotation (remaining 23:00 + ANY)
+        const candidatesB = allPlayers
+            .filter(p => p.active && !assignedIds.has(p.id) && (registeredMap.get(p.id) === '23:00' || registeredMap.get(p.id) === 'ANY'))
+            .sort((a, b) => getRotationPriority(b) - getRotationPriority(a));
+
+        candidatesB.forEach(p => {
+            if (newTeams.teamBMain.length < 20) {
+                newTeams.teamBMain.push(p.id);
+                newParticipation[p.id] = 'MAIN';
+                assignedIds.add(p.id);
             } else if (newTeams.teamBSubs.length < 10) {
-                newTeams.teamBSubs.push(pid);
-                newParticipation[pid] = 'SUB';
+                newTeams.teamBSubs.push(p.id);
+                newParticipation[p.id] = 'SUB';
+                assignedIds.add(p.id);
+            }
+        });
+
+        // Fallback fill for remaining empty slots from all active unassigned players
+        const remainingUnassigned = allPlayers
+            .filter(p => p.active && !assignedIds.has(p.id))
+            .sort((a, b) => getRotationPriority(b) - getRotationPriority(a));
+
+        remainingUnassigned.forEach(p => {
+            if (newTeams.teamAMain.length < 20) {
+                newTeams.teamAMain.push(p.id);
+                newParticipation[p.id] = 'MAIN';
+                assignedIds.add(p.id);
+            } else if (newTeams.teamBMain.length < 20) {
+                newTeams.teamBMain.push(p.id);
+                newParticipation[p.id] = 'MAIN';
+                assignedIds.add(p.id);
+            } else if (newTeams.teamASubs.length < 10) {
+                newTeams.teamASubs.push(p.id);
+                newParticipation[p.id] = 'SUB';
+                assignedIds.add(p.id);
+            } else if (newTeams.teamBSubs.length < 10) {
+                newTeams.teamBSubs.push(p.id);
+                newParticipation[p.id] = 'SUB';
+                assignedIds.add(p.id);
             }
         });
 
         setTeams(newTeams);
         setParticipation(newParticipation);
         setLoading(false);
-        addToast('success', 'Rosters auto-balanced with weekly rotation priority!');
+        addToast('success', 'Rosters auto-balanced with Top 10 Anchors & Fair Rotation!');
     };
 
-    // Helper to get past week history badges for a player
+    // Helper to get past week history badges
     const getPlayerHistoryBadges = (playerId: string) => {
         const history = weeks
             .filter(w => w.id !== selectedWeekId)
             .sort((a,b) => b.weekNumber - a.weekNumber)
-            .slice(0, 3); // show last 3 weeks
+            .slice(0, 3);
 
         if (history.length === 0) return null;
 
@@ -350,9 +407,11 @@ const DesertStormManager: React.FC = () => {
                         ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
                         : role === 'SUB'
                         ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                        : role === 'ABSENT'
+                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/40 font-black'
                         : 'bg-slate-800 text-slate-500 border-slate-700';
 
-                    const roleLabel = role === 'MAIN' ? 'M' : role === 'SUB' ? 'S' : '-';
+                    const roleLabel = role === 'MAIN' ? 'M' : role === 'SUB' ? 'S' : role === 'ABSENT' ? 'ABS' : '-';
 
                     return (
                         <span key={w.id} className={`text-[8px] font-mono font-bold px-1 py-0.2 rounded border ${badgeStyle}`} title={`${w.name}: ${role}`}>
@@ -383,16 +442,18 @@ const DesertStormManager: React.FC = () => {
             ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 hover:bg-emerald-500/30'
             : role === 'SUB'
             ? 'bg-amber-500/20 text-amber-400 border-amber-500/50 hover:bg-amber-500/30'
+            : role === 'ABSENT'
+            ? 'bg-rose-500/20 text-rose-400 border-rose-500/50 hover:bg-rose-500/30 font-black animate-pulse'
             : 'bg-slate-800/80 text-slate-500 border-slate-700 hover:bg-slate-700/80';
 
-        const label = role === 'MAIN' ? 'MAIN' : role === 'SUB' ? 'SUB' : 'NO PLAY';
+        const label = role === 'MAIN' ? 'MAIN' : role === 'SUB' ? 'SUB' : role === 'ABSENT' ? 'NO SHOW' : 'NO PLAY';
 
         return (
             <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); cyclePlayerRole(playerId); }}
                 className={`text-[8px] font-mono font-black uppercase px-2 py-0.5 rounded border transition-all ${style}`}
-                title="Click to toggle played status (MAIN -> SUB -> NO PLAY)"
+                title="Click to toggle attendance (MAIN -> SUB -> NO SHOW -> NO PLAY)"
             >
                 {label}
             </button>
@@ -410,7 +471,7 @@ const DesertStormManager: React.FC = () => {
         }, 0);
 
         return (
-            <div className={`bg-[#0f172a] rounded-2xl border ${color} flex flex-col h-[540px] relative`}>
+            <div className={`bg-[#0f172a] rounded-2xl border ${color} flex flex-col h-[560px] relative shadow-lg`}>
                 <div className={`p-3 border-b ${color} bg-opacity-10 bg-slate-900 rounded-t-2xl`}>
                     <div className="flex justify-between items-center mb-1">
                         <h4 className="text-[10px] font-black uppercase tracking-widest text-white">{title}</h4>
@@ -424,18 +485,24 @@ const DesertStormManager: React.FC = () => {
                     </div>
                 </div>
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1.5">
-                    {ids.map(id => {
+                    {ids.map((id, index) => {
                         const player = allPlayers.find(p => p.id === id);
                         if (!player) return null;
                         const isMenuOpen = activeMoveMenu?.id === id;
+                        const isTop10Anchor = listKey.includes('Main') && index < 10;
 
                         return (
                             <div key={id} className="relative group">
                                 <div 
-                                    className={`flex justify-between items-center p-2 rounded-xl bg-slate-900 border transition-all ${isMenuOpen ? 'border-sky-500 ring-1 ring-sky-500/50' : 'border-slate-800/80 hover:border-slate-600'}`}
+                                    className={`flex justify-between items-center p-2 rounded-xl bg-slate-900 border transition-all ${
+                                        isTop10Anchor ? 'border-amber-500/40 bg-amber-950/10' : 'border-slate-800/80 hover:border-slate-600'
+                                    } ${isMenuOpen ? 'ring-2 ring-sky-500' : ''}`}
                                 >
                                     <div className="truncate flex-1 min-w-0 pr-2">
                                         <div className="flex items-center gap-1.5">
+                                            {isTop10Anchor && (
+                                                <span className="text-[10px]" title="Top 10 Power Anchor">👑</span>
+                                            )}
                                             <span className="text-xs font-bold text-white truncate">{player.name}</span>
                                         </div>
                                         <div className="flex items-center justify-between gap-2 mt-0.5">
@@ -476,7 +543,7 @@ const DesertStormManager: React.FC = () => {
     return (
         <div className="space-y-6">
             {/* Command Header & Week Manager Bar */}
-            <div className="bg-slate-900/60 p-6 rounded-2xl border border-slate-700/80 space-y-6 shadow-xl">
+            <div className="bg-slate-900/80 p-6 rounded-2xl border border-slate-700/80 space-y-6 shadow-xl backdrop-blur-md">
                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                     <div>
                         <div className="flex items-center gap-3">
@@ -487,13 +554,13 @@ const DesertStormManager: React.FC = () => {
                                 </span>
                             )}
                         </div>
-                        <p className="text-[10px] text-slate-400 font-mono mt-1">WEEKLY DESERT STORM TACTICS & ROTATION MANAGEMENT</p>
+                        <p className="text-[10px] text-slate-400 font-mono mt-1">TOP 10 ANCHORS, SMART ROTATION & ATTENDANCE AUDIT</p>
                     </div>
 
                     <div className="flex flex-wrap gap-2 items-center w-full lg:w-auto">
                         {/* Week Selector Dropdown */}
                         <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 p-1.5 rounded-xl">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase px-2">Week:</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase px-2">Session:</span>
                             <select
                                 value={selectedWeekId}
                                 onChange={(e) => handleSelectWeek(e.target.value)}
@@ -509,9 +576,17 @@ const DesertStormManager: React.FC = () => {
 
                         <button
                             onClick={() => setShowStartWeekModal(true)}
-                            className="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-sky-900/20 transition-all border border-sky-400/20 flex items-center gap-1.5"
+                            className="bg-sky-600 hover:bg-sky-500 text-white px-3.5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-sky-900/20 transition-all border border-sky-400/20 flex items-center gap-1.5"
                         >
-                            <span>+</span> Start New Week
+                            <span>+</span> New Week
+                        </button>
+
+                        <button
+                            onClick={handleDeleteWeek}
+                            className="bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 px-3.5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border border-rose-500/40 transition-all flex items-center gap-1"
+                            title="Delete this week session permanently"
+                        >
+                            🗑️ Delete
                         </button>
 
                         <button
@@ -534,16 +609,85 @@ const DesertStormManager: React.FC = () => {
                             Reg: {allowRegistration ? 'OPEN' : 'CLOSED'}
                         </button>
 
-                        <button onClick={handleAutoBalance} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg transition-all border border-indigo-400/20">
-                             Auto Rotation
+                        <button onClick={handleAutoBalance} className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg transition-all border border-indigo-400/20 flex items-center gap-1">
+                            ⚡ Top 10 + Rotation
                         </button>
 
-                        <button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-900/20 transition-all border border-emerald-400/20">
-                            Sync Week
+                        <button onClick={() => handleSave(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-900/20 transition-all border border-emerald-400/20 flex items-center gap-1">
+                            📋 Audit & Save
                         </button>
                     </div>
                 </div>
             </div>
+
+            {/* Attendance Audit Modal (Prompted before saving week) */}
+            {showAttendanceModal && (
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full p-6 space-y-6 shadow-2xl max-h-[90vh] flex flex-col">
+                        <div className="flex justify-between items-center border-b border-slate-800 pb-4 shrink-0">
+                            <div>
+                                <h3 className="text-lg font-black text-white uppercase tracking-wider">Attendance & Participation Review</h3>
+                                <p className="text-xs text-slate-400 mt-0.5">Verify who actually played or was absent. No-shows (NO SHOW) will be excluded from Main next week!</p>
+                            </div>
+                            <button onClick={() => setShowAttendanceModal(false)} className="text-slate-500 hover:text-white">✕</button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar">
+                            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                                <h4 className="text-xs font-black text-amber-400 uppercase tracking-widest">TEAM A ROSTER (14:00)</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {[...teams.teamAMain, ...teams.teamASubs].map(id => {
+                                        const player = allPlayers.find(p => p.id === id);
+                                        if (!player) return null;
+                                        const role = participation[id] || (teams.teamAMain.includes(id) ? 'MAIN' : 'SUB');
+                                        return (
+                                            <div key={id} className="flex items-center justify-between bg-slate-900 p-2 rounded-lg border border-slate-800">
+                                                <span className="text-xs font-bold text-white truncate max-w-[120px]">{player.name}</span>
+                                                <div className="flex items-center gap-1">
+                                                    <button onClick={() => setPlayerRole(id, 'MAIN')} className={`px-2 py-0.5 text-[8px] font-mono font-bold rounded ${role === 'MAIN' ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-500'}`}>MAIN</button>
+                                                    <button onClick={() => setPlayerRole(id, 'SUB')} className={`px-2 py-0.5 text-[8px] font-mono font-bold rounded ${role === 'SUB' ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-500'}`}>SUB</button>
+                                                    <button onClick={() => setPlayerRole(id, 'ABSENT')} className={`px-2 py-0.5 text-[8px] font-mono font-bold rounded ${role === 'ABSENT' ? 'bg-rose-500 text-white font-black' : 'bg-slate-800 text-slate-500'}`}>ABSENT</button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                                <h4 className="text-xs font-black text-sky-400 uppercase tracking-widest">TEAM B ROSTER (23:00)</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {[...teams.teamBMain, ...teams.teamBSubs].map(id => {
+                                        const player = allPlayers.find(p => p.id === id);
+                                        if (!player) return null;
+                                        const role = participation[id] || (teams.teamBMain.includes(id) ? 'MAIN' : 'SUB');
+                                        return (
+                                            <div key={id} className="flex items-center justify-between bg-slate-900 p-2 rounded-lg border border-slate-800">
+                                                <span className="text-xs font-bold text-white truncate max-w-[120px]">{player.name}</span>
+                                                <div className="flex items-center gap-1">
+                                                    <button onClick={() => setPlayerRole(id, 'MAIN')} className={`px-2 py-0.5 text-[8px] font-mono font-bold rounded ${role === 'MAIN' ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-500'}`}>MAIN</button>
+                                                    <button onClick={() => setPlayerRole(id, 'SUB')} className={`px-2 py-0.5 text-[8px] font-mono font-bold rounded ${role === 'SUB' ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-500'}`}>SUB</button>
+                                                    <button onClick={() => setPlayerRole(id, 'ABSENT')} className={`px-2 py-0.5 text-[8px] font-mono font-bold rounded ${role === 'ABSENT' ? 'bg-rose-500 text-white font-black' : 'bg-slate-800 text-slate-500'}`}>ABSENT</button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-4 border-t border-slate-800 shrink-0">
+                            <span className="text-[10px] text-slate-500 font-mono">
+                                ABSENT players are flagged for automatic exclusion in future rotations.
+                            </span>
+                            <div className="flex gap-2">
+                                <button onClick={() => setShowAttendanceModal(false)} className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white">Cancel</button>
+                                <button onClick={() => handleSave(false)} className="px-5 py-2 rounded-xl text-xs font-black uppercase bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/30 shadow-lg">Confirm & Save Session</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal for Starting New Week */}
             {showStartWeekModal && (
@@ -568,7 +712,7 @@ const DesertStormManager: React.FC = () => {
                         </div>
 
                         <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-[11px] text-amber-200">
-                            ℹ️ Player history from previous weeks will be retained so you can see who played Main, Sub, or Did Not Play last week!
+                            ℹ️ Player history from previous weeks will be retained so you can see who played Main, Sub, or was Absent last week!
                         </div>
 
                         <div className="flex justify-end gap-2 pt-2">

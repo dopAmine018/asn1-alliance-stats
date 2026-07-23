@@ -205,7 +205,7 @@ export interface DesertStormRegistration {
   createdAt: string;
 }
 
-export type PlayerRoleInWeek = 'MAIN' | 'SUB' | 'DID_NOT_PLAY';
+export type PlayerRoleInWeek = 'MAIN' | 'SUB' | 'DID_NOT_PLAY' | 'ABSENT';
 
 export interface DesertStormWeek {
   id: string;
