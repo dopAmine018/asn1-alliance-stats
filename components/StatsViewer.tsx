@@ -33,12 +33,17 @@ const StatsViewer: React.FC<StatsViewerProps> = ({ refreshTrigger, onBack }) => 
       const uniquePlayersMap = new Map<string, Player>();
       
       res.items.forEach(p => {
-          const existing = uniquePlayersMap.get(p.nameNormalized);
+          const key = (p.nameNormalized || (p.name ? p.name.trim().toLowerCase().replace(/\s+/g, ' ') : p.id) || '').trim();
+          if (!key) {
+              uniquePlayersMap.set(p.id, p);
+              return;
+          }
+          const existing = uniquePlayersMap.get(key);
           if (!existing) {
-              uniquePlayersMap.set(p.nameNormalized, p);
+              uniquePlayersMap.set(key, p);
           } else {
-              if (new Date(p.updatedAt) > new Date(existing.updatedAt)) {
-                  uniquePlayersMap.set(p.nameNormalized, p);
+              if (new Date(p.updatedAt || 0) > new Date(existing.updatedAt || 0)) {
+                  uniquePlayersMap.set(key, p);
               }
           }
       });

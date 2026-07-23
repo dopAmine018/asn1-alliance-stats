@@ -46,33 +46,20 @@ create table if not exists players (
   tank_center_level int default 0,
   air_center_level int default 0,
   missile_center_level int default 0,
-  active boolean default true
+  active boolean default true,
+  stats_json jsonb default '{}'::jsonb
 );
 
--- 2. Create VS Tracker Tables
-create table if not exists vs_weeks (
-  id uuid default gen_random_uuid() primary key,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  name text not null
-);
+alter table players add column if not exists stats_json jsonb default '{}'::jsonb;
 
-create table if not exists vs_records (
-  id uuid default gen_random_uuid() primary key,
-  week_id uuid references vs_weeks(id) on delete cascade,
-  player_name text not null,
-  mon int default 0, tue int default 0, wed int default 0,
-  thu int default 0, fri int default 0, sat int default 0,
-  total int default 0
-);
-
--- 3. Create Train Schedule Table
+-- 2. Create Train Schedule Table
 create table if not exists train_schedule (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   schedule_data jsonb not null
 );
 
--- 4. Create Desert Storm Weeks & Teams
+-- 3. Create Desert Storm Weeks & Teams
 create table if not exists desert_storm_weeks (
   id text primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -90,7 +77,7 @@ create table if not exists desert_storm_teams (
   team_data jsonb not null
 );
 
--- 5. Create Registration Table
+-- 4. Create Registration Table
 create table if not exists desert_storm_registrations (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -99,10 +86,9 @@ create table if not exists desert_storm_registrations (
   week_id text
 );
 
--- Ensure week_id column exists if table was created previously
 alter table desert_storm_registrations add column if not exists week_id text;
 
--- 6. Create Settings Table (Clean Slate version)
+-- 5. Create Settings Table
 drop table if exists alliance_settings;
 create table alliance_settings (
   setting_name text primary key,
@@ -110,7 +96,7 @@ create table alliance_settings (
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 7. Create Master Audit Logs Table
+-- 6. Create Master Audit Logs Table
 create table if not exists audit_logs (
   id text primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -123,10 +109,8 @@ create table if not exists audit_logs (
   details jsonb
 );
 
--- 8. Enable RLS
+-- 7. Enable RLS
 alter table players enable row level security;
-alter table vs_weeks enable row level security;
-alter table vs_records enable row level security;
 alter table train_schedule enable row level security;
 alter table desert_storm_weeks enable row level security;
 alter table desert_storm_teams enable row level security;
@@ -134,12 +118,10 @@ alter table desert_storm_registrations enable row level security;
 alter table alliance_settings enable row level security;
 alter table audit_logs enable row level security;
 
--- 9. Safe Policies (Will not error if they already exist)
+-- 8. Safe Public Policies
 DO $$ 
 BEGIN
     DROP POLICY IF EXISTS "Public Access" ON players;
-    DROP POLICY IF EXISTS "Public Access VS" ON vs_weeks;
-    DROP POLICY IF EXISTS "Public Access Records" ON vs_records;
     DROP POLICY IF EXISTS "Public Access Train" ON train_schedule;
     DROP POLICY IF EXISTS "Public Access Storm Weeks" ON desert_storm_weeks;
     DROP POLICY IF EXISTS "Public Access Storm" ON desert_storm_teams;
@@ -149,8 +131,6 @@ BEGIN
 END $$;
 
 create policy "Public Access" on players for all using (true) with check (true);
-create policy "Public Access VS" on vs_weeks for all using (true) with check (true);
-create policy "Public Access Records" on vs_records for all using (true) with check (true);
 create policy "Public Access Train" on train_schedule for all using (true) with check (true);
 create policy "Public Access Storm Weeks" on desert_storm_weeks for all using (true) with check (true);
 create policy "Public Access Storm" on desert_storm_teams for all using (true) with check (true);

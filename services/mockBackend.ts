@@ -136,132 +136,51 @@ const saveLocalMockData = (key: string, data: any) => {
     }
 };
 
-const mapPlayerFromDb = (row: any): Player => ({
-  id: row.id,
-  allianceId: row.alliance_id || 'asn1',
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-  language: row.language,
-  name: row.name,
-  nameNormalized: row.name_normalized,
-  firstSquadPower: row.first_squad_power,
-  secondSquadPower: row.second_squad_power,
-  thirdSquadPower: row.third_squad_power,
-  fourthSquadPower: row.fourth_squad_power,
-  totalHeroPower: row.total_hero_power,
-  heroPercent: row.hero_percent,
-  duelPercent: row.duel_percent,
-  unitsPercent: row.units_percent,
-  t10Morale: row.t10_morale,
-  t10Protection: row.t10_protection,
-  t10Hp: row.t10_hp,
-  t10Atk: row.t10_atk,
-  t10Def: row.t10_def,
-  t10Elite: row.t10_elite || 0,
-  stsPowerBoost1: row.sts_power_boost_1 || 0,
-  stsFinalStand1: row.sts_final_stand_1 || 0,
-  stsFierceAssault1: row.sts_fierce_assault_1 || 0,
-  stsVigilantFormation1: row.sts_vigilant_formation_1 || 0,
-  stsExtraDrillGround: row.sts_extra_drill_ground || 0,
-  stsBarrackExpansion1: row.sts_barrack_expansion_1 || 0,
-  stsFocusedTraining1: row.sts_focused_training_1 || 0,
-  stsFinalStand2: row.sts_final_stand_2 || 0,
-  stsFierceAssault2: row.sts_fierce_assault_2 || 0,
-  stsVigilantFormation2: row.sts_vigilant_formation_2 || 0,
-  stsDrillGroundExpansion: row.sts_drill_ground_expansion || 0,
-  stsRapidMarch1: row.sts_rapid_march_1 || 0,
-  stsFinalStand3: row.sts_final_stand_3 || 0,
-  stsFierceAssault3: row.sts_fierce_assault_3 || 0,
-  stsVigilantFormation3: row.sts_vigilant_formation_3 || 0,
-  stsFatalStrike1: row.sts_fatal_strike_1 || 0,
-  defExtraHospitals: row.def_extra_hospitals || 0,
-  defHoldLine1: row.def_hold_line_1 || 0,
-  defCounterDefense1: row.def_counter_defense_1 || 0,
-  defSolidDefense1: row.def_solid_defense_1 || 0,
-  defFortifications: row.def_fortifications || 0,
-  defInfirmaryExpansion1: row.def_infirmary_expansion_1 || 0,
-  defEfficientHealing: row.def_efficient_healing || 0,
-  defHoldLine2: row.def_hold_line_2 || 0,
-  defCounterDefense2: row.def_counter_defense_2 || 0,
-  defSolidDefense2: row.def_solid_defense_2 || 0,
-  defResourceProtection: row.def_resource_protection || 0,
-  defRapidMarch1: row.def_rapid_march_1 || 0,
-  defHoldLine3: row.def_hold_line_3 || 0,
-  defCounterDefense3: row.def_counter_defense_3 || 0,
-  defSolidDefense3: row.def_solid_defense_3 || 0,
-  defSurvivalSkills: row.def_survival_skills || 0,
-  techLevel: row.tech_level,
-  barracksLevel: row.barracks_level,
-  tankCenterLevel: row.tank_center_level,
-  airCenterLevel: row.air_center_level,
-  missileCenterLevel: row.missile_center_level,
-  masteryAirHp1: row.mastery_air_hp_1 || 0,
-  masteryAirAtk1: row.mastery_air_atk_1 || 0,
-  masteryAirDef1: row.mastery_air_def_1 || 0,
-  masteryAirDamage1: row.mastery_air_damage_1 || 0,
-  masteryAirMarch1: row.mastery_air_march_1 || 0,
-  masteryAirHp2: row.mastery_air_hp_2 || 0,
-  masteryAirAtk2: row.mastery_air_atk_2 || 0,
-  masteryAirDef2: row.mastery_air_def_2 || 0,
-  masteryAirDamage2: row.mastery_air_damage_2 || 0,
-  masteryAirUltDef1: row.mastery_air_ult_def_1 || 0,
-  masteryAirHp3: row.mastery_air_hp_3 || 0,
-  masteryAirAtk3: row.mastery_air_atk_3 || 0,
-  masteryAirDef3: row.mastery_air_def_3 || 0,
-  masteryAirDamage3: row.mastery_air_damage_3 || 0,
-  masteryAirMarch2: row.mastery_air_march_2 || 0,
-  masteryAirHp4: row.mastery_air_hp_4 || 0,
-  masteryAirAtk4: row.mastery_air_atk_4 || 0,
-  masteryAirDef4: row.mastery_air_def_4 || 0,
-  masteryAirDamage4: row.mastery_air_damage_4 || 0,
-  masteryAirUltDef2: row.mastery_air_ult_def_2 || 0,
-  masteryTankHp1: row.mastery_tank_hp_1 || 0,
-  masteryTankAtk1: row.mastery_tank_atk_1 || 0,
-  masteryTankDef1: row.mastery_tank_def_1 || 0,
-  masteryTankDamage1: row.mastery_tank_damage_1 || 0,
-  masteryTankMarch1: row.mastery_tank_march_1 || 0,
-  masteryTankHp2: row.mastery_tank_hp_2 || 0,
-  masteryTankAtk2: row.mastery_tank_atk_2 || 0,
-  masteryTankDef2: row.mastery_tank_def_2 || 0,
-  masteryTankDamage2: row.mastery_tank_damage_2 || 0,
-  masteryTankUltDef1: row.mastery_tank_ult_def_1 || 0,
-  masteryTankHp3: row.mastery_tank_hp_3 || 0,
-  masteryTankAtk3: row.mastery_tank_atk_3 || 0,
-  masteryTankDef3: row.mastery_tank_def_3 || 0,
-  masteryTankDamage3: row.mastery_tank_damage_3 || 0,
-  masteryTankMarch2: row.mastery_tank_march_2 || 0,
-  masteryTankHp4: row.mastery_tank_hp_4 || 0,
-  masteryTankAtk4: row.mastery_tank_atk_4 || 0,
-  masteryTankDef4: row.mastery_tank_def_4 || 0,
-  masteryTankDamage4: row.mastery_tank_damage_4 || 0,
-  masteryTankUltDef2: row.mastery_tank_ult_def_2 || 0,
-  masteryMissileHp1: row.mastery_missile_hp_1 || 0,
-  masteryMissileAtk1: row.mastery_missile_atk_1 || 0,
-  masteryMissileDef1: row.mastery_missile_def_1 || 0,
-  masteryMissileDamage1: row.mastery_missile_damage_1 || 0,
-  masteryMissileMarch1: row.mastery_missile_march_1 || 0,
-  masteryMissileHp2: row.mastery_missile_hp_2 || 0,
-  masteryMissileAtk2: row.mastery_missile_atk_2 || 0,
-  masteryMissileDef2: row.mastery_missile_def_2 || 0,
-  masteryMissileDamage2: row.mastery_missile_damage_2 || 0,
-  masteryMissileUltDef1: row.mastery_missile_ult_def_1 || 0,
-  masteryMissileHp3: row.mastery_missile_hp_3 || 0,
-  masteryMissileAtk3: row.mastery_missile_atk_3 || 0,
-  masteryMissileDef3: row.mastery_missile_def_3 || 0,
-  masteryMissileDamage3: row.mastery_missile_damage_3 || 0,
-  masteryMissileMarch2: row.mastery_missile_march_2 || 0,
-  masteryMissileHp4: row.mastery_missile_hp_4 || 0,
-  masteryMissileAtk4: row.mastery_missile_atk_4 || 0,
-  masteryMissileDef4: row.mastery_missile_def_4 || 0,
-  masteryMissileDamage4: row.mastery_missile_damage_4 || 0,
-  masteryMissileUltDef2: row.mastery_missile_ult_def_2 || 0,
-  active: row.active
-});
+const mapPlayerFromDb = (row: any): Player => {
+  const stats = row.stats_json && typeof row.stats_json === 'object' ? row.stats_json : {};
+  return {
+    ...DEFAULT_STS,
+    ...DEFAULT_DEFENSE,
+    ...DEFAULT_MASTERY,
+    ...stats,
+    id: row.id,
+    allianceId: row.alliance_id || 'asn1',
+    createdAt: row.created_at || new Date().toISOString(),
+    updatedAt: row.updated_at || new Date().toISOString(),
+    language: row.language || 'english',
+    name: row.name || 'Commander',
+    nameNormalized: row.name_normalized || (row.name ? row.name.trim().toLowerCase().replace(/\s+/g, ' ') : (row.id || '')),
+    firstSquadPower: row.first_squad_power ?? stats.firstSquadPower ?? 0,
+    secondSquadPower: row.second_squad_power ?? stats.secondSquadPower ?? 0,
+    thirdSquadPower: row.third_squad_power ?? stats.thirdSquadPower ?? 0,
+    fourthSquadPower: row.fourth_squad_power ?? stats.fourthSquadPower ?? 0,
+    totalHeroPower: row.total_hero_power ?? stats.totalHeroPower ?? 0,
+    heroPercent: row.hero_percent ?? stats.heroPercent ?? 0,
+    duelPercent: row.duel_percent ?? stats.duelPercent ?? 0,
+    unitsPercent: row.units_percent ?? stats.unitsPercent ?? 0,
+    t10Morale: row.t10_morale ?? stats.t10Morale ?? 0,
+    t10Protection: row.t10_protection ?? stats.t10Protection ?? 0,
+    t10Hp: row.t10_hp ?? stats.t10Hp ?? 0,
+    t10Atk: row.t10_atk ?? stats.t10Atk ?? 0,
+    t10Def: row.t10_def ?? stats.t10Def ?? 0,
+    t10Elite: row.t10_elite ?? stats.t10Elite ?? 0,
+    techLevel: row.tech_level ?? stats.techLevel ?? 30,
+    barracksLevel: row.barracks_level ?? stats.barracksLevel ?? 30,
+    tankCenterLevel: row.tank_center_level ?? stats.tankCenterLevel ?? 30,
+    airCenterLevel: row.air_center_level ?? stats.airCenterLevel ?? 30,
+    missileCenterLevel: row.missile_center_level ?? stats.missileCenterLevel ?? 30,
+    active: row.active !== false
+  };
+};
 
 const mapPlayerToDb = (p: Partial<Player>) => {
-  const out: any = {};
+  const nameNormalized = p.nameNormalized || (p.name ? p.name.trim().toLowerCase().replace(/\s+/g, ' ') : '');
+  const out: any = {
+    updated_at: p.updatedAt || new Date().toISOString(),
+    stats_json: p
+  };
   if (p.name) out.name = p.name;
-  if (p.nameNormalized) out.name_normalized = p.nameNormalized;
+  if (nameNormalized) out.name_normalized = nameNormalized;
   if (p.language) out.language = p.language;
   if (p.firstSquadPower !== undefined) out.first_squad_power = p.firstSquadPower;
   if (p.secondSquadPower !== undefined) out.second_squad_power = p.secondSquadPower;
@@ -277,105 +196,13 @@ const mapPlayerToDb = (p: Partial<Player>) => {
   if (p.t10Atk !== undefined) out.t10_atk = p.t10Atk;
   if (p.t10Def !== undefined) out.t10_def = p.t10Def;
   if (p.t10Elite !== undefined) out.t10_elite = p.t10Elite;
-  if (p.stsPowerBoost1 !== undefined) out.sts_power_boost_1 = p.stsPowerBoost1;
-  if (p.stsFinalStand1 !== undefined) out.sts_final_stand_1 = p.stsFinalStand1;
-  if (p.stsFierceAssault1 !== undefined) out.sts_fierce_assault_1 = p.stsFierceAssault1;
-  if (p.stsVigilantFormation1 !== undefined) out.sts_vigilant_formation_1 = p.stsVigilantFormation1;
-  if (p.stsExtraDrillGround !== undefined) out.sts_extra_drill_ground = p.stsExtraDrillGround;
-  if (p.stsBarrackExpansion1 !== undefined) out.sts_barrack_expansion_1 = p.stsBarrackExpansion1;
-  if (p.stsFocusedTraining1 !== undefined) out.sts_focused_training_1 = p.stsFocusedTraining1;
-  if (p.stsFinalStand2 !== undefined) out.sts_final_stand_2 = p.stsFinalStand2;
-  if (p.stsFierceAssault2 !== undefined) out.sts_fierce_assault_2 = p.stsFierceAssault2;
-  if (p.stsVigilantFormation2 !== undefined) out.sts_vigilant_formation_2 = p.stsVigilantFormation2;
-  if (p.stsDrillGroundExpansion !== undefined) out.sts_drill_ground_expansion = p.stsDrillGroundExpansion;
-  if (p.stsRapidMarch1 !== undefined) out.sts_rapid_march_1 = p.stsRapidMarch1;
-  if (p.stsFinalStand3 !== undefined) out.sts_final_stand_3 = p.stsFinalStand3;
-  if (p.stsFierceAssault3 !== undefined) out.sts_fierce_assault_3 = p.stsFierceAssault3;
-  if (p.stsVigilantFormation3 !== undefined) out.sts_vigilant_formation_3 = p.stsVigilantFormation3;
-  if (p.stsFatalStrike1 !== undefined) out.sts_fatal_strike_1 = p.stsFatalStrike1;
-  if (p.defExtraHospitals !== undefined) out.def_extra_hospitals = p.defExtraHospitals;
-  if (p.defHoldLine1 !== undefined) out.def_hold_line_1 = p.defHoldLine1;
-  if (p.defCounterDefense1 !== undefined) out.def_counter_defense_1 = p.defCounterDefense1;
-  if (p.defSolidDefense1 !== undefined) out.def_solid_defense_1 = p.defSolidDefense1;
-  if (p.defFortifications !== undefined) out.def_fortifications = p.defFortifications;
-  if (p.defInfirmaryExpansion1 !== undefined) out.def_infirmary_expansion_1 = p.defInfirmaryExpansion1;
-  if (p.defEfficientHealing !== undefined) out.def_efficient_healing = p.defEfficientHealing;
-  if (p.defHoldLine2 !== undefined) out.def_hold_line_2 = p.defHoldLine2;
-  if (p.defCounterDefense2 !== undefined) out.def_counter_defense_2 = p.defCounterDefense2;
-  if (p.defSolidDefense2 !== undefined) out.def_solid_defense_2 = p.defSolidDefense2;
-  if (p.defResourceProtection !== undefined) out.def_resource_protection = p.defResourceProtection;
-  if (p.defRapidMarch1 !== undefined) out.def_rapid_march_1 = p.defRapidMarch1;
-  if (p.defHoldLine3 !== undefined) out.def_hold_line_3 = p.defHoldLine3;
-  if (p.defCounterDefense3 !== undefined) out.def_counter_defense_3 = p.defCounterDefense3;
-  if (p.defSolidDefense3 !== undefined) out.def_solid_defense_3 = p.defSolidDefense3;
-  if (p.defSurvivalSkills !== undefined) out.def_survival_skills = p.defSurvivalSkills;
   if (p.techLevel !== undefined) out.tech_level = p.techLevel;
   if (p.barracksLevel !== undefined) out.barracks_level = p.barracksLevel;
   if (p.tankCenterLevel !== undefined) out.tank_center_level = p.tankCenterLevel;
   if (p.airCenterLevel !== undefined) out.air_center_level = p.airCenterLevel;
   if (p.missileCenterLevel !== undefined) out.missile_center_level = p.missileCenterLevel;
-  if (p.masteryAirHp1 !== undefined) out.mastery_air_hp_1 = p.masteryAirHp1;
-  if (p.masteryAirAtk1 !== undefined) out.mastery_air_atk_1 = p.masteryAirAtk1;
-  if (p.masteryAirDef1 !== undefined) out.mastery_air_def_1 = p.masteryAirDef1;
-  if (p.masteryAirDamage1 !== undefined) out.mastery_air_damage_1 = p.masteryAirDamage1;
-  if (p.masteryAirMarch1 !== undefined) out.mastery_air_march_1 = p.masteryAirMarch1;
-  if (p.masteryAirHp2 !== undefined) out.mastery_air_hp_2 = p.masteryAirHp2;
-  if (p.masteryAirAtk2 !== undefined) out.mastery_air_atk_2 = p.masteryAirAtk2;
-  if (p.masteryAirDef2 !== undefined) out.mastery_air_def_2 = p.masteryAirDef2;
-  if (p.masteryAirDamage2 !== undefined) out.mastery_air_damage_2 = p.masteryAirDamage2;
-  if (p.masteryAirUltDef1 !== undefined) out.mastery_air_ult_def_1 = p.masteryAirUltDef1;
-  if (p.masteryAirHp3 !== undefined) out.mastery_air_hp_3 = p.masteryAirHp3;
-  if (p.masteryAirAtk3 !== undefined) out.mastery_air_atk_3 = p.masteryAirAtk3;
-  if (p.masteryAirDef3 !== undefined) out.mastery_air_def_3 = p.masteryAirDef3;
-  if (p.masteryAirDamage3 !== undefined) out.mastery_air_damage_3 = p.masteryAirDamage3;
-  if (p.masteryAirMarch2 !== undefined) out.mastery_air_march_2 = p.masteryAirMarch2;
-  if (p.masteryAirHp4 !== undefined) out.mastery_air_hp_4 = p.masteryAirHp4;
-  if (p.masteryAirAtk4 !== undefined) out.mastery_air_atk_4 = p.masteryAirAtk4;
-  if (p.masteryAirDef4 !== undefined) out.mastery_air_def_4 = p.masteryAirDef4;
-  if (p.masteryAirDamage4 !== undefined) out.mastery_air_damage_4 = p.masteryAirDamage4;
-  if (p.masteryAirUltDef2 !== undefined) out.mastery_air_ult_def_2 = p.masteryAirUltDef2;
-  if (p.masteryTankHp1 !== undefined) out.mastery_tank_hp_1 = p.masteryTankHp1;
-  if (p.masteryTankAtk1 !== undefined) out.mastery_tank_atk_1 = p.masteryTankAtk1;
-  if (p.masteryTankDef1 !== undefined) out.mastery_tank_def_1 = p.masteryTankDef1;
-  if (p.masteryTankDamage1 !== undefined) out.mastery_tank_damage_1 = p.masteryTankDamage1;
-  if (p.masteryTankMarch1 !== undefined) out.mastery_tank_march_1 = p.masteryTankMarch1;
-  if (p.masteryTankHp2 !== undefined) out.mastery_tank_hp_2 = p.masteryTankHp2;
-  if (p.masteryTankAtk2 !== undefined) out.mastery_tank_atk_2 = p.masteryTankAtk2;
-  if (p.masteryTankDef2 !== undefined) out.mastery_tank_def_2 = p.masteryTankDef2;
-  if (p.masteryTankDamage2 !== undefined) out.mastery_tank_damage_2 = p.masteryTankDamage2;
-  if (p.masteryTankUltDef1 !== undefined) out.mastery_tank_ult_def_1 = p.masteryTankUltDef1;
-  if (p.masteryTankHp3 !== undefined) out.mastery_tank_hp_3 = p.masteryTankHp3;
-  if (p.masteryTankAtk3 !== undefined) out.mastery_tank_atk_3 = p.masteryTankAtk3;
-  if (p.masteryTankDef3 !== undefined) out.mastery_tank_def_3 = p.masteryTankDef3;
-  if (p.masteryTankDamage3 !== undefined) out.mastery_tank_damage_3 = p.masteryTankDamage3;
-  if (p.masteryTankMarch2 !== undefined) out.mastery_tank_march_2 = p.masteryTankMarch2;
-  if (p.masteryTankHp4 !== undefined) out.mastery_tank_hp_4 = p.masteryTankHp4;
-  if (p.masteryTankAtk4 !== undefined) out.mastery_tank_atk_4 = p.masteryTankAtk4;
-  if (p.masteryTankDef4 !== undefined) out.mastery_tank_def_4 = p.masteryTankDef4;
-  if (p.masteryTankDamage4 !== undefined) out.mastery_tank_damage_4 = p.masteryTankDamage4;
-  if (p.masteryTankUltDef2 !== undefined) out.mastery_tank_ult_def_2 = p.masteryTankUltDef2;
-  if (p.masteryMissileHp1 !== undefined) out.mastery_missile_hp_1 = p.masteryMissileHp1;
-  if (p.masteryMissileAtk1 !== undefined) out.mastery_missile_atk_1 = p.masteryMissileAtk1;
-  if (p.masteryMissileDef1 !== undefined) out.mastery_missile_def_1 = p.masteryMissileDef1;
-  if (p.masteryMissileDamage1 !== undefined) out.mastery_missile_damage_1 = p.masteryMissileDamage1;
-  if (p.masteryMissileMarch1 !== undefined) out.mastery_missile_march_1 = p.masteryMissileMarch1;
-  if (p.masteryMissileHp2 !== undefined) out.mastery_missile_hp_2 = p.masteryMissileHp2;
-  if (p.masteryMissileAtk2 !== undefined) out.mastery_missile_atk_2 = p.masteryMissileAtk2;
-  if (p.masteryMissileDef2 !== undefined) out.mastery_missile_def_2 = p.masteryMissileDef2;
-  if (p.masteryMissileDamage2 !== undefined) out.mastery_missile_damage_2 = p.masteryMissileDamage2;
-  if (p.masteryMissileUltDef1 !== undefined) out.mastery_missile_ult_def_1 = p.masteryMissileUltDef1;
-  if (p.masteryMissileHp3 !== undefined) out.mastery_missile_hp_3 = p.masteryMissileHp3;
-  if (p.masteryMissileAtk3 !== undefined) out.mastery_missile_atk_3 = p.masteryMissileAtk3;
-  if (p.masteryMissileDef3 !== undefined) out.mastery_missile_def_3 = p.masteryMissileDef3;
-  if (p.masteryMissileDamage3 !== undefined) out.mastery_missile_damage_3 = p.masteryMissileDamage3;
-  if (p.masteryMissileMarch2 !== undefined) out.mastery_missile_march_2 = p.masteryMissileMarch2;
-  if (p.masteryMissileHp4 !== undefined) out.mastery_missile_hp_4 = p.masteryMissileHp4;
-  if (p.masteryMissileAtk4 !== undefined) out.mastery_missile_atk_4 = p.masteryMissileAtk4;
-  if (p.masteryMissileDef4 !== undefined) out.mastery_missile_def_4 = p.masteryMissileDef4;
-  if (p.masteryMissileDamage4 !== undefined) out.mastery_missile_damage_4 = p.masteryMissileDamage4;
-  if (p.masteryMissileUltDef2 !== undefined) out.mastery_missile_ult_def_2 = p.masteryMissileUltDef2;
-  if (p.active !== undefined) out.active = p.active;
-  out.updated_at = new Date().toISOString();
+  if (p.active !== undefined) out.active = p.active; else out.active = true;
+
   return out;
 };
 
