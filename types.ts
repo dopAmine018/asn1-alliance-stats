@@ -203,6 +203,7 @@ export interface DesertStormRegistration {
   playerId: string;
   preference: string;
   createdAt: string;
+  weekId?: string;
 }
 
 export type PlayerRoleInWeek = 'MAIN' | 'SUB' | 'DID_NOT_PLAY' | 'ABSENT';

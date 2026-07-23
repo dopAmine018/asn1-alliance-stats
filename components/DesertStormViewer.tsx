@@ -45,22 +45,22 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [allWeeks, playersRes, settings, regs] = await Promise.all([
+            const [allWeeks, playersRes, settings] = await Promise.all([
                 DesertStormApi.getWeeks(),
                 MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false }),
-                MockApi.getSettings(),
-                DesertStormApi.getRegistrations()
+                MockApi.getSettings()
             ]);
 
             const players = playersRes.items;
             setAllPlayers(players);
             setWeeks(allWeeks);
-            if (regs) setRegistrations(regs);
 
             const activeWeek = allWeeks.find(w => w.isCurrent) || allWeeks[0];
             if (activeWeek) {
                 setSelectedWeekId(activeWeek.id);
                 loadWeekData(activeWeek, players);
+                const regs = await DesertStormApi.getRegistrations(activeWeek.id);
+                setRegistrations(regs);
             }
 
             if (settings && typeof settings.allow_storm_registration === 'boolean') {
@@ -86,10 +86,12 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
         setParticipation(week.participation || {});
     };
 
-    const handleSelectWeek = (weekId: string) => {
+    const handleSelectWeek = async (weekId: string) => {
         setSelectedWeekId(weekId);
         const w = weeks.find(item => item.id === weekId);
         if (w) loadWeekData(w);
+        const regs = await DesertStormApi.getRegistrations(weekId);
+        setRegistrations(regs);
     };
 
     const currentWeek = weeks.find(w => w.id === selectedWeekId) || weeks[0];
@@ -217,7 +219,8 @@ const DesertStormViewer: React.FC<DesertStormViewerProps> = ({ onBack, onCreateP
                 firstSquadPower: updatedPower
             });
 
-            await DesertStormApi.register(selectedPlayer.id, regTime);
+            const targetWeekId = selectedWeekId || currentWeek?.id;
+            await DesertStormApi.register(selectedPlayer.id, regTime, targetWeekId);
             addToast('success', `Applied & Power Updated: ${selectedPlayer.name}`);
             setShowRegister(false);
             setRegName('');

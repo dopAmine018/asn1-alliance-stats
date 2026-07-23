@@ -43,22 +43,22 @@ const DesertStormManager: React.FC = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [playersRes, allWeeks, regs, settings] = await Promise.all([
+            const [playersRes, allWeeks, settings] = await Promise.all([
                 MockApi.getPlayers({ language: 'all', search: '', sort: 'power_desc', activeOnly: false }),
                 DesertStormApi.getWeeks(),
-                DesertStormApi.getRegistrations(),
                 MockApi.getSettings()
             ]);
 
             setAllPlayers(playersRes.items);
             setWeeks(allWeeks);
-            if (regs) setRegistrations(regs);
 
             const activeWeek = allWeeks.find(w => w.isCurrent) || allWeeks[0];
             if (activeWeek) {
                 setSelectedWeekId(activeWeek.id);
                 setTeams(activeWeek.teams || { teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] });
                 setParticipation(activeWeek.participation || {});
+                const activeRegs = await DesertStormApi.getRegistrations(activeWeek.id);
+                setRegistrations(activeRegs);
             }
 
             if (settings && typeof settings.allow_storm_registration === 'boolean') {
@@ -75,12 +75,14 @@ const DesertStormManager: React.FC = () => {
 
     const currentWeek = weeks.find(w => w.id === selectedWeekId) || weeks[0];
 
-    const handleSelectWeek = (weekId: string) => {
+    const handleSelectWeek = async (weekId: string) => {
         const target = weeks.find(w => w.id === weekId);
         if (target) {
             setSelectedWeekId(weekId);
             setTeams(target.teams || { teamAMain: [], teamASubs: [], teamBMain: [], teamBSubs: [] });
             setParticipation(target.participation || {});
+            const targetRegs = await DesertStormApi.getRegistrations(weekId);
+            setRegistrations(targetRegs);
             addToast('info', `Loaded ${target.name}`);
         }
     };
@@ -146,11 +148,13 @@ const DesertStormManager: React.FC = () => {
     };
 
     const handleResetRegistrations = async () => {
-        if (!window.confirm("RESET REGISTRATIONS:\nClear all active registrations for this week? Players will need to re-apply.")) return;
+        const targetWeekId = selectedWeekId || currentWeek?.id;
+        if (!targetWeekId) return;
+        if (!window.confirm(`RESET REGISTRATIONS:\nClear all active registrations for "${currentWeek?.name || 'this week'}"? Players will need to re-apply.`)) return;
         try {
-            await DesertStormApi.resetRegistrations();
+            await DesertStormApi.resetRegistrations(targetWeekId);
             setRegistrations([]);
-            addToast('success', 'Weekly registrations reset successfully');
+            addToast('success', `Registrations reset for ${currentWeek?.name || 'this week'}`);
         } catch (e) {
             addToast('error', 'Failed to reset registrations');
         }

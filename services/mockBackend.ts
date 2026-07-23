@@ -699,15 +699,32 @@ export const DesertStormApi = {
         } catch (e) {}
 
         // Reset weekly registrations for the new week
-        await DesertStormApi.resetRegistrations();
+        await DesertStormApi.resetRegistrations(newWeek.id);
 
         return newWeek;
     },
 
-    resetRegistrations: async (): Promise<void> => {
-        saveLocalMockData('desert_storm_registrations', []);
+    resetRegistrations: async (weekId?: string): Promise<void> => {
+        let activeWeekId = weekId;
+        if (!activeWeekId) {
+            const current = await DesertStormApi.getCurrentWeek();
+            activeWeekId = current?.id;
+        }
+
+        const local = getLocalMockData<DesertStormRegistration[]>('desert_storm_registrations', []);
+        if (activeWeekId) {
+            const filtered = local.filter(r => r.weekId && r.weekId !== activeWeekId);
+            saveLocalMockData('desert_storm_registrations', filtered);
+        } else {
+            saveLocalMockData('desert_storm_registrations', []);
+        }
+
         try {
-            await supabase.from('desert_storm_registrations').delete().neq('id', 'keep_schema_valid');
+            if (activeWeekId) {
+                await supabase.from('desert_storm_registrations').delete().eq('week_id', activeWeekId);
+            } else {
+                await supabase.from('desert_storm_registrations').delete().neq('id', 'keep_schema_valid');
+            }
         } catch (e) {}
     },
 
@@ -735,17 +752,38 @@ export const DesertStormApi = {
         }
     },
 
-    register: async (playerId: string, preference: string) => {
+    register: async (playerId: string, preference: string, weekId?: string) => {
+        let activeWeekId = weekId;
+        if (!activeWeekId) {
+            const current = await DesertStormApi.getCurrentWeek();
+            activeWeekId = current?.id || 'default_week';
+        }
+
         const local = getLocalMockData<DesertStormRegistration[]>('desert_storm_registrations', []);
-        const filtered = local.filter(r => r.playerId !== playerId);
-        const newReg = { id: `reg_${Date.now()}`, playerId, preference, createdAt: new Date().toISOString() };
+        const filtered = local.filter(r => !(r.playerId === playerId && (r.weekId === activeWeekId || (!r.weekId && activeWeekId === local[0]?.weekId))));
+        const newReg: DesertStormRegistration = {
+            id: `reg_${Date.now()}`,
+            playerId,
+            preference,
+            createdAt: new Date().toISOString(),
+            weekId: activeWeekId
+        };
         filtered.push(newReg);
         saveLocalMockData('desert_storm_registrations', filtered);
 
         try {
-            await supabase.from('desert_storm_registrations').delete().eq('player_id', playerId);
-            await supabase.from('desert_storm_registrations').insert({ player_id: playerId, preference });
-        } catch (e) {}
+            await supabase.from('desert_storm_registrations').delete().eq('player_id', playerId).eq('week_id', activeWeekId);
+            await supabase.from('desert_storm_registrations').insert({
+                player_id: playerId,
+                preference,
+                week_id: activeWeekId
+            });
+        } catch (e) {
+            try {
+                await supabase.from('desert_storm_registrations').delete().eq('player_id', playerId);
+                await supabase.from('desert_storm_registrations').insert({ player_id: playerId, preference });
+            } catch (err) {}
+        }
     },
 
     deleteWeek: async (weekId: string): Promise<DesertStormWeek[]> => {
@@ -765,16 +803,43 @@ export const DesertStormApi = {
             }
         } catch (e) {}
 
+        // Also clean up registrations for deleted week
+        await DesertStormApi.resetRegistrations(weekId);
+
         return DesertStormApi.getWeeks();
     },
 
-    getRegistrations: async (): Promise<DesertStormRegistration[]> => {
+    getRegistrations: async (weekId?: string): Promise<DesertStormRegistration[]> => {
+        let activeWeekId = weekId;
+        if (!activeWeekId) {
+            const current = await DesertStormApi.getCurrentWeek();
+            activeWeekId = current?.id;
+        }
+
+        let allRegs: DesertStormRegistration[] = [];
+
         try {
             const { data } = await supabase.from('desert_storm_registrations').select('*');
             if (data && data.length > 0) {
-                return data.map((r: any) => ({ id: r.id, playerId: r.player_id, preference: r.preference, createdAt: r.created_at }));
+                allRegs = data.map((r: any) => ({
+                    id: r.id,
+                    playerId: r.player_id,
+                    preference: r.preference,
+                    createdAt: r.created_at,
+                    weekId: r.week_id
+                }));
             }
         } catch (e) {}
-        return getLocalMockData<DesertStormRegistration[]>('desert_storm_registrations', []);
+
+        if (allRegs.length === 0) {
+            allRegs = getLocalMockData<DesertStormRegistration[]>('desert_storm_registrations', []);
+        }
+
+        if (!activeWeekId) return allRegs;
+
+        const current = await DesertStormApi.getCurrentWeek();
+        const isCurrentWeek = current?.id === activeWeekId;
+
+        return allRegs.filter(r => r.weekId === activeWeekId || (!r.weekId && isCurrentWeek));
     }
 };
