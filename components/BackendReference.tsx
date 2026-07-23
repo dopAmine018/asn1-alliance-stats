@@ -110,7 +110,20 @@ create table alliance_settings (
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 7. Enable RLS
+-- 7. Create Master Audit Logs Table
+create table if not exists audit_logs (
+  id text primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  actor text not null,
+  category text not null,
+  action text not null,
+  ip_address text,
+  location text,
+  user_agent text,
+  details jsonb
+);
+
+-- 8. Enable RLS
 alter table players enable row level security;
 alter table vs_weeks enable row level security;
 alter table vs_records enable row level security;
@@ -119,8 +132,9 @@ alter table desert_storm_weeks enable row level security;
 alter table desert_storm_teams enable row level security;
 alter table desert_storm_registrations enable row level security;
 alter table alliance_settings enable row level security;
+alter table audit_logs enable row level security;
 
--- 8. Safe Policies (Will not error if they already exist)
+-- 9. Safe Policies (Will not error if they already exist)
 DO $$ 
 BEGIN
     DROP POLICY IF EXISTS "Public Access" ON players;
@@ -131,6 +145,7 @@ BEGIN
     DROP POLICY IF EXISTS "Public Access Storm" ON desert_storm_teams;
     DROP POLICY IF EXISTS "Public Access Reg" ON desert_storm_registrations;
     DROP POLICY IF EXISTS "Public Access Settings" ON alliance_settings;
+    DROP POLICY IF EXISTS "Public Access Logs" ON audit_logs;
 END $$;
 
 create policy "Public Access" on players for all using (true) with check (true);
@@ -141,6 +156,7 @@ create policy "Public Access Storm Weeks" on desert_storm_weeks for all using (t
 create policy "Public Access Storm" on desert_storm_teams for all using (true) with check (true);
 create policy "Public Access Reg" on desert_storm_registrations for all using (true) with check (true);
 create policy "Public Access Settings" on alliance_settings for all using (true) with check (true);
+create policy "Public Access Logs" on audit_logs for all using (true) with check (true);
 `}
           </pre>
         </section>

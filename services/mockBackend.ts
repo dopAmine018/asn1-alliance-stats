@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Player, PlayerFilter, ApiResponse, AuthResponse, VsWeek, VsRecord, Announcement, Alliance, DesertStormRegistration, DesertStormWeek, PlayerRoleInWeek } from '../types';
+import { AuditLogger } from './auditLogger';
 
 const PROVIDED_URL = "https://fgrzuylyxfogejwmeakn.supabase.co";
 const PROVIDED_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZncnp1eWx5eGZvZ2Vqd21lYWtuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTEyNjEyNCwiZXhwIjoyMDgwNzAyMTI0fQ.3G3BaSOg6uzN_zn7Wf1Ebn4TjAeXsvKGBJO4STzsu8c";
@@ -418,6 +419,7 @@ export const MockApi = {
                   const idx = local.findIndex(p => p.id === player.id || p.nameNormalized === player.nameNormalized);
                   if (idx >= 0) local[idx] = player; else local.push(player);
                   saveLocalMockData('players', local);
+                  AuditLogger.log('MEMBER_UPDATE', `Updated Power to ${((player.firstSquadPower || 0) / 1000000).toFixed(1)}M`, player.name || 'Commander', { firstSquadPower: player.firstSquadPower });
                   return { success: true, data: player };
               }
           }
@@ -462,6 +464,7 @@ export const MockApi = {
           local.push(updated);
       }
       saveLocalMockData('players', local);
+      AuditLogger.log('MEMBER_UPDATE', `Updated Power to ${((updated.firstSquadPower || 0) / 1000000).toFixed(1)}M`, updated.name || 'Commander', { firstSquadPower: updated.firstSquadPower });
       return { success: true, data: updated };
   },
 
@@ -483,12 +486,15 @@ export const MockApi = {
       loginAttempts = 0;
       lockoutExpiry = 0;
       const token = `asn1_sec_${crypto.randomUUID()}_${Date.now()}`;
+      AuditLogger.log('LOGIN', 'Master Admin Logged In Successfully', 'Master Admin', { username: username || 'Admin' });
       return { success: true, data: { token, alliance: MOCK_ALLIANCE } };
     }
 
     loginAttempts++;
+    AuditLogger.log('LOGIN', `Failed Admin Password Attempt (Attempt ${loginAttempts}/5)`, 'Unknown Guest', { username: username || 'Guest' });
     if (loginAttempts >= 5) {
       lockoutExpiry = Date.now() + 15 * 60 * 1000; // 15 minute lockout
+      AuditLogger.log('LOGIN', 'Terminal Locked Out (5 Failed Attempts)', 'Security Guard');
       return { 
         success: false, 
         error: 'ACCESS DENIED: 5 failed attempts reached. Terminal locked for 15 minutes.' 
@@ -505,6 +511,7 @@ export const MockApi = {
   logout: async () => { localStorage.removeItem('asn1_auth_token'); },
 
   adminUpdatePlayer: async (id: string, updates: Partial<Player>): Promise<ApiResponse<Player>> => {
+    AuditLogger.log('MEMBER_UPDATE', `Admin modified profile for Commander ${updates.name || id}`, 'Master Admin', { updates });
     try {
         const payload = mapPlayerToDb(updates);
         const { data, error } = await supabase.from('players').update(payload).eq('id', id).select().single();
@@ -521,6 +528,7 @@ export const MockApi = {
   },
 
   adminDeletePlayer: async (id: string): Promise<ApiResponse<void>> => {
+    AuditLogger.log('MEMBER_UPDATE', `Admin deleted Commander ID ${id}`, 'Master Admin');
     try {
         await supabase.from('players').delete().eq('id', id);
         return { success: true };
@@ -548,6 +556,7 @@ export const MockApi = {
   },
 
   updateSetting: async (key: string, value: any): Promise<void> => {
+    AuditLogger.log('SYSTEM_SETTINGS', `Toggled System Protocol [${key}] to ${value ? 'ON' : 'OFF'}`, 'Master Admin');
     const local = getLocalMockData<Record<string, any>>('settings', { show_train_schedule: true, show_desert_storm: true, allow_storm_registration: true });
     local[key] = value;
     saveLocalMockData('settings', local);
@@ -590,6 +599,7 @@ export const TrainApi = {
         return data?.schedule_data || null;
     },
     saveSchedule: async (data: any) => {
+        AuditLogger.log('TRAIN_SCHEDULE', 'Updated Public Train Schedule Roster', 'Master Admin');
         await supabase.from('train_schedule').insert({ schedule_data: data });
     }
 };
@@ -700,6 +710,7 @@ export const DesertStormApi = {
 
         // Reset weekly registrations for the new week
         await DesertStormApi.resetRegistrations(newWeek.id);
+        AuditLogger.log('DESERT_STORM', `Created Desert Storm Week ${newWeek.weekNumber} (${newWeek.name})`, 'Master Admin');
 
         return newWeek;
     },
@@ -710,6 +721,8 @@ export const DesertStormApi = {
             const current = await DesertStormApi.getCurrentWeek();
             activeWeekId = current?.id;
         }
+
+        AuditLogger.log('DESERT_STORM', `Reset Applications for Week ${activeWeekId || 'All'}`, 'Master Admin');
 
         const local = getLocalMockData<DesertStormRegistration[]>('desert_storm_registrations', []);
         if (activeWeekId) {
@@ -786,6 +799,8 @@ export const DesertStormApi = {
                 await supabase.from('desert_storm_registrations').insert({ player_id: playerId, preference });
             } catch (err) {}
         }
+
+        AuditLogger.log('DESERT_STORM', `Commander Registered for Desert Storm (${preference})`, playerId, { preference, weekId: activeWeekId });
     },
 
     deleteWeek: async (weekId: string): Promise<DesertStormWeek[]> => {

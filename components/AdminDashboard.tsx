@@ -5,6 +5,7 @@ import { useLanguage } from '../utils/i18n';
 import VsTracker from './VsTracker';
 import TrainManager from './TrainManager';
 import DesertStormManager from './DesertStormManager';
+import { MasterMonitor } from './MasterMonitor';
 import { CustomDropdown } from './CustomDropdown';
 import { useToast } from './Toast';
 import { getStalenessInfo, generateOutdatedPowerReport } from '../utils/dateUtils';
@@ -34,7 +35,7 @@ const AdminDashboard: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<'db' | 'vs' | 'train' | 'storm' | 'settings'>('db');
+  const [activeTab, setActiveTab] = useState<'db' | 'vs' | 'train' | 'storm' | 'settings' | 'monitor'>('db');
   
   const [players, setPlayers] = useState<Player[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -247,7 +248,8 @@ const AdminDashboard: React.FC = () => {
                  { id: 'vs', label: t('admin.vs'), color: 'bg-indigo-600' },
                  { id: 'train', label: t('admin.train'), color: 'bg-amber-600' },
                  { id: 'storm', label: 'Desert Storm', color: 'bg-purple-600' },
-                 { id: 'settings', label: 'Systems', color: 'bg-slate-700' }
+                 { id: 'settings', label: 'Systems', color: 'bg-slate-700' },
+                 { id: 'monitor', label: '👑 Master Monitor (MR)', color: 'bg-rose-700' }
              ].map(tab => (
                  <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex-1 sm:flex-none px-5 py-2.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all duration-300 ${activeTab === tab.id ? `${tab.color} text-white shadow-lg` : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}>
                      {tab.label}
@@ -261,7 +263,8 @@ const AdminDashboard: React.FC = () => {
       {activeTab === 'vs' ? ( <VsTracker /> ) : 
        activeTab === 'train' ? ( <TrainManager /> ) :
        activeTab === 'storm' ? ( <DesertStormManager /> ) : 
-       activeTab === 'settings' ? ( <SettingsView /> ) : (
+       activeTab === 'settings' ? ( <SettingsView /> ) :
+       activeTab === 'monitor' ? ( <MasterMonitor addToast={addToast} /> ) : (
           <div className="bg-[#0f172a] rounded-3xl border border-white/5 flex flex-col shadow-2xl overflow-hidden">
                 <div className="p-6 border-b border-white/5 flex flex-col sm:flex-row gap-6 bg-slate-950/20 items-center">
                      <div className="relative w-full sm:w-80 group">

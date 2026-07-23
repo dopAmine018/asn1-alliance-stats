@@ -223,3 +223,15 @@ export interface DesertStormWeek {
   };
   participation: Record<string, PlayerRoleInWeek>;
 }
+
+export interface AuditLog {
+  id: string;
+  createdAt: string;
+  actor: string;
+  category: 'LOGIN' | 'MEMBER_UPDATE' | 'DESERT_STORM' | 'TRAIN_SCHEDULE' | 'VS_TRACKER' | 'SYSTEM_SETTINGS';
+  action: string;
+  ipAddress: string;
+  location: string;
+  userAgent: string;
+  details?: Record<string, any>;
+}
