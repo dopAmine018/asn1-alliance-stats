@@ -355,9 +355,9 @@ const TrainManager: React.FC = () => {
   const posterRef = useRef<HTMLDivElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
 
-  const copySchedulePng = async () => {
+  const saveSchedulePng = async () => {
       if (schedule.length === 0) {
-          addToast('error', 'No schedule available to copy');
+          addToast('error', 'No schedule available to save');
           return;
       }
 
@@ -382,33 +382,56 @@ const TrainManager: React.FC = () => {
               throw new Error('Could not render image blob');
           }
 
-          let copiedToClipboard = false;
+          const dateStr = new Date().toISOString().slice(0, 10);
+          const fileName = `ASN1_Train_Schedule_${dateStr}.png`;
+          const file = new File([blob], fileName, { type: 'image/png' });
 
-          if (navigator.clipboard && window.ClipboardItem) {
+          let shared = false;
+
+          // 1. Mobile Web Share API - opens native phone sheet ("Save Image" to Photos/Gallery/Files)
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
               try {
-                  const item = new ClipboardItem({ 'image/png': blob });
-                  await navigator.clipboard.write([item]);
-                  copiedToClipboard = true;
-              } catch (clipErr) {
-                  console.warn('Clipboard write failed, downloading image instead:', clipErr);
+                  await navigator.share({
+                      title: 'ASN1 Train Schedule',
+                      text: 'ASN1 Alliance Train Schedule',
+                      files: [file],
+                  });
+                  shared = true;
+                  addToast('success', '📱 Saved/Shared Schedule Image!');
+              } catch (shareErr) {
+                  if ((shareErr as Error).name !== 'AbortError') {
+                      console.warn('Native share failed, falling back to direct download:', shareErr);
+                  } else {
+                      shared = true; // User canceled native share dialog
+                  }
               }
           }
 
-          const url = URL.createObjectURL(blob);
-
-          if (copiedToClipboard) {
-              addToast('success', '📸 Schedule PNG copied to clipboard!');
-          } else {
+          // 2. Direct browser file download link (triggers native download on phone/PC)
+          if (!shared) {
+              const url = URL.createObjectURL(blob);
               const link = document.createElement('a');
               link.href = url;
-              link.download = `ASN1_Train_Schedule_${new Date().toISOString().slice(0, 10)}.png`;
+              link.download = fileName;
+              document.body.appendChild(link);
               link.click();
-              addToast('success', '📥 Schedule PNG downloaded!');
-          }
+              document.body.removeChild(link);
+              addToast('success', '📥 Schedule image saved to device downloads!');
 
-          setTimeout(() => URL.revokeObjectURL(url), 5000);
+              // Also copy to clipboard if supported as extra convenience
+              if (navigator.clipboard && window.ClipboardItem) {
+                  try {
+                      const item = new ClipboardItem({ 'image/png': blob });
+                      await navigator.clipboard.write([item]);
+                  } catch (clipErr) {
+                      // ignore clipboard errors
+                  }
+              }
+
+              setTimeout(() => URL.revokeObjectURL(url), 5000);
+          }
       } catch (err) {
-          console.error('Failed to copy image:', err);
+          console.error('Failed to save PNG image:', err);
           addToast('error', 'Failed PNG capture. Copying text orders...');
           await copyTacticalOrdersText();
       } finally {
@@ -489,10 +512,10 @@ const TrainManager: React.FC = () => {
                     <span className="text-[10px] font-bold uppercase tracking-widest">Auto Deploy</span>
                 </button>
                 <button 
-                    onClick={copySchedulePng} 
+                    onClick={saveSchedulePng} 
                     disabled={isCapturing}
                     className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-sky-900/20 click-scale border border-sky-400/20 disabled:opacity-50"
-                    title="Take a picture of the schedule in PNG format and copy to clipboard"
+                    title="Save schedule image (PNG) directly to your phone / device"
                 >
                     {isCapturing ? (
                         <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -500,9 +523,9 @@ const TrainManager: React.FC = () => {
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                     ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                     )}
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Copy PNG Schedule</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Save PNG to Phone</span>
                 </button>
                 <button 
                     onClick={copyTacticalOrdersText}
